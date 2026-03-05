@@ -1,0 +1,17 @@
+{
+  "name": "walke",
+  "version": "1.0.0",
+  "description": "Basic API server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Leoo1129/walke.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  }
+}
