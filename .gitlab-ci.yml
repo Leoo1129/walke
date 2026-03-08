@@ -1,6 +1,8 @@
+image: node:20
+
 stages:
   - checks
-  # - deploy
+  - deploy
 
 before_script:
   - npm install
@@ -27,9 +29,9 @@ linting:
   script:
     - npm run lint
 
-# deploy-job:
-#   stage: deploy
-#   environment: production
-#   script:
-#     - echo "Deploying application..."
-#     - echo "Application successfully deployed."
+deploy-job:
+  stage: deploy
+  environment: production
+  script:
+    - echo "Deploying application..."
+    - echo "Application successfully deployed."
