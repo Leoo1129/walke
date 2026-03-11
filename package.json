@@ -14,5 +14,8 @@
     "start": "node server.js",
     "test": "echo \"No tests yet\"",
     "lint": "echo \"No linting yet\""
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
