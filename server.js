@@ -35,13 +35,20 @@ app.get("/health", function(req, res)
 
 
 // app.post("/orders", orderController.createOrder)
+// app.post("/orders", orderController.getOrder)
+// app.post("/orders", orderController.updateOrder)
 
 // app.post("/products", productController.createProduct)
 // app.get("/products", productController.getProducts)
+// app.post("/orders", orderController.deleteProduct)
 
 // app.post("/users", userController.createUser)
+// app.post("/users", userController.deleteUser)
+// app.post("/users", userController.updateUser)
 
 // app.post("/vouchers", voucherController.createVoucher)
+// app.post("/vouchers", voucherController.deleteVoucher)
+// app.post("/vouchers", voucherController.updateVoucher)
 
 
 app.use(function(req, res)
