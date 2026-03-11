@@ -5,6 +5,7 @@ import sui from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
+import config from './config.json' with { type: 'json' };
 
 // setup web applicatioon
 const app = express();
@@ -22,8 +23,7 @@ app.use('/docs', sui.serve, sui.setup(YAML.parse(file), {
   swaggerOptions: { docExpansion: 'full' }
 }));
 
-// const PORT = parseInt(process.env.PORT || config.port);
-const PORT = process.env.PORT || 3000
+const PORT = parseInt(process.env.PORT || config.port);
 const HOST = process.env.IP || '127.0.0.1';
 
 
