@@ -6,6 +6,12 @@ const PORT = process.env.PORT || 3000
 
 app.use(express.json())
 
+app.use(function(req, res, next)
+{
+    console.log(req.method + " " + req.url)
+    next()
+})
+
 app.get("/", function(req, res)
 {
     res.send("Walke API running")
