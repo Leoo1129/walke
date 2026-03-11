@@ -34,14 +34,14 @@ app.get("/health", function(req, res)
 })
 
 
-app.post("/orders", orderController.createOrder)
+// app.post("/orders", orderController.createOrder)
 
-app.post("/products", productController.createProduct)
-app.get("/products", productController.getProducts)
+// app.post("/products", productController.createProduct)
+// app.get("/products", productController.getProducts)
 
-app.post("/users", userController.createUser)
+// app.post("/users", userController.createUser)
 
-app.post("/vouchers", voucherController.createVoucher)
+// app.post("/vouchers", voucherController.createVoucher)
 
 
 app.use(function(req, res)
