@@ -33,7 +33,7 @@ const HOST = process.env.IP || '127.0.0.1';
 
 
 // const orderController = require("./controllers/orderController")
-// const productController = require("./controllers/productController")
+import * as productController from '../controllers/productController.js';
 // const userController = require("./controllers/userController")
 // const voucherController = require("./controllers/voucherController")
 
@@ -64,9 +64,11 @@ app.get("/health", function(req, res)
 // app.post("/orders", orderController.getOrder)
 // app.post("/orders", orderController.updateOrder)
 
-// app.post("/products", productController.createProduct)
-// app.get("/products", productController.getProducts)
-// app.post("/orders", orderController.deleteProduct)
+app.post("/products", productController.createProduct)
+app.get("/products", productController.getProducts)
+app.get("/products/:id", productController.getProduct)
+app.patch("/products/:id", productController.updateProduct)
+app.delete("/products/:id", productController.deleteProduct)
 
 // app.post("/users", userController.createUser)
 // app.post("/users", userController.deleteUser)
