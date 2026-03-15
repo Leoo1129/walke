@@ -1,4 +1,5 @@
-import express, { json } from 'express';
+// npm imports
+import express, { json } from 'express'; 
 import cors from 'cors';
 import YAML from 'yaml';
 import sui from 'swagger-ui-express';
@@ -6,16 +7,35 @@ import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import { fileURLToPath } from 'url';
-import config from './config.json' with { type: 'json' };
+const config = JSON.parse(fs.readFileSync(new URL('./config.json', import.meta.url), 'utf8'));
+
+// controller imports
+import {
+    createProduct,
+    getProduct,
+    getProducts,
+    updateProduct,
+    deleteProduct
+} from './controllers/productController.js';
+
+import {
+    
+} from './controllers/orderController.js';
+
+import {
+
+}  from './controllers/userController.js';
+
+import { handleErrors } from './handler.js';
+
 
 // setup web applicatioon
-const app = express();
-
 // Use middleware to access .json files
+const app = express();
 app.use(json());
 app.use(express.json());
 
-// Use middleware for allowing access form different domain -- for frontend
+// Use middleware for allowing access form different domain: for frontend
 app.use(cors());
 
 try {
@@ -37,11 +57,63 @@ const HOST = process.env.IP || '127.0.0.1'; // eslint-disable-line no-unused-var
 // ------------------------------------------------------------------------------------------------------
 
 
-// const orderController = require("./controllers/orderController")
-import * as productController from '../controllers/productController.js';
-// const userController = require("./controllers/userController")
-// const voucherController = require("./controllers/voucherController")
+// ---------------------------------- User Controller ----------------------------------
+// app.post("/users", userController.createUser)
+// app.post("/users", userController.deleteUser)
+// app.post("/users", userController.updateUser)
 
+// ---------------------------------- Order Controller ----------------------------------
+// app.post("/orders", orderController.createOrder)
+// app.post("/orders", orderController.getOrder)
+// app.post("/orders", orderController.updateOrder)
+
+// ---------------------------------- Product Controller ----------------------------------
+app.post('/products', async (req, res) => {
+
+    return await handleErrors(res, async () => {
+        const { name, price, seller_id, tags } = req.body;
+        const result = await createProduct(name, price, seller_id, tags);
+        return res.status(201).json(result);
+    });
+});
+
+app.get('/products', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const result = getProducts();
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/products/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await getProduct(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.patch('/products/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await updateProduct(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.delete('/products/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await deleteProduct(id);
+        return res.status(200).json(result);
+    });
+});
+
+// ---------------------------------- Voucher Controller ----------------------------------
+// app.post("/vouchers", voucherController.createVoucher)
+// app.post("/vouchers", voucherController.deleteVoucher)
+// app.post("/vouchers", voucherController.updateVoucher)
+
+// ---------------------------------- Other ----------------------------------
 app.use(function(req, res, next)
 {
     console.log(req.method + ' ' + req.url);
@@ -64,33 +136,12 @@ app.get('/health', function(req, res)
     });
 });
 
-
-// app.post("/orders", orderController.createOrder)
-// app.post("/orders", orderController.getOrder)
-// app.post("/orders", orderController.updateOrder)
-
-app.post('/products', productController.createProduct);
-app.get('/products', productController.getProducts);
-app.get('/products/:id', productController.getProduct);
-app.patch('/products/:id', productController.updateProduct);
-app.delete('/products/:id', productController.deleteProduct);
-
-// app.post("/users", userController.createUser)
-// app.post("/users", userController.deleteUser)
-// app.post("/users", userController.updateUser)
-
-// app.post("/vouchers", voucherController.createVoucher)
-// app.post("/vouchers", voucherController.deleteVoucher)
-// app.post("/vouchers", voucherController.updateVoucher)
-
-
 app.use(function(req, res)
 {
     res.status(404).json({
         error: 'route not found'
     });
 });
-
 
 export { app };
 
