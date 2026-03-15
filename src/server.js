@@ -27,8 +27,12 @@ import {
 } from './controllers/productController.js';
 
 import {
-
-}  from './controllers/userController.js';
+    createUser,
+    getUser,
+    getUsers,
+    updateUser,
+    deleteUser
+} from './controllers/userController.js';
 
 import {
     createVoucher,
@@ -70,9 +74,44 @@ const HOST = process.env.IP || '127.0.0.1'; // eslint-disable-line no-unused-var
 
 
 // ---------------------------------- User Controller ----------------------------------
-// app.post("/users", userController.createUser)
-// app.post("/users", userController.deleteUser)
-// app.post("/users", userController.updateUser)
+app.post('/users', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { name, password, street, city, postcode, country } = req.body;
+        const result = await createUser(name, password, street, city, postcode, country);
+        return res.status(201).json(result);
+    });
+});
+
+app.get('/users', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const result = await getUsers();
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/users/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await getUser(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.patch('/users/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await updateUser(id, req.body);
+        return res.status(200).json(result);
+    });
+});
+
+app.delete('/users/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await deleteUser(id);
+        return res.status(200).json(result);
+    });
+});
 
 // ---------------------------------- Order Controller ----------------------------------
 app.post('/orders', async (req, res) => {
