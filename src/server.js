@@ -14,6 +14,7 @@ const config = JSON.parse(fs.readFileSync(new URL('./config.json', import.meta.u
 import {
     createOrder,
     getOrder,
+    getOrderDetails,
     getOrders,
     updateOrder,
     deleteOrder
@@ -170,43 +171,67 @@ function wantsXml(req) {
     return (req.headers.accept || '').includes('application/xml');
 }
 
-function orderToXml(order, items) {
+function orderToXml(order, items, buyer, sellers) {
     const preDiscountTotal = Math.round(
         items.reduce((sum, { price, quantity }) => sum + price * quantity, 0) * 100
     ) / 100;
-    const finalTotal = order.total_price ?? preDiscountTotal;
+    const finalTotal = parseFloat(order.total_price ?? preDiscountTotal);
     const saved = Math.round((preDiscountTotal - finalTotal) * 100) / 100;
 
-    const root = create({ version: '1.0', encoding: 'UTF-8' }).ele('order');
+    const issueDate = new Date(order.created_at);
+    const issueDateStr = issueDate.toISOString().split('T')[0];
+    const issueTimeStr = issueDate.toISOString().split('T')[1].replace(/\.\d+Z$/, '');
 
-    root.ele('id').txt(String(order.id));
-    root.ele('buyer_id').txt(String(order.buyer_id));
-    root.ele('status').txt(order.status);
-    root.ele('voucher_id').txt(order.voucher_id != null ? String(order.voucher_id) : '');
-    root.ele('created_at').txt(String(order.created_at));
+    const root = create({ version: '1.0', encoding: 'UTF-8' })
+        .ele('Order', {
+            'xmlns': 'urn:oasis:names:specification:ubl:schema:xsd:Order-2',
+            'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
+            'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
+        });
 
-    const itemsEle = root.ele('items');
-    for (const item of items) {
-        const subtotal = Math.round(item.price * item.quantity * 100) / 100;
-        const itemEle = itemsEle.ele('item');
-        itemEle.ele('product_id').txt(String(item.product_id));
-        itemEle.ele('product_name').txt(item.product_name ?? '');
-        itemEle.ele('seller_id').txt(String(item.seller_id ?? ''));
-        itemEle.ele('unit_price').txt(String(item.price));
-        itemEle.ele('quantity').txt(String(item.quantity));
-        itemEle.ele('subtotal').txt(String(subtotal));
+    root.ele('cbc:UBLVersionID').txt('2.1');
+    root.ele('cbc:ID').txt(String(order.id));
+    root.ele('cbc:IssueDate').txt(issueDateStr);
+    root.ele('cbc:IssueTime').txt(issueTimeStr);
+    root.ele('cbc:DocumentCurrencyCode').txt('AUD');
+    root.ele('cbc:Note').txt(`Status: ${order.status}`);
+
+    const buyerParty = root.ele('cac:BuyerCustomerParty').ele('cac:Party');
+    buyerParty.ele('cac:PartyName').ele('cbc:Name').txt(buyer?.name ?? '');
+    const buyerAddr = buyerParty.ele('cac:PostalAddress');
+    if (buyer?.street) buyerAddr.ele('cbc:StreetName').txt(buyer.street);
+    if (buyer?.city) buyerAddr.ele('cbc:CityName').txt(buyer.city);
+    if (buyer?.postcode) buyerAddr.ele('cbc:PostalZone').txt(buyer.postcode);
+    if (buyer?.country) buyerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(buyer.country);
+
+    for (const seller of (sellers || [])) {
+        const sellerParty = root.ele('cac:SellerSupplierParty').ele('cac:Party');
+        sellerParty.ele('cac:PartyIdentification').ele('cbc:ID').txt(String(seller.id));
+        sellerParty.ele('cac:PartyName').ele('cbc:Name').txt(seller.name ?? '');
+        const sellerAddr = sellerParty.ele('cac:PostalAddress');
+        if (seller.street) sellerAddr.ele('cbc:StreetName').txt(seller.street);
+        if (seller.city) sellerAddr.ele('cbc:CityName').txt(seller.city);
+        if (seller.postcode) sellerAddr.ele('cbc:PostalZone').txt(seller.postcode);
+        if (seller.country) sellerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(seller.country);
     }
 
-    const sellerIds = [...new Set(items.map(i => i.seller_id).filter(Boolean))];
-    const sellersEle = root.ele('sellers');
-    for (const sid of sellerIds) {
-        sellersEle.ele('seller_id').txt(String(sid));
-    }
+    items.forEach((item, index) => {
+        const lineExt = Math.round(item.price * item.quantity * 100) / 100;
+        const line = root.ele('cac:OrderLine');
+        const lineItem = line.ele('cac:LineItem');
+        lineItem.ele('cbc:ID').txt(String(index + 1));
+        lineItem.ele('cbc:Quantity', { unitCode: 'C62' }).txt(String(item.quantity));
+        lineItem.ele('cbc:LineExtensionAmount', { currencyID: 'AUD' }).txt(String(lineExt));
+        lineItem.ele('cac:Price').ele('cbc:PriceAmount', { currencyID: 'AUD' }).txt(String(item.price));
+        const itemEle = lineItem.ele('cac:Item');
+        itemEle.ele('cbc:Name').txt(item.product_name ?? '');
+        itemEle.ele('cac:SellersItemIdentification').ele('cbc:ID').txt(String(item.product_id));
+    });
 
-    const summaryEle = root.ele('summary');
-    summaryEle.ele('items_subtotal').txt(String(preDiscountTotal));
-    summaryEle.ele('discount_saved').txt(String(saved));
-    summaryEle.ele('total_price').txt(String(finalTotal));
+    const totals = root.ele('cac:AnticipatedMonetaryTotal');
+    totals.ele('cbc:LineExtensionAmount', { currencyID: 'AUD' }).txt(String(preDiscountTotal));
+    if (saved > 0) totals.ele('cbc:AllowanceTotalAmount', { currencyID: 'AUD' }).txt(String(saved));
+    totals.ele('cbc:PayableAmount', { currencyID: 'AUD' }).txt(String(finalTotal));
 
     return root.end({ prettyPrint: true });
 }
@@ -215,12 +240,12 @@ function orderToXml(order, items) {
 app.post('/orders', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { voucher_id } = req.body;
-        const { order, items } = await createOrder(req.user.id, voucher_id);
+        const { order, items, buyer, sellers } = await createOrder(req.user.id, voucher_id);
 
         if (wantsXml(req)) {
             return res.status(201)
                 .set('Content-Type', 'application/xml')
-                .send(orderToXml(order, items));
+                .send(orderToXml(order, items, buyer, sellers));
         }
 
         return res.status(201).json({ ...order, items });
@@ -237,6 +262,12 @@ app.get('/orders', async (req, res) => {
 app.get('/orders/:id', async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
+        if (wantsXml(req)) {
+            const { order, items, buyer, sellers } = await getOrderDetails(id);
+            return res.status(200)
+                .set('Content-Type', 'application/xml')
+                .send(orderToXml(order, items, buyer, sellers));
+        }
         const result = await getOrder(id);
         return res.status(200).json(result);
     });

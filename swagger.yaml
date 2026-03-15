@@ -686,7 +686,7 @@ paths:
 
         Supports content negotiation via the `Accept` header:
         - `Accept: application/json` (default) — returns JSON
-        - `Accept: application/xml` — returns a full XML order summary with per-item pricing, seller info, and totals
+        - `Accept: application/xml` — returns a UBL 2.1 Order XML with buyer address, seller parties, order lines, and monetary totals
       tags:
         - orders
       security:
@@ -791,7 +791,10 @@ paths:
   /orders/{id}:
     get:
       summary: Get an order by ID
-      description: Retrieve a single order by its ID
+      description: |
+        Retrieve a single order by its ID. Supports content negotiation:
+        - `Accept: application/json` (default) — returns order fields
+        - `Accept: application/xml` — returns full UBL 2.1 Order XML with buyer, seller, and line item details
       tags:
         - orders
       parameters:
