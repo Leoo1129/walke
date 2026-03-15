@@ -1,16 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
-vi.mock('../../src/models/productModel.js', () => ({
-    createProduct: vi.fn(),
-    getProducts: vi.fn(),
-    getProductById: vi.fn(),
-    updateProduct: vi.fn(),
-    deleteProduct: vi.fn(),
+vi.mock('../../src/database/database.js', () => ({
+    default: { query: vi.fn() }
 }));
 
 import { app } from '../../src/server.js';
-import * as ProductModel from '../../src/models/productModel.js';
+import pool from '../../src/database/database.js';
 
 describe('Products API (Black Box)', () => {
 
@@ -24,7 +20,7 @@ describe('Products API (Black Box)', () => {
 
             const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
 
-            ProductModel.createProduct.mockResolvedValue(product);
+            pool.query.mockResolvedValue({ rows: [product] });
 
             const res = await request(app)
                 .post('/products')
@@ -51,7 +47,7 @@ describe('Products API (Black Box)', () => {
 
         it('returns 500 on database failure', async () => {
 
-            ProductModel.createProduct.mockRejectedValue(new Error('db error'));
+            pool.query.mockRejectedValue(new Error('db error'));
 
             const res = await request(app)
                 .post('/products')
@@ -75,7 +71,7 @@ describe('Products API (Black Box)', () => {
                 { id: 2, name: 'Gadget', price: 19.99, seller_id: 2 }
             ];
 
-            ProductModel.getProducts.mockResolvedValue(products);
+            pool.query.mockResolvedValue({ rows: products });
 
             const res = await request(app).get('/products');
 
@@ -85,7 +81,7 @@ describe('Products API (Black Box)', () => {
 
         it('returns 500 on database error', async () => {
 
-            ProductModel.getProducts.mockRejectedValue(new Error('db error'));
+            pool.query.mockRejectedValue(new Error('db error'));
 
             const res = await request(app).get('/products');
 
@@ -100,7 +96,7 @@ describe('Products API (Black Box)', () => {
 
             const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
 
-            ProductModel.getProductById.mockResolvedValue(product);
+            pool.query.mockResolvedValue({ rows: [product] });
 
             const res = await request(app).get('/products/1');
 
@@ -110,7 +106,7 @@ describe('Products API (Black Box)', () => {
 
         it('returns 404 when product does not exist', async () => {
 
-            ProductModel.getProductById.mockResolvedValue(null);
+            pool.query.mockResolvedValue({ rows: [] });
 
             const res = await request(app).get('/products/999');
 
@@ -119,7 +115,7 @@ describe('Products API (Black Box)', () => {
 
         it('returns 500 on database error', async () => {
 
-            ProductModel.getProductById.mockRejectedValue(new Error('db error'));
+            pool.query.mockRejectedValue(new Error('db error'));
 
             const res = await request(app).get('/products/1');
 
@@ -134,7 +130,7 @@ describe('Products API (Black Box)', () => {
 
             const updated = { id: 1, name: 'Updated', price: 9.99, seller_id: 1 };
 
-            ProductModel.updateProduct.mockResolvedValue(updated);
+            pool.query.mockResolvedValue({ rows: [updated] });
 
             const res = await request(app)
                 .patch('/products/1')
@@ -146,7 +142,7 @@ describe('Products API (Black Box)', () => {
 
         // it('returns 404 if product does not exist', async () => {
 
-        //     ProductModel.updateProduct.mockResolvedValue(null);
+        //     pool.query.mockResolvedValue({ rows: [] });
 
         //     const res = await request(app)
         //         .patch('/products/999')
@@ -157,7 +153,7 @@ describe('Products API (Black Box)', () => {
 
         it('returns 500 on database error', async () => {
 
-            ProductModel.updateProduct.mockRejectedValue(new Error('db error'));
+            pool.query.mockRejectedValue(new Error('db error'));
 
             const res = await request(app)
                 .patch('/products/1')
@@ -174,7 +170,7 @@ describe('Products API (Black Box)', () => {
 
             const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
 
-            ProductModel.deleteProduct.mockResolvedValue(product);
+            pool.query.mockResolvedValue({ rows: [product] });
 
             const res = await request(app).delete('/products/1');
 
@@ -184,7 +180,7 @@ describe('Products API (Black Box)', () => {
 
         it('returns 404 if product does not exist', async () => {
 
-            ProductModel.deleteProduct.mockResolvedValue(null);
+            pool.query.mockResolvedValue({ rows: [] });
 
             const res = await request(app).delete('/products/999');
 
@@ -193,7 +189,7 @@ describe('Products API (Black Box)', () => {
 
         it('returns 500 on database error', async () => {
 
-            ProductModel.deleteProduct.mockRejectedValue(new Error('db error'));
+            pool.query.mockRejectedValue(new Error('db error'));
 
             const res = await request(app).delete('/products/1');
 
