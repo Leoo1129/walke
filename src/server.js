@@ -26,6 +26,14 @@ import {
 
 }  from './controllers/userController.js';
 
+import {
+    createVoucher,
+    getVoucher,
+    getVouchers,
+    updateVoucher,
+    deleteVoucher
+} from './controllers/voucherController.js';
+
 import { handleErrors } from './handler.js';
 
 
@@ -109,9 +117,44 @@ app.delete('/products/:id', async (req, res) => {
 });
 
 // ---------------------------------- Voucher Controller ----------------------------------
-// app.post("/vouchers", voucherController.createVoucher)
-// app.post("/vouchers", voucherController.deleteVoucher)
-// app.post("/vouchers", voucherController.updateVoucher)
+app.post('/vouchers', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { code, discount, seller_id } = req.body;
+        const result = await createVoucher(code, discount, seller_id);
+        return res.status(201).json(result);
+    });
+});
+
+app.get('/vouchers', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const result = await getVouchers();
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/vouchers/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await getVoucher(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.patch('/vouchers/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await updateVoucher(id, req.body);
+        return res.status(200).json(result);
+    });
+});
+
+app.delete('/vouchers/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await deleteVoucher(id);
+        return res.status(200).json(result);
+    });
+});
 
 // ---------------------------------- Other ----------------------------------
 app.use(function(req, res, next)
