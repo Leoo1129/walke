@@ -79,7 +79,7 @@ app.post('/products', async (req, res) => {
 
 app.get('/products', async (req, res) => {
     return await handleErrors(res, async () => {
-        const result = getProducts();
+        const result = await getProducts();
         return res.status(200).json(result);
     });
 });
@@ -95,7 +95,7 @@ app.get('/products/:id', async (req, res) => {
 app.patch('/products/:id', async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await updateProduct(id);
+        const result = await updateProduct(id, req.body);
         return res.status(200).json(result);
     });
 });

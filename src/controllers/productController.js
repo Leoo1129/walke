@@ -6,7 +6,7 @@ export async function createProduct(name, price, seller_id, tags) {
         throw new InputError('name, price, and seller_id are required');
 
     const product = await ProductModel.createProduct(name, price, seller_id, tags);
-    
+
     if (!product) {
         const error = new Error('No products found');
         error.statusCode = 404;
@@ -17,7 +17,7 @@ export async function createProduct(name, price, seller_id, tags) {
 }
 
 export async function getProducts() {
-    const products = await ProductModel.getAll();
+    const products = await ProductModel.getProducts();
 
     if (!products || products.length === 0) {
         const error = new Error('No products found');
@@ -40,9 +40,9 @@ export async function getProduct(id) {
     return product;
 }
 
-export async function updateProduct(id) {
+export async function updateProduct(id, fields) {
 
-    const product = await ProductModel.updateProduct(id);
+    const product = await ProductModel.updateProduct(id, fields);
     if (!product) {
         const error = new Error('Product not found or no valid fields to update');
         error.statusCode = 400;
@@ -53,7 +53,7 @@ export async function updateProduct(id) {
 }
 
 export async function deleteProduct(id) {
-    
+
     const product = await ProductModel.deleteProduct(id);
     if (!product) {
         const error = new Error('Product not found');

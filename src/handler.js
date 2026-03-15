@@ -7,6 +7,7 @@ export async function handleErrors(res, callback) {
         // log errors for changes...
         console.error(e);
         // Fallback for generic "throw new Error()" or database crashes
-        return res.status(500).json({ error: 'Internal Server Error' });
+        const status = e.name === 'InputError' ? 400 : (e.statusCode || 500);
+        return res.status(status).json({ error: e.message || 'Internal Server Error' });
     }
 }
