@@ -23,7 +23,7 @@ psql -U postgres -d procurement -f database/database_schema.sql
 ```bash
 npm start
 ```
-Server runs on `http://127.0.0.1:3000` by default.
+Server runs on `http://walke-api.com` by default.
 
 ---
 
@@ -68,7 +68,7 @@ npm run lint
 ```
 
 ### API Docs
-Available at `http://127.0.0.1:3000/docs` when the server is running.
+Available at `http://walke-api.com/docs` when the server is running.
 
 ---
 
