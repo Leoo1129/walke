@@ -1,0 +1,188 @@
+openapi: 3.0.0
+info:
+  title: Product API
+  version: 1.0.0
+
+paths:
+  /products:
+    post:
+      summary: Create a new product
+      description: Create a new product in the system
+      tags:
+        - products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+                - seller_id
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                seller_id:
+                  type: integer
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  price: { type: number }
+                  seller_id: { type: integer }
+                  tags:
+                    type: array
+                    items: { type: string }
+        "400":
+          description: Invalid request
+        "500":
+          description: Internal server error
+
+    get:
+      summary: Get all products
+      description: Retrieve a list of all products in the system
+      tags:
+        - products
+      responses:
+        "200":
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    name: { type: string }
+                    price: { type: number }
+                    seller_id: { type: integer }
+                    tags:
+                      type: array
+                      items: { type: string }
+        "500":
+          description: Internal server error
+
+  /products/{id}:
+    get:
+      summary: Get a product by ID
+      description: Retrieve a single product by its ID
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the product
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  price: { type: number }
+                  seller_id: { type: integer }
+                  tags:
+                    type: array
+                    items: { type: string }
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+
+    patch:
+      summary: Update a product
+      description: Update one or more fields of a product
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the product to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                tags:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  price: { type: number }
+                  seller_id: { type: integer }
+                  tags:
+                    type: array
+                    items: { type: string }
+        "404":
+          description: Product not found
+        "400":
+          description: Invalid request
+        "500":
+          description: Internal server error
+  
+    delete:
+      summary: Delete a product
+      description: Delete a single product by its ID
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the product to delete
+      responses:
+        "200":
+          description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  price: { type: number }
+                  seller_id: { type: integer }
+                  tags:
+                    type: array
+                    items: { type: string }
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
