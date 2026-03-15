@@ -11,16 +11,20 @@ const config = JSON.parse(fs.readFileSync(new URL('./config.json', import.meta.u
 
 // controller imports
 import {
+    createOrder,
+    getOrder,
+    getOrders,
+    updateOrder,
+    deleteOrder
+} from './controllers/orderController.js';
+
+import {
     createProduct,
     getProduct,
     getProducts,
     updateProduct,
     deleteProduct
 } from './controllers/productController.js';
-
-import {
-    
-} from './controllers/orderController.js';
 
 import {
 
@@ -71,9 +75,44 @@ const HOST = process.env.IP || '127.0.0.1'; // eslint-disable-line no-unused-var
 // app.post("/users", userController.updateUser)
 
 // ---------------------------------- Order Controller ----------------------------------
-// app.post("/orders", orderController.createOrder)
-// app.post("/orders", orderController.getOrder)
-// app.post("/orders", orderController.updateOrder)
+app.post('/orders', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { buyer_id, product_id, quantity } = req.body;
+        const result = await createOrder(buyer_id, product_id, quantity);
+        return res.status(201).json(result);
+    });
+});
+
+app.get('/orders', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const result = await getOrders();
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/orders/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await getOrder(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.patch('/orders/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await updateOrder(id, req.body);
+        return res.status(200).json(result);
+    });
+});
+
+app.delete('/orders/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await deleteOrder(id);
+        return res.status(200).json(result);
+    });
+});
 
 // ---------------------------------- Product Controller ----------------------------------
 app.post('/products', async (req, res) => {
