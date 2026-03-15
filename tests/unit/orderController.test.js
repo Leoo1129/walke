@@ -22,12 +22,17 @@ describe('Orders API (Black Box)', () => {
 
     describe('POST /orders', () => {
 
-        it('returns XML when Accept: application/xml', async () => {
+        it('returns UBL XML when Accept: application/xml', async () => {
 
             const cartItems = [{ product_id: 2, quantity: 3, price: 9.99, product_name: 'Widget', seller_id: 5 }];
             const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 29.97, voucher_id: null, created_at: new Date('2026-01-01') };
+            const buyer = { id: 1, name: 'testuser', street: '123 Main St', city: 'Sydney', postcode: '2000', country: 'AU' };
+            const seller = { id: 5, name: 'SellerUser', street: '456 Shop St', city: 'Melbourne', postcode: '3000', country: 'AU' };
 
-            pool.query.mockResolvedValueOnce({ rows: cartItems });
+            pool.query
+                .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
 
             const mockClient = {
                 query: vi.fn()
@@ -48,27 +53,28 @@ describe('Orders API (Black Box)', () => {
 
             expect(res.status).toBe(201);
             expect(res.headers['content-type']).toMatch(/application\/xml/);
-            expect(res.text).toContain('<order>');
-            expect(res.text).toContain('<id>1</id>');
-            expect(res.text).toContain('<status>pending</status>');
-            expect(res.text).toContain('<product_id>2</product_id>');
-            expect(res.text).toContain('<product_name>Widget</product_name>');
-            expect(res.text).toContain('<unit_price>9.99</unit_price>');
-            expect(res.text).toContain('<subtotal>29.97</subtotal>');
-            expect(res.text).toContain('<seller_id>5</seller_id>');
-            expect(res.text).toContain('<sellers>');
-            expect(res.text).toContain('<summary>');
-            expect(res.text).toContain('<items_subtotal>29.97</items_subtotal>');
-            expect(res.text).toContain('<discount_saved>0</discount_saved>');
-            expect(res.text).toContain('<total_price>29.97</total_price>');
+            expect(res.text).toContain('<cbc:UBLVersionID>2.1</cbc:UBLVersionID>');
+            expect(res.text).toContain('<cbc:ID>1</cbc:ID>');
+            expect(res.text).toContain('<cbc:Note>Status: pending</cbc:Note>');
+            expect(res.text).toContain('<cac:BuyerCustomerParty>');
+            expect(res.text).toContain('<cbc:Name>testuser</cbc:Name>');
+            expect(res.text).toContain('<cac:SellerSupplierParty>');
+            expect(res.text).toContain('<cbc:Name>SellerUser</cbc:Name>');
+            expect(res.text).toContain('<cac:OrderLine>');
+            expect(res.text).toContain('<cbc:Name>Widget</cbc:Name>');
+            expect(res.text).toContain('<cac:AnticipatedMonetaryTotal>');
+            expect(res.text).toContain('29.97');
         });
 
         it('returns JSON by default', async () => {
 
             const cartItems = [{ product_id: 2, quantity: 3, price: 9.99 }];
             const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 29.97, voucher_id: null, created_at: '2026-01-01T00:00:00.000Z' };
+            const buyer = { id: 1, name: 'testuser', street: null, city: null, postcode: null, country: null };
 
-            pool.query.mockResolvedValueOnce({ rows: cartItems });
+            pool.query
+                .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [buyer] });
 
             const mockClient = {
                 query: vi.fn()
@@ -94,13 +100,17 @@ describe('Orders API (Black Box)', () => {
 
         it('applies a percentage voucher (discount < 1)', async () => {
 
-            const cartItems = [{ product_id: 2, quantity: 2, price: 10.00 }];
+            const cartItems = [{ product_id: 2, quantity: 2, price: 10.00, seller_id: 5 }];
             const voucher = { id: 5, name: 'SAVE20', discount: 0.2, expiry: null };
             const order = { id: 2, buyer_id: 1, status: 'pending', total_price: 16.00, voucher_id: 5, created_at: new Date('2026-01-01') };
+            const buyer = { id: 1, name: 'testuser', street: null, city: null, postcode: null, country: null };
+            const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
 
             pool.query
-                .mockResolvedValueOnce({ rows: cartItems })            // SELECT cart_items JOIN products
-                .mockResolvedValueOnce({ rows: [voucher] });           // SELECT vouchers
+                .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
 
             const mockClient = {
                 query: vi.fn()
@@ -124,13 +134,17 @@ describe('Orders API (Black Box)', () => {
 
         it('applies a flat discount voucher (discount >= 1)', async () => {
 
-            const cartItems = [{ product_id: 3, quantity: 1, price: 50.00 }];
+            const cartItems = [{ product_id: 3, quantity: 1, price: 50.00, seller_id: 5 }];
             const voucher = { id: 6, name: 'FLAT10', discount: 10, expiry: null };
             const order = { id: 3, buyer_id: 1, status: 'pending', total_price: 40.00, voucher_id: 6, created_at: new Date('2026-01-01') };
+            const buyer = { id: 1, name: 'testuser', street: null, city: null, postcode: null, country: null };
+            const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
 
             pool.query
                 .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [voucher] });
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
 
             const mockClient = {
                 query: vi.fn()
@@ -157,7 +171,7 @@ describe('Orders API (Black Box)', () => {
 
             pool.query
                 .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [] });                  // voucher not found
+                .mockResolvedValueOnce({ rows: [] });
 
             const res = await request(app)
                 .post('/orders')
@@ -255,7 +269,7 @@ describe('Orders API (Black Box)', () => {
 
     describe('GET /orders/:id', () => {
 
-        it('returns an order when it exists', async () => {
+        it('returns an order as JSON when it exists', async () => {
 
             const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null };
 
@@ -265,6 +279,35 @@ describe('Orders API (Black Box)', () => {
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(order);
+        });
+
+        it('returns UBL XML when Accept: application/xml', async () => {
+
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null, created_at: new Date('2026-01-01') };
+            const items = [{ product_id: 2, quantity: 2, price: 9.99, product_name: 'Widget', seller_id: 5 }];
+            const buyer = { id: 1, name: 'testuser', street: '123 Main St', city: 'Sydney', postcode: '2000', country: 'AU' };
+            const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
+
+            pool.query
+                .mockResolvedValueOnce({ rows: [order] })
+                .mockResolvedValueOnce({ rows: items })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
+
+            const res = await request(app)
+                .get('/orders/1')
+                .set('Accept', 'application/xml');
+
+            expect(res.status).toBe(200);
+            expect(res.headers['content-type']).toMatch(/application\/xml/);
+            expect(res.text).toContain('<cbc:UBLVersionID>2.1</cbc:UBLVersionID>');
+            expect(res.text).toContain('<cbc:ID>1</cbc:ID>');
+            expect(res.text).toContain('<cac:BuyerCustomerParty>');
+            expect(res.text).toContain('<cbc:Name>testuser</cbc:Name>');
+            expect(res.text).toContain('<cac:SellerSupplierParty>');
+            expect(res.text).toContain('<cac:OrderLine>');
+            expect(res.text).toContain('<cbc:Name>Widget</cbc:Name>');
+            expect(res.text).toContain('<cac:AnticipatedMonetaryTotal>');
         });
 
         it('returns 404 when order does not exist', async () => {
