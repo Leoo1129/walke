@@ -57,6 +57,17 @@ CREATE TABLE cart_items (
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
 
+CREATE TABLE order_responses (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL,
+    seller_id INTEGER NOT NULL,
+    response_code VARCHAR(5) NOT NULL,
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+
 CREATE TABLE wishlist (
     user_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,

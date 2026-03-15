@@ -54,6 +54,11 @@ import {
     removeFromCart
 } from './controllers/cartController.js';
 
+import {
+    createOrderResponse,
+    getOrderResponseDetails
+} from './controllers/orderResponseController.js';
+
 import { handleErrors } from './handler.js';
 
 
@@ -236,6 +241,60 @@ function orderToXml(order, items, buyer, sellers) {
     return root.end({ prettyPrint: true });
 }
 
+function orderResponseToXml(response, order, items, buyer, seller) {
+    const issueDate = new Date(response.created_at);
+    const issueDateStr = issueDate.toISOString().split('T')[0];
+    const issueTimeStr = issueDate.toISOString().split('T')[1].replace(/\.\d+Z$/, '');
+
+    const root = create({ version: '1.0', encoding: 'UTF-8' })
+        .ele('OrderResponse', {
+            'xmlns': 'urn:oasis:names:specification:ubl:schema:xsd:OrderResponse-2',
+            'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
+            'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
+        });
+
+    root.ele('cbc:UBLVersionID').txt('2.1');
+    root.ele('cbc:ID').txt(String(response.id));
+    root.ele('cbc:IssueDate').txt(issueDateStr);
+    root.ele('cbc:IssueTime').txt(issueTimeStr);
+    root.ele('cbc:OrderCommunicationTypeCode').txt(response.response_code);
+    if (response.note) root.ele('cbc:Note').txt(response.note);
+
+    root.ele('cac:OrderReference').ele('cbc:ID').txt(String(order.id));
+
+    const sellerParty = root.ele('cac:SellerSupplierParty').ele('cac:Party');
+    sellerParty.ele('cac:PartyIdentification').ele('cbc:ID').txt(String(seller.id));
+    sellerParty.ele('cac:PartyName').ele('cbc:Name').txt(seller.name ?? '');
+    const sellerAddr = sellerParty.ele('cac:PostalAddress');
+    if (seller.street) sellerAddr.ele('cbc:StreetName').txt(seller.street);
+    if (seller.city) sellerAddr.ele('cbc:CityName').txt(seller.city);
+    if (seller.postcode) sellerAddr.ele('cbc:PostalZone').txt(seller.postcode);
+    if (seller.country) sellerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(seller.country);
+
+    const buyerParty = root.ele('cac:BuyerCustomerParty').ele('cac:Party');
+    buyerParty.ele('cac:PartyName').ele('cbc:Name').txt(buyer?.name ?? '');
+    const buyerAddr = buyerParty.ele('cac:PostalAddress');
+    if (buyer?.street) buyerAddr.ele('cbc:StreetName').txt(buyer.street);
+    if (buyer?.city) buyerAddr.ele('cbc:CityName').txt(buyer.city);
+    if (buyer?.postcode) buyerAddr.ele('cbc:PostalZone').txt(buyer.postcode);
+    if (buyer?.country) buyerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(buyer.country);
+
+    items.forEach((item, index) => {
+        const lineExt = Math.round(item.price * item.quantity * 100) / 100;
+        const line = root.ele('cac:OrderLine');
+        const lineItem = line.ele('cac:LineItem');
+        lineItem.ele('cbc:ID').txt(String(index + 1));
+        lineItem.ele('cbc:Quantity', { unitCode: 'C62' }).txt(String(item.quantity));
+        lineItem.ele('cbc:LineExtensionAmount', { currencyID: 'AUD' }).txt(String(lineExt));
+        lineItem.ele('cac:Price').ele('cbc:PriceAmount', { currencyID: 'AUD' }).txt(String(item.price));
+        const itemEle = lineItem.ele('cac:Item');
+        itemEle.ele('cbc:Name').txt(item.product_name ?? '');
+        itemEle.ele('cac:SellersItemIdentification').ele('cbc:ID').txt(String(item.product_id));
+    });
+
+    return root.end({ prettyPrint: true });
+}
+
 // ---------------------------------- Order Controller ----------------------------------
 app.post('/orders', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
@@ -286,6 +345,30 @@ app.delete('/orders/:id', async (req, res) => {
         const { id } = req.params;
         const result = await deleteOrder(id);
         return res.status(200).json(result);
+    });
+});
+
+app.post('/orders/:id/response', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const { response_code, note } = req.body;
+        const result = await createOrderResponse(id, req.user.id, response_code, note);
+        return res.status(201).json(result);
+    });
+});
+
+app.get('/orders/:id/response', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const { response, order, items, buyer, seller } = await getOrderResponseDetails(id);
+
+        if (wantsXml(req)) {
+            return res.status(200)
+                .set('Content-Type', 'application/xml')
+                .send(orderResponseToXml(response, order, items, buyer, seller));
+        }
+
+        return res.status(200).json(response);
     });
 });
 
