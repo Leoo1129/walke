@@ -239,3 +239,226 @@ paths:
         "200": { description: Voucher deleted successfully }
         "404": { description: Voucher not found }
         "500": { description: Internal server error }
+
+  /health:
+    get:
+      summary: Health check
+      description: Check if the API service is running
+      tags:
+        - system
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: order-service
+                  uptime:
+                    type: number
+                    example: 12345.67
+  /orders:
+    post:
+      summary: Create a new order
+      description: Create a new order for a product
+      tags:
+        - orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - buyer_id
+                - product_id
+                - quantity
+              properties:
+                buyer_id:
+                  type: integer
+                  description: ID of the buyer
+                product_id:
+                  type: integer
+                  description: ID of the product being purchased
+                quantity:
+                  type: integer
+                  description: Number of products ordered
+      responses:
+        "201":
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  buyer_id:
+                    type: integer
+                  product_id:
+                    type: integer
+                  quantity:
+                    type: integer
+                  status:
+                    type: string
+        "400":
+          description: buyer_id, product_id, or quantity missing
+        "500":
+          description: Failed to create order
+
+    get:
+      summary: Get all orders
+      description: Retrieve a list of all orders
+      tags:
+        - orders
+      responses:
+        "200":
+          description: A list of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    buyer_id:
+                      type: integer
+                    product_id:
+                      type: integer
+                    quantity:
+                      type: integer
+                    status:
+                      type: string
+        "404":
+          description: No orders found
+        "500":
+          description: Internal server error
+
+  /orders/{id}:
+    get:
+      summary: Get an order by ID
+      description: Retrieve a single order by its ID
+      tags:
+        - orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the order
+      responses:
+        "200":
+          description: Order found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  buyer_id:
+                    type: integer
+                  product_id:
+                    type: integer
+                  quantity:
+                    type: integer
+                  status:
+                    type: string
+        "404":
+          description: Order not found
+        "500":
+          description: Internal server error
+
+    patch:
+      summary: Update an order
+      description: Update order fields (quantity or status)
+      tags:
+        - orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the order to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                status:
+                  type: string
+      responses:
+        "200":
+          description: Order updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  buyer_id:
+                    type: integer
+                  product_id:
+                    type: integer
+                  quantity:
+                    type: integer
+                  status:
+                    type: string
+        "400":
+          description: No valid fields to update
+        "404":
+          description: Order not found
+        "500":
+          description: Internal server error
+
+    delete:
+      summary: Delete an order
+      description: Delete an order by its ID
+      tags:
+        - orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the order
+      responses:
+        "200":
+          description: Order deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  buyer_id:
+                    type: integer
+                  product_id:
+                    type: integer
+                  quantity:
+                    type: integer
+                  status:
+                    type: string
+        "404":
+          description: Order not found
+        "500":
+          description: Internal server error
+
+
