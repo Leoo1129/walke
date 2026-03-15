@@ -1,7 +1,32 @@
 import pool from '../database/database.js';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
 class InputError extends Error {}
+
+export async function login(name, password) {
+    if (!name || !password) {
+        const error = new Error('name and password are required');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const { rows: [user] } = await pool.query(
+        'SELECT id, name, password_hash FROM users WHERE name = $1',
+        [name]
+    );
+
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+        const error = new Error('Invalid credentials');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+    return { token };
+}
 
 export async function createUser(name, password, street, city, postcode, country) {
     if (!name || !password)
