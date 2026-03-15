@@ -27,12 +27,15 @@ import {
 } from './controllers/productController.js';
 
 import {
+    login,
     createUser,
     getUser,
     getUsers,
     updateUser,
     deleteUser
 } from './controllers/userController.js';
+
+import { requireAuth } from './middleware/auth.js';
 
 import {
     createVoucher,
@@ -72,6 +75,15 @@ const HOST = process.env.IP || '127.0.0.1'; // eslint-disable-line no-unused-var
 // ------------------------------ Sever functionalities and API below here ------------------------------
 // ------------------------------------------------------------------------------------------------------
 
+
+// ---------------------------------- Auth ----------------------------------
+app.post('/login', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { name, password } = req.body;
+        const result = await login(name, password);
+        return res.status(200).json(result);
+    });
+});
 
 // ---------------------------------- User Controller ----------------------------------
 app.post('/users', async (req, res) => {
