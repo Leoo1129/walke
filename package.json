@@ -22,6 +22,7 @@
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "swagger-ui-express": "^5.0.1",
+    "xmlbuilder2": "^4.0.3",
     "yaml": "^2.8.2"
   },
   "devDependencies": {

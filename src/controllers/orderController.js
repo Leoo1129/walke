@@ -2,9 +2,55 @@ import pool from '../database/database.js';
 
 class InputError extends Error {}
 
-export async function createOrder(buyer_id, items, total_price, voucher_id = null) {
-    if (!buyer_id || !items || items.length === 0)
-        throw new InputError('buyer_id and items are required');
+export async function createOrder(buyer_id, voucher_id = null) {
+    if (!buyer_id)
+        throw new InputError('buyer_id is required');
+
+    // Fetch cart items joined with product details
+    const { rows: items } = await pool.query(
+        `SELECT ci.product_id, ci.quantity, p.price, p.name AS product_name, p.seller_id
+         FROM cart_items ci
+         JOIN products p ON p.id = ci.product_id
+         WHERE ci.user_id = $1`,
+        [buyer_id]
+    );
+
+    if (items.length === 0) {
+        const error = new Error('Cart is empty');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // Calculate subtotal from cart
+    let total_price = items.reduce((sum, { price, quantity }) => sum + price * quantity, 0);
+
+    // Apply voucher discount if provided
+    if (voucher_id) {
+        const { rows: [voucher] } = await pool.query(
+            'SELECT * FROM vouchers WHERE id = $1',
+            [voucher_id]
+        );
+
+        if (!voucher) {
+            const error = new Error('Voucher not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (voucher.expiry && new Date(voucher.expiry) < new Date()) {
+            const error = new Error('Voucher has expired');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (voucher.discount < 1) {
+            total_price = total_price * (1 - voucher.discount);  // e.g. 0.2 = 20% off
+        } else {
+            total_price = Math.max(0, total_price - voucher.discount);  // e.g. 20 = $20 off
+        }
+
+        total_price = Math.round(total_price * 100) / 100;
+    }
 
     const client = await pool.connect();
     try {
@@ -22,8 +68,10 @@ export async function createOrder(buyer_id, items, total_price, voucher_id = nul
             );
         }
 
+        await client.query('DELETE FROM cart_items WHERE user_id = $1', [buyer_id]);
+
         await client.query('COMMIT');
-        return order;
+        return { order, items };
     } catch (e) {
         await client.query('ROLLBACK');
         throw e;

@@ -1,5 +1,6 @@
 // npm imports
-import express, { json } from 'express'; 
+import express, { json } from 'express';
+import { create } from 'xmlbuilder2';
 import cors from 'cors';
 import YAML from 'yaml';
 import sui from 'swagger-ui-express';
@@ -165,12 +166,64 @@ app.delete('/cart/:product_id', requireAuth, async (req, res) => {
     });
 });
 
+function wantsXml(req) {
+    return (req.headers.accept || '').includes('application/xml');
+}
+
+function orderToXml(order, items) {
+    const preDiscountTotal = Math.round(
+        items.reduce((sum, { price, quantity }) => sum + price * quantity, 0) * 100
+    ) / 100;
+    const finalTotal = order.total_price ?? preDiscountTotal;
+    const saved = Math.round((preDiscountTotal - finalTotal) * 100) / 100;
+
+    const root = create({ version: '1.0', encoding: 'UTF-8' }).ele('order');
+
+    root.ele('id').txt(String(order.id));
+    root.ele('buyer_id').txt(String(order.buyer_id));
+    root.ele('status').txt(order.status);
+    root.ele('voucher_id').txt(order.voucher_id != null ? String(order.voucher_id) : '');
+    root.ele('created_at').txt(String(order.created_at));
+
+    const itemsEle = root.ele('items');
+    for (const item of items) {
+        const subtotal = Math.round(item.price * item.quantity * 100) / 100;
+        const itemEle = itemsEle.ele('item');
+        itemEle.ele('product_id').txt(String(item.product_id));
+        itemEle.ele('product_name').txt(item.product_name ?? '');
+        itemEle.ele('seller_id').txt(String(item.seller_id ?? ''));
+        itemEle.ele('unit_price').txt(String(item.price));
+        itemEle.ele('quantity').txt(String(item.quantity));
+        itemEle.ele('subtotal').txt(String(subtotal));
+    }
+
+    const sellerIds = [...new Set(items.map(i => i.seller_id).filter(Boolean))];
+    const sellersEle = root.ele('sellers');
+    for (const sid of sellerIds) {
+        sellersEle.ele('seller_id').txt(String(sid));
+    }
+
+    const summaryEle = root.ele('summary');
+    summaryEle.ele('items_subtotal').txt(String(preDiscountTotal));
+    summaryEle.ele('discount_saved').txt(String(saved));
+    summaryEle.ele('total_price').txt(String(finalTotal));
+
+    return root.end({ prettyPrint: true });
+}
+
 // ---------------------------------- Order Controller ----------------------------------
 app.post('/orders', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
-        const { buyer_id, items, total_price, voucher_id } = req.body;
-        const result = await createOrder(buyer_id, items, total_price, voucher_id);
-        return res.status(201).json(result);
+        const { voucher_id } = req.body;
+        const { order, items } = await createOrder(req.user.id, voucher_id);
+
+        if (wantsXml(req)) {
+            return res.status(201)
+                .set('Content-Type', 'application/xml')
+                .send(orderToXml(order, items));
+        }
+
+        return res.status(201).json({ ...order, items });
     });
 });
 
