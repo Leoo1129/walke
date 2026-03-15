@@ -1,10 +1,11 @@
-import express, { json } from 'express'; 
+import express, { json } from 'express';
 import cors from 'cors';
 import YAML from 'yaml';
 import sui from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
+import { fileURLToPath } from 'url';
 import config from './config.json' with { type: 'json' };
 
 // setup web applicatioon
@@ -17,11 +18,15 @@ app.use(express.json())
 // Use middleware for allowing access form different domain -- for frontend
 app.use(cors());
 
-const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
-app.get('/', (req, res) => res.redirect('/docs'));
-app.use('/docs', sui.serve, sui.setup(YAML.parse(file), {
-  swaggerOptions: { docExpansion: 'full' }
-}));
+try {
+    const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
+    app.get('/', (req, res) => res.redirect('/docs'));
+    app.use('/docs', sui.serve, sui.setup(YAML.parse(file) || {}, {
+        swaggerOptions: { docExpansion: 'full' }
+    }));
+} catch (_) {
+    // swagger.yaml not found or invalid — skip docs route
+}
 
 const PORT = parseInt(process.env.PORT || config.port);
 const HOST = process.env.IP || '127.0.0.1';
@@ -87,7 +92,11 @@ app.use(function(req, res)
 })
 
 
-app.listen(PORT, function()
-{
-    console.log("⚡️ Server started on port " + PORT)
-})
+export { app };
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    app.listen(PORT, function()
+    {
+        console.log("⚡️ Server started on port " + PORT)
+    })
+}
