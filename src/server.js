@@ -45,6 +45,13 @@ import {
     deleteVoucher
 } from './controllers/voucherController.js';
 
+import {
+    addToCart,
+    getCart,
+    updateCartItem,
+    removeFromCart
+} from './controllers/cartController.js';
+
 import { handleErrors } from './handler.js';
 
 
@@ -121,6 +128,39 @@ app.delete('/users/:id', async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await deleteUser(id);
+        return res.status(200).json(result);
+    });
+});
+
+// ---------------------------------- Cart Controller ----------------------------------
+app.post('/cart', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { product_id, quantity } = req.body;
+        const result = await addToCart(req.user.id, product_id, quantity);
+        return res.status(201).json(result);
+    });
+});
+
+app.get('/cart', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const result = await getCart(req.user.id);
+        return res.status(200).json(result);
+    });
+});
+
+app.patch('/cart/:product_id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { product_id } = req.params;
+        const { quantity } = req.body;
+        const result = await updateCartItem(req.user.id, product_id, quantity);
+        return res.status(200).json(result);
+    });
+});
+
+app.delete('/cart/:product_id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { product_id } = req.params;
+        const result = await removeFromCart(req.user.id, product_id);
         return res.status(200).json(result);
     });
 });
