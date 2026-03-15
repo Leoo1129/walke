@@ -53,13 +53,15 @@ export async function createOrder(buyer_id, voucher_id = null) {
     }
 
     const client = await pool.connect();
+    let order;
     try {
         await client.query('BEGIN');
 
-        const { rows: [order] } = await client.query(
+        const { rows: [createdOrder] } = await client.query(
             'INSERT INTO orders (buyer_id, status, total_price, voucher_id) VALUES ($1, $2, $3, $4) RETURNING *',
             [buyer_id, 'pending', total_price, voucher_id]
         );
+        order = createdOrder;
 
         for (const { product_id, quantity } of items) {
             await client.query(
@@ -71,13 +73,29 @@ export async function createOrder(buyer_id, voucher_id = null) {
         await client.query('DELETE FROM cart_items WHERE user_id = $1', [buyer_id]);
 
         await client.query('COMMIT');
-        return { order, items };
     } catch (e) {
         await client.query('ROLLBACK');
         throw e;
     } finally {
         client.release();
     }
+
+    const { rows: [buyer] } = await pool.query(
+        'SELECT id, name, street, city, postcode, country FROM users WHERE id = $1',
+        [buyer_id]
+    );
+
+    const sellerIds = [...new Set(items.map(i => i.seller_id).filter(Boolean))];
+    let sellers = [];
+    if (sellerIds.length > 0) {
+        const { rows } = await pool.query(
+            'SELECT id, name, street, city, postcode, country FROM users WHERE id = ANY($1)',
+            [sellerIds]
+        );
+        sellers = rows;
+    }
+
+    return { order, items, buyer, sellers };
 }
 
 export async function getOrders() {
@@ -90,6 +108,44 @@ export async function getOrders() {
     }
 
     return rows;
+}
+
+export async function getOrderDetails(id) {
+    const { rows: [order] } = await pool.query(
+        'SELECT * FROM orders WHERE id = $1',
+        [id]
+    );
+
+    if (!order) {
+        const error = new Error('Order not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const { rows: items } = await pool.query(
+        `SELECT oi.product_id, oi.quantity, p.price, p.name AS product_name, p.seller_id
+         FROM order_items oi
+         JOIN products p ON p.id = oi.product_id
+         WHERE oi.order_id = $1`,
+        [id]
+    );
+
+    const { rows: [buyer] } = await pool.query(
+        'SELECT id, name, street, city, postcode, country FROM users WHERE id = $1',
+        [order.buyer_id]
+    );
+
+    const sellerIds = [...new Set(items.map(i => i.seller_id).filter(Boolean))];
+    let sellers = [];
+    if (sellerIds.length > 0) {
+        const { rows } = await pool.query(
+            'SELECT id, name, street, city, postcode, country FROM users WHERE id = ANY($1)',
+            [sellerIds]
+        );
+        sellers = rows;
+    }
+
+    return { order, items, buyer, sellers };
 }
 
 export async function getOrder(id) {
