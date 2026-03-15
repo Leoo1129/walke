@@ -4,10 +4,11 @@ info:
   version: 1.0.0
 
 paths:
+  # ---------------- Products ----------------
   /products:
     post:
       summary: Create a new product
-      description: Create a new product in the system
+      description: Create a new product in the system. The `tags` field is optional.
       tags:
         - products
       requestBody:
@@ -31,6 +32,7 @@ paths:
                   type: array
                   items:
                     type: string
+                  description: Optional list of tags for the product
       responses:
         "201":
           description: Product created successfully
@@ -46,10 +48,8 @@ paths:
                   tags:
                     type: array
                     items: { type: string }
-        "400":
-          description: Invalid request
-        "500":
-          description: Internal server error
+        "400": { description: Invalid request (missing required fields) }
+        "500": { description: Internal server error }
 
     get:
       summary: Get all products
@@ -73,8 +73,8 @@ paths:
                     tags:
                       type: array
                       items: { type: string }
-        "500":
-          description: Internal server error
+        "404": { description: No products found }
+        "500": { description: Internal server error }
 
   /products/{id}:
     get:
@@ -86,8 +86,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema:
-            type: integer
+          schema: { type: integer }
           description: ID of the product
       responses:
         "200":
@@ -104,22 +103,19 @@ paths:
                   tags:
                     type: array
                     items: { type: string }
-        "404":
-          description: Product not found
-        "500":
-          description: Internal server error
+        "404": { description: Product not found }
+        "500": { description: Internal server error }
 
     patch:
       summary: Update a product
-      description: Update one or more fields of a product
+      description: Update one or more fields (`name`, `price`, `tags`) of a product
       tags:
         - products
       parameters:
         - name: id
           in: path
           required: true
-          schema:
-            type: integer
+          schema: { type: integer }
           description: ID of the product to update
       requestBody:
         required: true
@@ -134,27 +130,11 @@ paths:
                   type: array
                   items: { type: string }
       responses:
-        "200":
-          description: Product updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id: { type: integer }
-                  name: { type: string }
-                  price: { type: number }
-                  seller_id: { type: integer }
-                  tags:
-                    type: array
-                    items: { type: string }
-        "404":
-          description: Product not found
-        "400":
-          description: Invalid request
-        "500":
-          description: Internal server error
-  
+        "200": { description: Product updated successfully }
+        "400": { description: No valid fields to update or invalid request }
+        "404": { description: Product not found }
+        "500": { description: Internal server error }
+
     delete:
       summary: Delete a product
       description: Delete a single product by its ID
@@ -164,25 +144,98 @@ paths:
         - name: id
           in: path
           required: true
-          schema:
-            type: integer
+          schema: { type: integer }
           description: ID of the product to delete
       responses:
-        "200":
-          description: Product deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id: { type: integer }
-                  name: { type: string }
-                  price: { type: number }
-                  seller_id: { type: integer }
-                  tags:
-                    type: array
-                    items: { type: string }
-        "404":
-          description: Product not found
-        "500":
-          description: Internal server error
+        "200": { description: Product deleted successfully }
+        "404": { description: Product not found }
+        "500": { description: Internal server error }
+
+  # ---------------- Vouchers ----------------
+  /vouchers:
+    post:
+      summary: Create a new voucher
+      description: Create a new voucher in the system
+      tags:
+        - vouchers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - discount
+                - seller_id
+              properties:
+                code: { type: string }
+                discount: { type: number }
+                seller_id: { type: integer }
+      responses:
+        "201": { description: Voucher created successfully }
+        "400": { description: Missing code, discount, or seller_id }
+        "500": { description: Internal server error }
+
+    get:
+      summary: Get all vouchers
+      description: Retrieve a list of all vouchers
+      tags:
+        - vouchers
+      responses:
+        "200": { description: List of vouchers }
+        "404": { description: No vouchers found }
+        "500": { description: Internal server error }
+
+  /vouchers/{id}:
+    get:
+      summary: Get a voucher by ID
+      tags:
+        - vouchers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Voucher found }
+        "404": { description: Voucher not found }
+        "500": { description: Internal server error }
+
+    patch:
+      summary: Update a voucher
+      tags:
+        - vouchers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+                discount: { type: number }
+      responses:
+        "200": { description: Voucher updated successfully }
+        "400": { description: No valid fields to update or voucher not found }
+        "404": { description: Voucher not found }
+        "500": { description: Internal server error }
+
+    delete:
+      summary: Delete a voucher
+      tags:
+        - vouchers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Voucher deleted successfully }
+        "404": { description: Voucher not found }
+        "500": { description: Internal server error }
