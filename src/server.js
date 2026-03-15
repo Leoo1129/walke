@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import { fileURLToPath } from 'url';
-import config from './config.json' assert { type: 'json' };
+const config = JSON.parse(fs.readFileSync(new URL('./config.json', import.meta.url), 'utf8'));
 
 // controller imports
 import {
@@ -20,11 +20,11 @@ import {
 
 import {
     
-} from './controllers/orderController.js'
+} from './controllers/orderController.js';
 
 import {
 
-}  from './controllers/userController.js'
+}  from './controllers/userController.js';
 
 import { handleErrors } from './handler.js';
 
@@ -92,7 +92,7 @@ app.get('/products/:id', async (req, res) => {
     });
 });
 
-app.patch("/products/:id", async (req, res) => {
+app.patch('/products/:id', async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await updateProduct(id);

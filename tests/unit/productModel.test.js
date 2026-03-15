@@ -4,7 +4,7 @@ vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn() }
 }));
 
-import pool from '../../src/database/database.js'
+import pool from '../../src/database/database.js';
 
 import {
     createProduct,

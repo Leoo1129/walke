@@ -2,18 +2,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../../src/models/productModel.js', () => ({
-  __esModule: true,
-  default: {
-    createProduct: vi.fn(),
-    getAll: vi.fn(),
-    getProducts: vi.fn(),
-    getProductById: vi.fn(),
-    getById: vi.fn(),
-    updateProduct: vi.fn(),
-    update: vi.fn(),
-    deleteProduct: vi.fn(),
-    delete: vi.fn()
-  }
+    __esModule: true,
+    default: {
+        createProduct: vi.fn(),
+        getAll: vi.fn(),
+        getProducts: vi.fn(),
+        getProductById: vi.fn(),
+        getById: vi.fn(),
+        updateProduct: vi.fn(),
+        update: vi.fn(),
+        deleteProduct: vi.fn(),
+        delete: vi.fn()
+    }
 }));
 
 import { app } from '../../src/server.js';
@@ -21,192 +21,192 @@ import ProductModel from '../../src/models/productModel.js';
 
 describe('Products API (Black Box)', () => {
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('POST /products', () => {
-
-    it('creates a product successfully', async () => {
-
-      const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
-
-      ProductModel.createProduct.mockResolvedValue(product);
-
-      const res = await request(app)
-        .post('/products')
-        .send({
-          name: 'Widget',
-          price: 9.99,
-          seller_id: 1
-        });
-
-      expect(res.status).toBe(500);
-    //   expect(res.body).toEqual(product);
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
-    // it('fails when required fields are missing', async () => {
+    describe('POST /products', () => {
 
-    //   const res = await request(app)
-    //     .post('/products')
-    //     .send({
-    //       price: 9.99
+        it('creates a product successfully', async () => {
+
+            const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
+
+            ProductModel.createProduct.mockResolvedValue(product);
+
+            const res = await request(app)
+                .post('/products')
+                .send({
+                    name: 'Widget',
+                    price: 9.99,
+                    seller_id: 1
+                });
+
+            expect(res.status).toBe(500);
+            //   expect(res.body).toEqual(product);
+        });
+
+        // it('fails when required fields are missing', async () => {
+
+        //   const res = await request(app)
+        //     .post('/products')
+        //     .send({
+        //       price: 9.99
+        //     });
+
+        //   expect(res.status).toBe(400);
+        // });
+
+        // it('returns 500 on database failure', async () => {
+
+        //   ProductModel.createProduct.mockRejectedValue(new Error('db error'));
+
+        //   const res = await request(app)
+        //     .post('/products')
+        //     .send({
+        //       name: 'Widget',
+        //       price: 9.99,
+        //       seller_id: 1
+        //     });
+
+        //   expect(res.status).toBe(500);
+        // });
+
+    });
+
+    //   describe('GET /products', () => {
+
+    //     it('returns all products', async () => {
+
+    //       const products = [
+    //         { id: 1, name: 'Widget', price: 9.99, seller_id: 1 },
+    //         { id: 2, name: 'Gadget', price: 19.99, seller_id: 2 }
+    //       ];
+
+    //       ProductModel.getProducts.mockResolvedValue(products);
+
+    //       const res = await request(app).get('/products');
+
+    //       expect(res.status).toBe(200);
+    //       expect(res.body).toEqual(products);
     //     });
 
-    //   expect(res.status).toBe(400);
-    // });
+    //     it('returns 500 on database error', async () => {
 
-    // it('returns 500 on database failure', async () => {
+    //       ProductModel.getProducts.mockRejectedValue(new Error('db error'));
 
-    //   ProductModel.createProduct.mockRejectedValue(new Error('db error'));
+    //       const res = await request(app).get('/products');
 
-    //   const res = await request(app)
-    //     .post('/products')
-    //     .send({
-    //       name: 'Widget',
-    //       price: 9.99,
-    //       seller_id: 1
+    //       expect(res.status).toBe(500);
     //     });
 
-    //   expect(res.status).toBe(500);
-    // });
+    //   });
 
-  });
+    //   describe('GET /products/:id', () => {
 
-//   describe('GET /products', () => {
+    //     it('returns a product when it exists', async () => {
 
-//     it('returns all products', async () => {
+    //       const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
 
-//       const products = [
-//         { id: 1, name: 'Widget', price: 9.99, seller_id: 1 },
-//         { id: 2, name: 'Gadget', price: 19.99, seller_id: 2 }
-//       ];
+    //       ProductModel.getProductById.mockResolvedValue(product);
 
-//       ProductModel.getProducts.mockResolvedValue(products);
+    //       const res = await request(app).get('/products/1');
 
-//       const res = await request(app).get('/products');
+    //       expect(res.status).toBe(200);
+    //       expect(res.body).toEqual(product);
+    //     });
 
-//       expect(res.status).toBe(200);
-//       expect(res.body).toEqual(products);
-//     });
+    //     it('returns 404 when product does not exist', async () => {
 
-//     it('returns 500 on database error', async () => {
+    //       ProductModel.getProductById.mockResolvedValue(null);
 
-//       ProductModel.getProducts.mockRejectedValue(new Error('db error'));
+    //       const res = await request(app).get('/products/999');
 
-//       const res = await request(app).get('/products');
+    //       expect(res.status).toBe(404);
+    //     });
 
-//       expect(res.status).toBe(500);
-//     });
+    //     it('returns 500 on database error', async () => {
 
-//   });
+    //       ProductModel.getProductById.mockRejectedValue(new Error('db error'));
 
-//   describe('GET /products/:id', () => {
+    //       const res = await request(app).get('/products/1');
 
-//     it('returns a product when it exists', async () => {
+    //       expect(res.status).toBe(500);
+    //     });
 
-//       const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
+    //   });
 
-//       ProductModel.getProductById.mockResolvedValue(product);
+    //   describe('PATCH /products/:id', () => {
 
-//       const res = await request(app).get('/products/1');
+    //     it('updates a product successfully', async () => {
 
-//       expect(res.status).toBe(200);
-//       expect(res.body).toEqual(product);
-//     });
+    //       const updated = { id: 1, name: 'Updated', price: 9.99, seller_id: 1 };
 
-//     it('returns 404 when product does not exist', async () => {
+    //       ProductModel.updateProduct.mockResolvedValue(updated);
 
-//       ProductModel.getProductById.mockResolvedValue(null);
+    //       const res = await request(app)
+    //         .patch('/products/1')
+    //         .send({ name: 'Updated' });
 
-//       const res = await request(app).get('/products/999');
+    //       expect(res.status).toBe(200);
+    //       expect(res.body).toEqual(updated);
+    //     });
 
-//       expect(res.status).toBe(404);
-//     });
+    //     it('returns 404 if product does not exist', async () => {
 
-//     it('returns 500 on database error', async () => {
+    //       ProductModel.updateProduct.mockResolvedValue(null);
 
-//       ProductModel.getProductById.mockRejectedValue(new Error('db error'));
+    //       const res = await request(app)
+    //         .patch('/products/999')
+    //         .send({ name: 'Ghost' });
 
-//       const res = await request(app).get('/products/1');
+    //       expect(res.status).toBe(404);
+    //     });
 
-//       expect(res.status).toBe(500);
-//     });
+    //     it('returns 500 on database error', async () => {
 
-//   });
+    //       ProductModel.updateProduct.mockRejectedValue(new Error('db error'));
 
-//   describe('PATCH /products/:id', () => {
+    //       const res = await request(app)
+    //         .patch('/products/1')
+    //         .send({ name: 'x' });
 
-//     it('updates a product successfully', async () => {
+    //       expect(res.status).toBe(500);
+    //     });
 
-//       const updated = { id: 1, name: 'Updated', price: 9.99, seller_id: 1 };
+    //   });
 
-//       ProductModel.updateProduct.mockResolvedValue(updated);
+    //   describe('DELETE /products/:id', () => {
 
-//       const res = await request(app)
-//         .patch('/products/1')
-//         .send({ name: 'Updated' });
+    //     it('deletes a product successfully', async () => {
 
-//       expect(res.status).toBe(200);
-//       expect(res.body).toEqual(updated);
-//     });
+    //       const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
 
-//     it('returns 404 if product does not exist', async () => {
+    //       ProductModel.deleteProduct.mockResolvedValue(product);
 
-//       ProductModel.updateProduct.mockResolvedValue(null);
+    //       const res = await request(app).delete('/products/1');
 
-//       const res = await request(app)
-//         .patch('/products/999')
-//         .send({ name: 'Ghost' });
+    //       expect(res.status).toBe(200);
+    //       expect(res.body).toEqual(product);
+    //     });
 
-//       expect(res.status).toBe(404);
-//     });
+    //     it('returns 404 if product does not exist', async () => {
 
-//     it('returns 500 on database error', async () => {
+    //       ProductModel.deleteProduct.mockResolvedValue(null);
 
-//       ProductModel.updateProduct.mockRejectedValue(new Error('db error'));
+    //       const res = await request(app).delete('/products/999');
 
-//       const res = await request(app)
-//         .patch('/products/1')
-//         .send({ name: 'x' });
+    //       expect(res.status).toBe(404);
+    //     });
 
-//       expect(res.status).toBe(500);
-//     });
+    //     it('returns 500 on database error', async () => {
 
-//   });
+    //       ProductModel.deleteProduct.mockRejectedValue(new Error('db error'));
 
-//   describe('DELETE /products/:id', () => {
+    //       const res = await request(app).delete('/products/1');
 
-//     it('deletes a product successfully', async () => {
+    //       expect(res.status).toBe(500);
+    //     });
 
-//       const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
-
-//       ProductModel.deleteProduct.mockResolvedValue(product);
-
-//       const res = await request(app).delete('/products/1');
-
-//       expect(res.status).toBe(200);
-//       expect(res.body).toEqual(product);
-//     });
-
-//     it('returns 404 if product does not exist', async () => {
-
-//       ProductModel.deleteProduct.mockResolvedValue(null);
-
-//       const res = await request(app).delete('/products/999');
-
-//       expect(res.status).toBe(404);
-//     });
-
-//     it('returns 500 on database error', async () => {
-
-//       ProductModel.deleteProduct.mockRejectedValue(new Error('db error'));
-
-//       const res = await request(app).delete('/products/1');
-
-//       expect(res.status).toBe(500);
-//     });
-
-//   });
+    //   });
 
 });
