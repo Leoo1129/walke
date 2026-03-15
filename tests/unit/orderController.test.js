@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../../src/database/database.js', () => ({
-    default: { query: vi.fn() }
+    default: {
+        query: vi.fn(),
+        connect: vi.fn()
+    }
 }));
 
 import { app } from '../../src/server.js';
@@ -18,16 +21,24 @@ describe('Orders API (Black Box)', () => {
 
         it('creates an order successfully', async () => {
 
-            const order = { id: 1, buyer_id: 1, product_id: 2, quantity: 3 };
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null };
 
-            pool.query.mockResolvedValue({ rows: [order] });
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)                  // BEGIN
+                    .mockResolvedValueOnce({ rows: [order] })          // INSERT orders
+                    .mockResolvedValueOnce(undefined)                  // INSERT order_items
+                    .mockResolvedValueOnce(undefined),                 // COMMIT
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
 
             const res = await request(app)
                 .post('/orders')
                 .send({
                     buyer_id: 1,
-                    product_id: 2,
-                    quantity: 3
+                    items: [{ product_id: 2, quantity: 3 }],
+                    total_price: 19.99
                 });
 
             expect(res.status).toBe(201);
@@ -36,14 +47,20 @@ describe('Orders API (Black Box)', () => {
 
         it('returns 500 on database failure', async () => {
 
-            pool.query.mockRejectedValue(new Error('db error'));
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)                  // BEGIN
+                    .mockRejectedValueOnce(new Error('db error')),     // INSERT orders fails
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
 
             const res = await request(app)
                 .post('/orders')
                 .send({
                     buyer_id: 1,
-                    product_id: 2,
-                    quantity: 3
+                    items: [{ product_id: 2, quantity: 3 }],
+                    total_price: 19.99
                 });
 
             expect(res.status).toBe(500);
@@ -56,8 +73,8 @@ describe('Orders API (Black Box)', () => {
         it('returns all orders', async () => {
 
             const orders = [
-                { id: 1, buyer_id: 1, product_id: 2, quantity: 3 },
-                { id: 2, buyer_id: 2, product_id: 3, quantity: 1 }
+                { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null },
+                { id: 2, buyer_id: 2, status: 'completed', total_price: 9.99, voucher_id: null }
             ];
 
             pool.query.mockResolvedValue({ rows: orders });
@@ -83,7 +100,7 @@ describe('Orders API (Black Box)', () => {
 
         it('returns an order when it exists', async () => {
 
-            const order = { id: 1, buyer_id: 1, product_id: 2, quantity: 3 };
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null };
 
             pool.query.mockResolvedValue({ rows: [order] });
 
@@ -117,13 +134,13 @@ describe('Orders API (Black Box)', () => {
 
         it('updates an order successfully', async () => {
 
-            const updated = { id: 1, buyer_id: 1, product_id: 2, quantity: 5 };
+            const updated = { id: 1, buyer_id: 1, status: 'completed', total_price: 19.99, voucher_id: null };
 
             pool.query.mockResolvedValue({ rows: [updated] });
 
             const res = await request(app)
                 .patch('/orders/1')
-                .send({ quantity: 5 });
+                .send({ status: 'completed' });
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(updated);
@@ -135,7 +152,7 @@ describe('Orders API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/orders/1')
-                .send({ quantity: 5 });
+                .send({ status: 'completed' });
 
             expect(res.status).toBe(500);
         });
@@ -146,7 +163,7 @@ describe('Orders API (Black Box)', () => {
 
         it('deletes an order successfully', async () => {
 
-            const order = { id: 1, buyer_id: 1, product_id: 2, quantity: 3 };
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null };
 
             pool.query.mockResolvedValue({ rows: [order] });
 

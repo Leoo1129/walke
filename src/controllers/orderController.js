@@ -2,22 +2,34 @@ import pool from '../database/database.js';
 
 class InputError extends Error {}
 
-export async function createOrder(buyer_id, product_id, quantity) {
-    if (!buyer_id || !product_id || quantity == null)
-        throw new InputError('buyer_id, product_id, and quantity are required');
+export async function createOrder(buyer_id, items, total_price, voucher_id = null) {
+    if (!buyer_id || !items || items.length === 0)
+        throw new InputError('buyer_id and items are required');
 
-    const { rows: [order] } = await pool.query(
-        'INSERT INTO orders (buyer_id, product_id, quantity) VALUES ($1, $2, $3) RETURNING *',
-        [buyer_id, product_id, quantity]
-    );
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
 
-    if (!order) {
-        const error = new Error('Failed to create order');
-        error.statusCode = 500;
-        throw error;
+        const { rows: [order] } = await client.query(
+            'INSERT INTO orders (buyer_id, status, total_price, voucher_id) VALUES ($1, $2, $3, $4) RETURNING *',
+            [buyer_id, 'pending', total_price, voucher_id]
+        );
+
+        for (const { product_id, quantity } of items) {
+            await client.query(
+                'INSERT INTO order_items (order_id, product_id, quantity) VALUES ($1, $2, $3)',
+                [order.id, product_id, quantity]
+            );
+        }
+
+        await client.query('COMMIT');
+        return order;
+    } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+    } finally {
+        client.release();
     }
-
-    return order;
 }
 
 export async function getOrders() {
@@ -48,7 +60,7 @@ export async function getOrder(id) {
 }
 
 export async function updateOrder(id, fields) {
-    const allowed = ['quantity', 'status'];
+    const allowed = ['status', 'total_price', 'voucher_id'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {

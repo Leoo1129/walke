@@ -18,16 +18,17 @@ describe('Vouchers API (Black Box)', () => {
 
         it('creates a voucher successfully', async () => {
 
-            const voucher = { id: 1, code: 'SAVE10', discount: 10, seller_id: 1 };
+            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 };
 
             pool.query.mockResolvedValue({ rows: [voucher] });
 
             const res = await request(app)
                 .post('/vouchers')
                 .send({
-                    code: 'SAVE10',
+                    name: 'Summer Sale',
                     discount: 10,
-                    seller_id: 1
+                    expiry: null,
+                    max_uses: 100
                 });
 
             expect(res.status).toBe(201);
@@ -41,9 +42,8 @@ describe('Vouchers API (Black Box)', () => {
             const res = await request(app)
                 .post('/vouchers')
                 .send({
-                    code: 'SAVE10',
-                    discount: 10,
-                    seller_id: 1
+                    name: 'Summer Sale',
+                    discount: 10
                 });
 
             expect(res.status).toBe(500);
@@ -56,8 +56,8 @@ describe('Vouchers API (Black Box)', () => {
         it('returns all vouchers', async () => {
 
             const vouchers = [
-                { id: 1, code: 'SAVE10', discount: 10, seller_id: 1 },
-                { id: 2, code: 'HALF50', discount: 50, seller_id: 2 }
+                { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 },
+                { id: 2, name: 'Half Off', discount: 50, expiry: null, max_uses: 50 }
             ];
 
             pool.query.mockResolvedValue({ rows: vouchers });
@@ -83,7 +83,7 @@ describe('Vouchers API (Black Box)', () => {
 
         it('returns a voucher when it exists', async () => {
 
-            const voucher = { id: 1, code: 'SAVE10', discount: 10, seller_id: 1 };
+            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 };
 
             pool.query.mockResolvedValue({ rows: [voucher] });
 
@@ -117,13 +117,13 @@ describe('Vouchers API (Black Box)', () => {
 
         it('updates a voucher successfully', async () => {
 
-            const updated = { id: 1, code: 'UPDATED', discount: 20, seller_id: 1 };
+            const updated = { id: 1, name: 'Updated', discount: 20, expiry: null, max_uses: 50 };
 
             pool.query.mockResolvedValue({ rows: [updated] });
 
             const res = await request(app)
                 .patch('/vouchers/1')
-                .send({ code: 'UPDATED' });
+                .send({ name: 'Updated' });
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(updated);
@@ -135,7 +135,7 @@ describe('Vouchers API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/vouchers/1')
-                .send({ code: 'x' });
+                .send({ name: 'x' });
 
             expect(res.status).toBe(500);
         });
@@ -146,7 +146,7 @@ describe('Vouchers API (Black Box)', () => {
 
         it('deletes a voucher successfully', async () => {
 
-            const voucher = { id: 1, code: 'SAVE10', discount: 10, seller_id: 1 };
+            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 };
 
             pool.query.mockResolvedValue({ rows: [voucher] });
 
