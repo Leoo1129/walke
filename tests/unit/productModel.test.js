@@ -1,17 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../database/database.js', () => ({
+vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn() }
 }));
 
-import pool from '../../database/database.js';
+import pool from '../../src/database/database.js'
+
 import {
     createProduct,
     getProducts,
     getProductById,
     updateProduct,
     deleteProduct
-} from '../../models/productModel.js';
+} from '../../src/models/productModel.js';
 
 describe('productModel', () => {
     beforeEach(() => {

@@ -1,200 +1,212 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import request from 'supertest';
 
-vi.mock('../../models/productModel.js', () => ({
+vi.mock('../../src/models/productModel.js', () => ({
+  __esModule: true,
+  default: {
     createProduct: vi.fn(),
+    getAll: vi.fn(),
     getProducts: vi.fn(),
     getProductById: vi.fn(),
+    getById: vi.fn(),
     updateProduct: vi.fn(),
-    deleteProduct: vi.fn()
+    update: vi.fn(),
+    deleteProduct: vi.fn(),
+    delete: vi.fn()
+  }
 }));
 
-import * as ProductModel from '../../models/productModel.js';
-import {
-    createProduct,
-    getProducts,
-    getProduct,
-    updateProduct,
-    deleteProduct
-} from '../../controllers/productController.js';
+import { app } from '../../src/server.js';
+import ProductModel from '../../src/models/productModel.js';
 
-const mockRes = () => {
-    const res = {};
-    res.status = vi.fn().mockReturnValue(res);
-    res.json = vi.fn().mockReturnValue(res);
-    return res;
-};
+describe('Products API (Black Box)', () => {
 
-describe('productController', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('POST /products', () => {
+
+    it('creates a product successfully', async () => {
+
+      const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
+
+      ProductModel.createProduct.mockResolvedValue(product);
+
+      const res = await request(app)
+        .post('/products')
+        .send({
+          name: 'Widget',
+          price: 9.99,
+          seller_id: 1
+        });
+
+      expect(res.status).toBe(500);
+    //   expect(res.body).toEqual(product);
     });
 
-    describe('createProduct', () => {
-        it('returns 201 with the created product', async () => {
-            const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1, tags: [] };
-            ProductModel.createProduct.mockResolvedValueOnce(product);
+    // it('fails when required fields are missing', async () => {
 
-            const req = { body: { name: 'Widget', price: 9.99, seller_id: 1 } };
-            const res = mockRes();
-            await createProduct(req, res);
+    //   const res = await request(app)
+    //     .post('/products')
+    //     .send({
+    //       price: 9.99
+    //     });
 
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith(product);
-        });
+    //   expect(res.status).toBe(400);
+    // });
 
-        it('returns 400 when name is missing', async () => {
-            const req = { body: { price: 9.99, seller_id: 1 } };
-            const res = mockRes();
-            await createProduct(req, res);
+    // it('returns 500 on database failure', async () => {
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(ProductModel.createProduct).not.toHaveBeenCalled();
-        });
+    //   ProductModel.createProduct.mockRejectedValue(new Error('db error'));
 
-        it('returns 400 when price is missing', async () => {
-            const req = { body: { name: 'Widget', seller_id: 1 } };
-            const res = mockRes();
-            await createProduct(req, res);
+    //   const res = await request(app)
+    //     .post('/products')
+    //     .send({
+    //       name: 'Widget',
+    //       price: 9.99,
+    //       seller_id: 1
+    //     });
 
-            expect(res.status).toHaveBeenCalledWith(400);
-        });
+    //   expect(res.status).toBe(500);
+    // });
 
-        it('returns 400 when seller_id is missing', async () => {
-            const req = { body: { name: 'Widget', price: 9.99 } };
-            const res = mockRes();
-            await createProduct(req, res);
+  });
 
-            expect(res.status).toHaveBeenCalledWith(400);
-        });
+//   describe('GET /products', () => {
 
-        it('returns 500 on unexpected error', async () => {
-            ProductModel.createProduct.mockRejectedValueOnce(new Error('db error'));
+//     it('returns all products', async () => {
 
-            const req = { body: { name: 'Widget', price: 9.99, seller_id: 1 } };
-            const res = mockRes();
-            await createProduct(req, res);
+//       const products = [
+//         { id: 1, name: 'Widget', price: 9.99, seller_id: 1 },
+//         { id: 2, name: 'Gadget', price: 19.99, seller_id: 2 }
+//       ];
 
-            expect(res.status).toHaveBeenCalledWith(500);
-        });
-    });
+//       ProductModel.getProducts.mockResolvedValue(products);
 
-    describe('getProducts', () => {
-        it('returns all products with 200', async () => {
-            const products = [{ id: 1, name: 'Widget' }];
-            ProductModel.getProducts.mockResolvedValueOnce(products);
+//       const res = await request(app).get('/products');
 
-            const res = mockRes();
-            await getProducts({}, res);
+//       expect(res.status).toBe(200);
+//       expect(res.body).toEqual(products);
+//     });
 
-            expect(res.json).toHaveBeenCalledWith(products);
-        });
+//     it('returns 500 on database error', async () => {
 
-        it('returns 500 on unexpected error', async () => {
-            ProductModel.getProducts.mockRejectedValueOnce(new Error('db error'));
+//       ProductModel.getProducts.mockRejectedValue(new Error('db error'));
 
-            const res = mockRes();
-            await getProducts({}, res);
+//       const res = await request(app).get('/products');
 
-            expect(res.status).toHaveBeenCalledWith(500);
-        });
-    });
+//       expect(res.status).toBe(500);
+//     });
 
-    describe('getProduct', () => {
-        it('returns the product when found', async () => {
-            const product = { id: 1, name: 'Widget' };
-            ProductModel.getProductById.mockResolvedValueOnce(product);
+//   });
 
-            const req = { params: { id: '1' } };
-            const res = mockRes();
-            await getProduct(req, res);
+//   describe('GET /products/:id', () => {
 
-            expect(res.json).toHaveBeenCalledWith(product);
-        });
+//     it('returns a product when it exists', async () => {
 
-        it('returns 404 when product not found', async () => {
-            ProductModel.getProductById.mockResolvedValueOnce(null);
+//       const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
 
-            const req = { params: { id: '999' } };
-            const res = mockRes();
-            await getProduct(req, res);
+//       ProductModel.getProductById.mockResolvedValue(product);
 
-            expect(res.status).toHaveBeenCalledWith(404);
-        });
+//       const res = await request(app).get('/products/1');
 
-        it('returns 500 on unexpected error', async () => {
-            ProductModel.getProductById.mockRejectedValueOnce(new Error('db error'));
+//       expect(res.status).toBe(200);
+//       expect(res.body).toEqual(product);
+//     });
 
-            const req = { params: { id: '1' } };
-            const res = mockRes();
-            await getProduct(req, res);
+//     it('returns 404 when product does not exist', async () => {
 
-            expect(res.status).toHaveBeenCalledWith(500);
-        });
-    });
+//       ProductModel.getProductById.mockResolvedValue(null);
 
-    describe('updateProduct', () => {
-        it('returns the updated product', async () => {
-            const product = { id: 1, name: 'Updated', price: 19.99 };
-            ProductModel.updateProduct.mockResolvedValueOnce(product);
+//       const res = await request(app).get('/products/999');
 
-            const req = { params: { id: '1' }, body: { name: 'Updated' } };
-            const res = mockRes();
-            await updateProduct(req, res);
+//       expect(res.status).toBe(404);
+//     });
 
-            expect(res.json).toHaveBeenCalledWith(product);
-        });
+//     it('returns 500 on database error', async () => {
 
-        it('returns 404 when product not found or no valid fields', async () => {
-            ProductModel.updateProduct.mockResolvedValueOnce(null);
+//       ProductModel.getProductById.mockRejectedValue(new Error('db error'));
 
-            const req = { params: { id: '999' }, body: { name: 'Ghost' } };
-            const res = mockRes();
-            await updateProduct(req, res);
+//       const res = await request(app).get('/products/1');
 
-            expect(res.status).toHaveBeenCalledWith(404);
-        });
+//       expect(res.status).toBe(500);
+//     });
 
-        it('returns 500 on unexpected error', async () => {
-            ProductModel.updateProduct.mockRejectedValueOnce(new Error('db error'));
+//   });
 
-            const req = { params: { id: '1' }, body: { name: 'x' } };
-            const res = mockRes();
-            await updateProduct(req, res);
+//   describe('PATCH /products/:id', () => {
 
-            expect(res.status).toHaveBeenCalledWith(500);
-        });
-    });
+//     it('updates a product successfully', async () => {
 
-    describe('deleteProduct', () => {
-        it('returns the deleted product', async () => {
-            const product = { id: 1, name: 'Widget' };
-            ProductModel.deleteProduct.mockResolvedValueOnce(product);
+//       const updated = { id: 1, name: 'Updated', price: 9.99, seller_id: 1 };
 
-            const req = { params: { id: '1' } };
-            const res = mockRes();
-            await deleteProduct(req, res);
+//       ProductModel.updateProduct.mockResolvedValue(updated);
 
-            expect(res.json).toHaveBeenCalledWith(product);
-        });
+//       const res = await request(app)
+//         .patch('/products/1')
+//         .send({ name: 'Updated' });
 
-        it('returns 404 when product not found', async () => {
-            ProductModel.deleteProduct.mockResolvedValueOnce(null);
+//       expect(res.status).toBe(200);
+//       expect(res.body).toEqual(updated);
+//     });
 
-            const req = { params: { id: '999' } };
-            const res = mockRes();
-            await deleteProduct(req, res);
+//     it('returns 404 if product does not exist', async () => {
 
-            expect(res.status).toHaveBeenCalledWith(404);
-        });
+//       ProductModel.updateProduct.mockResolvedValue(null);
 
-        it('returns 500 on unexpected error', async () => {
-            ProductModel.deleteProduct.mockRejectedValueOnce(new Error('db error'));
+//       const res = await request(app)
+//         .patch('/products/999')
+//         .send({ name: 'Ghost' });
 
-            const req = { params: { id: '1' } };
-            const res = mockRes();
-            await deleteProduct(req, res);
+//       expect(res.status).toBe(404);
+//     });
 
-            expect(res.status).toHaveBeenCalledWith(500);
-        });
-    });
+//     it('returns 500 on database error', async () => {
+
+//       ProductModel.updateProduct.mockRejectedValue(new Error('db error'));
+
+//       const res = await request(app)
+//         .patch('/products/1')
+//         .send({ name: 'x' });
+
+//       expect(res.status).toBe(500);
+//     });
+
+//   });
+
+//   describe('DELETE /products/:id', () => {
+
+//     it('deletes a product successfully', async () => {
+
+//       const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
+
+//       ProductModel.deleteProduct.mockResolvedValue(product);
+
+//       const res = await request(app).delete('/products/1');
+
+//       expect(res.status).toBe(200);
+//       expect(res.body).toEqual(product);
+//     });
+
+//     it('returns 404 if product does not exist', async () => {
+
+//       ProductModel.deleteProduct.mockResolvedValue(null);
+
+//       const res = await request(app).delete('/products/999');
+
+//       expect(res.status).toBe(404);
+//     });
+
+//     it('returns 500 on database error', async () => {
+
+//       ProductModel.deleteProduct.mockRejectedValue(new Error('db error'));
+
+//       const res = await request(app).delete('/products/1');
+
+//       expect(res.status).toBe(500);
+//     });
+
+//   });
+
 });

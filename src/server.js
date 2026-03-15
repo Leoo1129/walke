@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import { fileURLToPath } from 'url';
-import config from './config.json' with { type: 'json' };
+import config from './config.json' assert { type: 'json' };
 
 // controller imports
 import {
@@ -16,7 +16,7 @@ import {
     getProducts,
     updateProduct,
     deleteProduct
-} from './controllers/productController';
+} from './controllers/productController.js';
 
 import {
     
@@ -84,7 +84,7 @@ app.get('/products', async (req, res) => {
     });
 });
 
-app.get('products/:id', async (req, res) => {
+app.get('/products/:id', async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await getProduct(id);
@@ -142,7 +142,6 @@ app.use(function(req, res)
         error: 'route not found'
     });
 });
-
 
 export { app };
 

@@ -1,4 +1,5 @@
 import * as ProductModel from '../models/productModel.js';
+class InputError extends Error {}
 
 export async function createProduct(name, price, seller_id, tags) {
     if (!name || price == null || !seller_id)
@@ -18,7 +19,7 @@ export async function createProduct(name, price, seller_id, tags) {
 export async function getProducts() {
     const products = await ProductModel.getAll();
 
-    if (!products || product.length === 0) {
+    if (!products || products.length === 0) {
         const error = new Error("No products found");
         error.statusCode = 404;
         throw error;
@@ -49,17 +50,6 @@ export async function updateProduct(id) {
     }
 
     return product;
-}
-
-export async function deleteProduct(req, res) {
-    const { id } = req.params;
-    try {
-        const product = await ProductModel.deleteProduct(id);
-        if (!product) return res.status(404).json({ error: 'Product not found' });
-        res.json(product);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
 }
 
 export async function deleteProduct(id) {
