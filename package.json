@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "vitest run",
-    "lint": "eslint src/ controllers/ models/"
+    "lint": "eslint ."
   },
   "dependencies": {
     "cors": "^2.8.6",
