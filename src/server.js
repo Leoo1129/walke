@@ -126,7 +126,7 @@ app.delete('/users/:id', async (req, res) => {
 });
 
 // ---------------------------------- Order Controller ----------------------------------
-app.post('/orders', async (req, res) => {
+app.post('/orders', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { buyer_id, items, total_price, voucher_id } = req.body;
         const result = await createOrder(buyer_id, items, total_price, voucher_id);
@@ -166,8 +166,7 @@ app.delete('/orders/:id', async (req, res) => {
 });
 
 // ---------------------------------- Product Controller ----------------------------------
-app.post('/products', async (req, res) => {
-
+app.post('/products', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name, price, seller_id, tags } = req.body;
         const result = await createProduct(name, price, seller_id, tags);
