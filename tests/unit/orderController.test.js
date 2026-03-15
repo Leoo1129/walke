@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
+
+const TEST_TOKEN = jwt.sign({ id: 1, name: 'testuser' }, 'dev-secret-change-in-production');
 
 vi.mock('../../src/database/database.js', () => ({
     default: {
@@ -35,6 +38,7 @@ describe('Orders API (Black Box)', () => {
 
             const res = await request(app)
                 .post('/orders')
+                .set('Authorization', `Bearer ${TEST_TOKEN}`)
                 .send({
                     buyer_id: 1,
                     items: [{ product_id: 2, quantity: 3 }],
@@ -57,6 +61,7 @@ describe('Orders API (Black Box)', () => {
 
             const res = await request(app)
                 .post('/orders')
+                .set('Authorization', `Bearer ${TEST_TOKEN}`)
                 .send({
                     buyer_id: 1,
                     items: [{ product_id: 2, quantity: 3 }],
