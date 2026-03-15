@@ -77,8 +77,8 @@ const HOST = process.env.IP || '127.0.0.1'; // eslint-disable-line no-unused-var
 // ---------------------------------- Order Controller ----------------------------------
 app.post('/orders', async (req, res) => {
     return await handleErrors(res, async () => {
-        const { buyer_id, product_id, quantity } = req.body;
-        const result = await createOrder(buyer_id, product_id, quantity);
+        const { buyer_id, items, total_price, voucher_id } = req.body;
+        const result = await createOrder(buyer_id, items, total_price, voucher_id);
         return res.status(201).json(result);
     });
 });
@@ -158,8 +158,8 @@ app.delete('/products/:id', async (req, res) => {
 // ---------------------------------- Voucher Controller ----------------------------------
 app.post('/vouchers', async (req, res) => {
     return await handleErrors(res, async () => {
-        const { code, discount, seller_id } = req.body;
-        const result = await createVoucher(code, discount, seller_id);
+        const { name, discount, expiry, max_uses } = req.body;
+        const result = await createVoucher(name, discount, expiry, max_uses);
         return res.status(201).json(result);
     });
 });

@@ -2,13 +2,13 @@ import pool from '../database/database.js';
 
 class InputError extends Error {}
 
-export async function createVoucher(code, discount, seller_id) {
-    if (!code || discount == null || !seller_id)
-        throw new InputError('code, discount, and seller_id are required');
+export async function createVoucher(name, discount, expiry, max_uses) {
+    if (!name || discount == null)
+        throw new InputError('name and discount are required');
 
     const { rows: [voucher] } = await pool.query(
-        'INSERT INTO vouchers (code, discount, seller_id) VALUES ($1, $2, $3) RETURNING *',
-        [code, discount, seller_id]
+        'INSERT INTO vouchers (name, discount, expiry, max_uses) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, discount, expiry, max_uses]
     );
 
     if (!voucher) {
@@ -48,7 +48,7 @@ export async function getVoucher(id) {
 }
 
 export async function updateVoucher(id, fields) {
-    const allowed = ['code', 'discount'];
+    const allowed = ['name', 'discount', 'expiry', 'max_uses'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
