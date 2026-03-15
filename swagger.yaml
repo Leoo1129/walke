@@ -4,11 +4,235 @@ info:
   version: 1.0.0
 
 paths:
+# ---------------- Users ----------------
+  /users:
+    post:
+      summary: Create a new user
+      description: Register a new user account
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - password
+              properties:
+                name:
+                  type: string
+                password:
+                  type: string
+                street:
+                  type: string
+                city:
+                  type: string
+                postcode:
+                  type: string
+                country:
+                  type: string
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  street:
+                    type: string
+                  city:
+                    type: string
+                  postcode:
+                    type: string
+                  country:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  last_updated:
+                    type: string
+                    format: date-time
+        "400":
+          description: name or password missing
+        "500":
+          description: Failed to create user
+
+    get:
+      summary: Get all users
+      description: Retrieve a list of users
+      tags:
+        - users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    street:
+                      type: string
+                    city:
+                      type: string
+                    postcode:
+                      type: string
+                    country:
+                      type: string
+                    created_at:
+                      type: string
+                      format: date-time
+                    last_updated:
+                      type: string
+                      format: date-time
+        "404":
+          description: No users found
+        "500":
+          description: Internal server error
+
+  /users/{id}:
+    get:
+      summary: Get a user by ID
+      description: Retrieve a single user
+      tags:
+        - users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  street:
+                    type: string
+                  city:
+                    type: string
+                  postcode:
+                    type: string
+                  country:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  last_updated:
+                    type: string
+                    format: date-time
+        "404":
+          description: User not found
+        "500":
+          description: Internal server error
+
+    patch:
+      summary: Update a user
+      description: Update user information
+      tags:
+        - users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                street:
+                  type: string
+                city:
+                  type: string
+                postcode:
+                  type: string
+                country:
+                  type: string
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  street:
+                    type: string
+                  city:
+                    type: string
+                  postcode:
+                    type: string
+                  country:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  last_updated:
+                    type: string
+                    format: date-time
+        "400":
+          description: No valid fields to update
+        "404":
+          description: User not found
+        "500":
+          description: Internal server error
+
+    delete:
+      summary: Delete a user
+      description: Delete a user by ID
+      tags:
+        - users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        "200":
+          description: User deleted successfully
+        "404":
+          description: User not found
+        "500":
+          description: Internal server error
+
   # ---------------- Products ----------------
   /products:
     post:
       summary: Create a new product
-      description: Create a new product in the system. The `tags` field is optional.
+      description: Create a new product in the system. `tags` is optional.
       tags:
         - products
       requestBody:
@@ -24,15 +248,19 @@ paths:
               properties:
                 name:
                   type: string
+                  example: Running Shoes
                 price:
                   type: number
+                  example: 99.99
                 seller_id:
                   type: integer
+                  example: 1
                 tags:
                   type: array
                   items:
                     type: string
-                  description: Optional list of tags for the product
+                  example: ["sports", "shoes"]
+                  description: Optional product tags
       responses:
         "201":
           description: Product created successfully
@@ -41,24 +269,36 @@ paths:
               schema:
                 type: object
                 properties:
-                  id: { type: integer }
-                  name: { type: string }
-                  price: { type: number }
-                  seller_id: { type: integer }
+                  id:
+                    type: integer
+                    example: 1
+                  name:
+                    type: string
+                    example: Running Shoes
+                  price:
+                    type: number
+                    example: 99.99
+                  seller_id:
+                    type: integer
+                    example: 1
                   tags:
                     type: array
-                    items: { type: string }
-        "400": { description: Invalid request (missing required fields) }
-        "500": { description: Internal server error }
+                    items:
+                      type: string
+                    example: ["sports", "shoes"]
+        "400":
+          description: name, price, or seller_id missing
+        "500":
+          description: Internal server error
 
     get:
       summary: Get all products
-      description: Retrieve a list of all products in the system
+      description: Retrieve all products in the system
       tags:
         - products
       responses:
         "200":
-          description: A list of products
+          description: List of products
           content:
             application/json:
               schema:
@@ -66,15 +306,28 @@ paths:
                 items:
                   type: object
                   properties:
-                    id: { type: integer }
-                    name: { type: string }
-                    price: { type: number }
-                    seller_id: { type: integer }
+                    id:
+                      type: integer
+                      example: 1
+                    name:
+                      type: string
+                      example: Running Shoes
+                    price:
+                      type: number
+                      example: 99.99
+                    seller_id:
+                      type: integer
+                      example: 1
                     tags:
                       type: array
-                      items: { type: string }
-        "404": { description: No products found }
-        "500": { description: Internal server error }
+                      items:
+                        type: string
+                      example: ["sports", "shoes"]
+        "404":
+          description: No products found
+        "500":
+          description: Internal server error
+
 
   /products/{id}:
     get:
@@ -86,8 +339,9 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
-          description: ID of the product
+          schema:
+            type: integer
+          description: Product ID
       responses:
         "200":
           description: Product found
@@ -96,15 +350,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  id: { type: integer }
-                  name: { type: string }
-                  price: { type: number }
-                  seller_id: { type: integer }
+                  id:
+                    type: integer
+                    example: 1
+                  name:
+                    type: string
+                    example: Running Shoes
+                  price:
+                    type: number
+                    example: 99.99
+                  seller_id:
+                    type: integer
+                    example: 1
                   tags:
                     type: array
-                    items: { type: string }
-        "404": { description: Product not found }
-        "500": { description: Internal server error }
+                    items:
+                      type: string
+                    example: ["sports", "shoes"]
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
 
     patch:
       summary: Update a product
@@ -115,8 +381,9 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
-          description: ID of the product to update
+          schema:
+            type: integer
+          description: Product ID
       requestBody:
         required: true
         content:
@@ -124,145 +391,82 @@ paths:
             schema:
               type: object
               properties:
-                name: { type: string }
-                price: { type: number }
+                name:
+                  type: string
+                  example: New Product Name
+                price:
+                  type: number
+                  example: 120.5
                 tags:
                   type: array
-                  items: { type: string }
+                  items:
+                    type: string
+                  example: ["updated", "sale"]
       responses:
-        "200": { description: Product updated successfully }
-        "400": { description: No valid fields to update or invalid request }
-        "404": { description: Product not found }
-        "500": { description: Internal server error }
+        "200":
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  price:
+                    type: number
+                  seller_id:
+                    type: integer
+                  tags:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          description: No valid fields to update
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
 
     delete:
       summary: Delete a product
-      description: Delete a single product by its ID
+      description: Delete a product by ID
       tags:
         - products
       parameters:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
-          description: ID of the product to delete
-      responses:
-        "200": { description: Product deleted successfully }
-        "404": { description: Product not found }
-        "500": { description: Internal server error }
-
-  # ---------------- Vouchers ----------------
-  /vouchers:
-    post:
-      summary: Create a new voucher
-      description: Create a new voucher in the system
-      tags:
-        - vouchers
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - code
-                - discount
-                - seller_id
-              properties:
-                code: { type: string }
-                discount: { type: number }
-                seller_id: { type: integer }
-      responses:
-        "201": { description: Voucher created successfully }
-        "400": { description: Missing code, discount, or seller_id }
-        "500": { description: Internal server error }
-
-    get:
-      summary: Get all vouchers
-      description: Retrieve a list of all vouchers
-      tags:
-        - vouchers
-      responses:
-        "200": { description: List of vouchers }
-        "404": { description: No vouchers found }
-        "500": { description: Internal server error }
-
-  /vouchers/{id}:
-    get:
-      summary: Get a voucher by ID
-      tags:
-        - vouchers
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      responses:
-        "200": { description: Voucher found }
-        "404": { description: Voucher not found }
-        "500": { description: Internal server error }
-
-    patch:
-      summary: Update a voucher
-      tags:
-        - vouchers
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                code: { type: string }
-                discount: { type: number }
-      responses:
-        "200": { description: Voucher updated successfully }
-        "400": { description: No valid fields to update or voucher not found }
-        "404": { description: Voucher not found }
-        "500": { description: Internal server error }
-
-    delete:
-      summary: Delete a voucher
-      tags:
-        - vouchers
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      responses:
-        "200": { description: Voucher deleted successfully }
-        "404": { description: Voucher not found }
-        "500": { description: Internal server error }
-
-  /health:
-    get:
-      summary: Health check
-      description: Check if the API service is running
-      tags:
-        - system
+          schema:
+            type: integer
+          description: Product ID
       responses:
         "200":
-          description: Service is running
+          description: Product deleted successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status:
+                  id:
+                    type: integer
+                  name:
                     type: string
-                    example: ok
-                  service:
-                    type: string
-                    example: order-service
-                  uptime:
+                  price:
                     type: number
-                    example: 12345.67
+                  seller_id:
+                    type: integer
+                  tags:
+                    type: array
+                    items:
+                      type: string
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+
+# ---------------- Orders ----------------
   /orders:
     post:
       summary: Create a new order
@@ -462,3 +666,243 @@ paths:
           description: Internal server error
 
 
+  # ---------------- Vouchers ----------------
+  /vouchers:
+    post:
+      summary: Create a new voucher
+      description: Create a discount voucher
+      tags:
+        - vouchers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - discount
+              properties:
+                name:
+                  type: string
+                  example: SUMMER10
+                discount:
+                  type: number
+                  example: 10
+                expiry:
+                  type: string
+                  format: date-time
+                  example: 2026-12-31T23:59:59Z
+                max_uses:
+                  type: integer
+                  example: 100
+      responses:
+        "201":
+          description: Voucher created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  name:
+                    type: string
+                    example: SUMMER10
+                  discount:
+                    type: number
+                    example: 10
+                  expiry:
+                    type: string
+                    format: date-time
+                  max_uses:
+                    type: integer
+        "400":
+          description: name or discount missing
+        "500":
+          description: Failed to create voucher
+
+    get:
+      summary: Get all vouchers
+      description: Retrieve all vouchers
+      tags:
+        - vouchers
+      responses:
+        "200":
+          description: List of vouchers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    discount:
+                      type: number
+                    expiry:
+                      type: string
+                      format: date-time
+                    max_uses:
+                      type: integer
+        "404":
+          description: No vouchers found
+        "500":
+          description: Internal server error
+
+
+  /vouchers/{id}:
+    get:
+      summary: Get a voucher by ID
+      description: Retrieve a single voucher
+      tags:
+        - vouchers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Voucher ID
+      responses:
+        "200":
+          description: Voucher found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  discount:
+                    type: number
+                  expiry:
+                    type: string
+                    format: date-time
+                  max_uses:
+                    type: integer
+        "404":
+          description: Voucher not found
+        "500":
+          description: Internal server error
+
+    patch:
+      summary: Update a voucher
+      description: Update voucher fields (name, discount, expiry, max_uses)
+      tags:
+        - vouchers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Voucher ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: SUMMER20
+                discount:
+                  type: number
+                  example: 20
+                expiry:
+                  type: string
+                  format: date-time
+                  example: 2027-01-01T00:00:00Z
+                max_uses:
+                  type: integer
+                  example: 200
+      responses:
+        "200":
+          description: Voucher updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  discount:
+                    type: number
+                  expiry:
+                    type: string
+                    format: date-time
+                  max_uses:
+                    type: integer
+        "400":
+          description: No valid fields to update
+        "404":
+          description: Voucher not found
+        "500":
+          description: Internal server error
+
+    delete:
+      summary: Delete a voucher
+      description: Delete a voucher by ID
+      tags:
+        - vouchers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Voucher ID
+      responses:
+        "200":
+          description: Voucher deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  discount:
+                    type: number
+                  expiry:
+                    type: string
+                    format: date-time
+                  max_uses:
+                    type: integer
+        "404":
+          description: Voucher not found
+        "500":
+          description: Internal server error
+          
+  /health:
+    get:
+      summary: Health check
+      description: Check if the API service is running
+      tags:
+        - system
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  uptime:
+                    type: number
