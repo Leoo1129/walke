@@ -1,11 +1,15 @@
-import * as ProductModel from '../models/productModel.js';
+import pool from '../database/database.js';
+
 class InputError extends Error {}
 
-export async function createProduct(name, price, seller_id, tags) {
+export async function createProduct(name, price, seller_id, tags = []) {
     if (!name || price == null || !seller_id)
         throw new InputError('name, price, and seller_id are required');
 
-    const product = await ProductModel.createProduct(name, price, seller_id, tags);
+    const { rows: [product] } = await pool.query(
+        'INSERT INTO products (name, price, seller_id, tags) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, price, seller_id, tags]
+    );
 
     if (!product) {
         const error = new Error('No products found');
@@ -17,19 +21,22 @@ export async function createProduct(name, price, seller_id, tags) {
 }
 
 export async function getProducts() {
-    const products = await ProductModel.getProducts();
+    const { rows } = await pool.query('SELECT * FROM products');
 
-    if (!products || products.length === 0) {
+    if (!rows || rows.length === 0) {
         const error = new Error('No products found');
         error.statusCode = 404;
         throw error;
     }
 
-    return products;
+    return rows;
 }
 
 export async function getProduct(id) {
-    const product = await ProductModel.getProductById(id);
+    const { rows: [product] } = await pool.query(
+        'SELECT * FROM products WHERE id = $1',
+        [id]
+    );
 
     if (!product) {
         const error = new Error('Poduct not found');
@@ -41,8 +48,23 @@ export async function getProduct(id) {
 }
 
 export async function updateProduct(id, fields) {
+    const allowed = ['name', 'price', 'tags'];
+    const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
-    const product = await ProductModel.updateProduct(id, fields);
+    if (updates.length === 0) {
+        const error = new Error('Product not found or no valid fields to update');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const setClauses = updates.map(([k], i) => `${k} = $${i + 1}`).join(', ');
+    const values = updates.map(([, v]) => v);
+
+    const { rows: [product] } = await pool.query(
+        `UPDATE products SET ${setClauses} WHERE id = $${values.length + 1} RETURNING *`,
+        [...values, id]
+    );
+
     if (!product) {
         const error = new Error('Product not found or no valid fields to update');
         error.statusCode = 400;
@@ -53,8 +75,11 @@ export async function updateProduct(id, fields) {
 }
 
 export async function deleteProduct(id) {
+    const { rows: [product] } = await pool.query(
+        'DELETE FROM products WHERE id = $1 RETURNING *',
+        [id]
+    );
 
-    const product = await ProductModel.deleteProduct(id);
     if (!product) {
         const error = new Error('Product not found');
         error.statusCode = 404;
