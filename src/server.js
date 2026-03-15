@@ -399,8 +399,17 @@ app.post('/orders/:id/response', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { response_code, note } = req.body;
-        const result = await createOrderResponse(id, req.user.id, response_code, note);
-        return res.status(201).json(result);
+        await createOrderResponse(id, req.user.id, response_code, note);
+
+        if (wantsXml(req)) {
+            const { response, order, items, buyer, seller } = await getOrderResponseDetails(id);
+            return res.status(201)
+                .set('Content-Type', 'application/xml')
+                .send(orderResponseToXml(response, order, items, buyer, seller));
+        }
+
+        const { response } = await getOrderResponseDetails(id);
+        return res.status(201).json(response);
     });
 });
 
