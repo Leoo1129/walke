@@ -1,9 +1,57 @@
 openapi: 3.0.0
 info:
-  title: Product API
+  title: Walke API
   version: 1.0.0
 
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
 paths:
+# ---------------- Auth ----------------
+  /login:
+    post:
+      summary: Log in
+      description: Authenticate with name and password, returns a JWT token
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - password
+              properties:
+                name:
+                  type: string
+                  example: johndoe
+                password:
+                  type: string
+                  example: secret123
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        "400":
+          description: name or password missing
+        "401":
+          description: Invalid credentials
+        "500":
+          description: Internal server error
+
 # ---------------- Users ----------------
   /users:
     post:
@@ -228,13 +276,174 @@ paths:
         "500":
           description: Internal server error
 
-  # ---------------- Products ----------------
+# ---------------- Cart ----------------
+  /cart:
+    post:
+      summary: Add item to cart
+      description: Add a product to the logged-in user's cart. If the product is already in the cart, the quantity is updated.
+      tags:
+        - cart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - quantity
+              properties:
+                product_id:
+                  type: integer
+                  example: 2
+                quantity:
+                  type: integer
+                  example: 3
+      responses:
+        "201":
+          description: Item added to cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                  product_id:
+                    type: integer
+                  quantity:
+                    type: integer
+        "400":
+          description: product_id or quantity missing, or quantity less than 1
+        "401":
+          description: Missing or invalid token
+        "500":
+          description: Internal server error
+
+    get:
+      summary: Get cart
+      description: Retrieve all items in the logged-in user's cart
+      tags:
+        - cart
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of cart items (empty array if cart is empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_id:
+                      type: integer
+                    product_id:
+                      type: integer
+                    quantity:
+                      type: integer
+        "401":
+          description: Missing or invalid token
+        "500":
+          description: Internal server error
+
+  /cart/{product_id}:
+    patch:
+      summary: Update cart item quantity
+      description: Update the quantity of a product already in the logged-in user's cart
+      tags:
+        - cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  example: 5
+      responses:
+        "200":
+          description: Cart item updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                  product_id:
+                    type: integer
+                  quantity:
+                    type: integer
+        "400":
+          description: quantity missing or less than 1
+        "401":
+          description: Missing or invalid token
+        "404":
+          description: Cart item not found
+        "500":
+          description: Internal server error
+
+    delete:
+      summary: Remove item from cart
+      description: Remove a product from the logged-in user's cart
+      tags:
+        - cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Product ID
+      responses:
+        "200":
+          description: Cart item removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                  product_id:
+                    type: integer
+                  quantity:
+                    type: integer
+        "401":
+          description: Missing or invalid token
+        "404":
+          description: Cart item not found
+        "500":
+          description: Internal server error
+
+# ---------------- Products ----------------
   /products:
     post:
       summary: Create a new product
-      description: Create a new product in the system. `tags` is optional.
+      description: Create a new product in the system. `tags` is optional. Requires authentication.
       tags:
         - products
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -288,6 +497,8 @@ paths:
                     example: ["sports", "shoes"]
         "400":
           description: name, price, or seller_id missing
+        "401":
+          description: Missing or invalid token
         "500":
           description: Internal server error
 
@@ -327,7 +538,6 @@ paths:
           description: No products found
         "500":
           description: Internal server error
-
 
   /products/{id}:
     get:
@@ -470,9 +680,11 @@ paths:
   /orders:
     post:
       summary: Create a new order
-      description: Create a new order for a product
+      description: Create a new order from a list of items. Requires authentication.
       tags:
         - orders
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -481,18 +693,34 @@ paths:
               type: object
               required:
                 - buyer_id
-                - product_id
-                - quantity
+                - items
               properties:
                 buyer_id:
                   type: integer
                   description: ID of the buyer
-                product_id:
+                  example: 1
+                items:
+                  type: array
+                  description: List of products and quantities
+                  items:
+                    type: object
+                    required:
+                      - product_id
+                      - quantity
+                    properties:
+                      product_id:
+                        type: integer
+                        example: 2
+                      quantity:
+                        type: integer
+                        example: 3
+                total_price:
+                  type: number
+                  example: 29.97
+                voucher_id:
                   type: integer
-                  description: ID of the product being purchased
-                quantity:
-                  type: integer
-                  description: Number of products ordered
+                  nullable: true
+                  example: null
       responses:
         "201":
           description: Order created successfully
@@ -505,14 +733,21 @@ paths:
                     type: integer
                   buyer_id:
                     type: integer
-                  product_id:
-                    type: integer
-                  quantity:
-                    type: integer
                   status:
                     type: string
+                    example: pending
+                  total_price:
+                    type: number
+                  voucher_id:
+                    type: integer
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
         "400":
-          description: buyer_id, product_id, or quantity missing
+          description: buyer_id or items missing
+        "401":
+          description: Missing or invalid token
         "500":
           description: Failed to create order
 
@@ -535,12 +770,16 @@ paths:
                       type: integer
                     buyer_id:
                       type: integer
-                    product_id:
-                      type: integer
-                    quantity:
-                      type: integer
                     status:
                       type: string
+                    total_price:
+                      type: number
+                    voucher_id:
+                      type: integer
+                      nullable: true
+                    created_at:
+                      type: string
+                      format: date-time
         "404":
           description: No orders found
         "500":
@@ -571,12 +810,16 @@ paths:
                     type: integer
                   buyer_id:
                     type: integer
-                  product_id:
-                    type: integer
-                  quantity:
-                    type: integer
                   status:
                     type: string
+                  total_price:
+                    type: number
+                  voucher_id:
+                    type: integer
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
         "404":
           description: Order not found
         "500":
@@ -584,7 +827,7 @@ paths:
 
     patch:
       summary: Update an order
-      description: Update order fields (quantity or status)
+      description: Update order fields (status, total_price, voucher_id)
       tags:
         - orders
       parameters:
@@ -601,10 +844,15 @@ paths:
             schema:
               type: object
               properties:
-                quantity:
-                  type: integer
                 status:
                   type: string
+                  example: shipped
+                total_price:
+                  type: number
+                  example: 49.99
+                voucher_id:
+                  type: integer
+                  nullable: true
       responses:
         "200":
           description: Order updated successfully
@@ -617,12 +865,16 @@ paths:
                     type: integer
                   buyer_id:
                     type: integer
-                  product_id:
-                    type: integer
-                  quantity:
-                    type: integer
                   status:
                     type: string
+                  total_price:
+                    type: number
+                  voucher_id:
+                    type: integer
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
         "400":
           description: No valid fields to update
         "404":
@@ -654,19 +906,22 @@ paths:
                     type: integer
                   buyer_id:
                     type: integer
-                  product_id:
-                    type: integer
-                  quantity:
-                    type: integer
                   status:
                     type: string
+                  total_price:
+                    type: number
+                  voucher_id:
+                    type: integer
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
         "404":
           description: Order not found
         "500":
           description: Internal server error
 
-
-  # ---------------- Vouchers ----------------
+# ---------------- Vouchers ----------------
   /vouchers:
     post:
       summary: Create a new voucher
@@ -753,7 +1008,6 @@ paths:
           description: No vouchers found
         "500":
           description: Internal server error
-
 
   /vouchers/{id}:
     get:
@@ -885,7 +1139,8 @@ paths:
           description: Voucher not found
         "500":
           description: Internal server error
-          
+
+# ---------------- System ----------------
   /health:
     get:
       summary: Health check
