@@ -679,48 +679,30 @@ paths:
 # ---------------- Orders ----------------
   /orders:
     post:
-      summary: Create a new order
-      description: Create a new order from a list of items. Requires authentication.
+      summary: Place an order from cart
+      description: |
+        Creates an order from the logged-in user's cart. The buyer is determined from the JWT token.
+        Optionally apply a voucher discount. Clears the cart on success.
+
+        Supports content negotiation via the `Accept` header:
+        - `Accept: application/json` (default) — returns JSON
+        - `Accept: application/xml` — returns a full XML order summary with per-item pricing, seller info, and totals
       tags:
         - orders
       security:
         - bearerAuth: []
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               type: object
-              required:
-                - buyer_id
-                - items
               properties:
-                buyer_id:
-                  type: integer
-                  description: ID of the buyer
-                  example: 1
-                items:
-                  type: array
-                  description: List of products and quantities
-                  items:
-                    type: object
-                    required:
-                      - product_id
-                      - quantity
-                    properties:
-                      product_id:
-                        type: integer
-                        example: 2
-                      quantity:
-                        type: integer
-                        example: 3
-                total_price:
-                  type: number
-                  example: 29.97
                 voucher_id:
                   type: integer
                   nullable: true
-                  example: null
+                  description: Optional voucher to apply. discount < 1 is a percentage off, discount >= 1 is a flat amount off.
+                  example: 5
       responses:
         "201":
           description: Order created successfully
@@ -744,8 +726,29 @@ paths:
                   created_at:
                     type: string
                     format: date-time
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        product_id:
+                          type: integer
+                        quantity:
+                          type: integer
+                        price:
+                          type: number
+                        product_name:
+                          type: string
+                        seller_id:
+                          type: integer
+            application/xml:
+              schema:
+                type: object
+                xml:
+                  name: order
+                description: Full XML order summary with items, sellers, and pricing summary
         "400":
-          description: buyer_id or items missing
+          description: Cart is empty, voucher expired, or voucher not found (404)
         "401":
           description: Missing or invalid token
         "500":
