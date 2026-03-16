@@ -9,6 +9,7 @@ export function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Authorization header required' });
     }
 
+    // remove 'Bearer ' from token...
     const token = authHeader.slice(7);
     try {
         req.user = jwt.verify(token, JWT_SECRET);

@@ -1,13 +1,11 @@
 // npm imports
 import express, { json } from 'express';
-import { create } from 'xmlbuilder2';
 import cors from 'cors';
 import YAML from 'yaml';
 import sui from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
-import { fileURLToPath } from 'url';
 const config = JSON.parse(fs.readFileSync(new URL('./config.json', import.meta.url), 'utf8'));
 
 // controller imports
@@ -64,10 +62,16 @@ import {
     getOrderCancellationDetails
 } from './controllers/orderCancellationController.js';
 
+import {
+    wantsXml,
+    orderToXml,
+    orderResponseToXml,
+    orderCancellationToXml
+} from './controllers/XMLController.js';
+
 import { handleErrors } from './handler.js';
 
-
-// setup web applicatioon
+// setup web applicatioon -- from 1531...
 // Use middleware to access .json files
 const app = express();
 app.use(json());
@@ -76,24 +80,18 @@ app.use(express.json());
 // Use middleware for allowing access form different domain: for frontend
 app.use(cors());
 
-try {
-    const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
-    app.get('/', (req, res) => res.redirect('/docs'));
-    app.use('/docs', sui.serve, sui.setup(YAML.parse(file) || {}, {
-        swaggerOptions: { docExpansion: 'full' }
-    }));
-} catch (_) {
-    // swagger.yaml not found or invalid — skip docs route
-}
+const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
+app.get('/', (req, res) => res.redirect('/docs'));
+app.use('/docs', sui.serve, sui.setup(YAML.parse(file), {
+    swaggerOptions: { docExpansion: 'full' }
+}));
 
 const PORT = parseInt(process.env.PORT || config.port);
-const HOST = process.env.IP || '127.0.0.1'; // eslint-disable-line no-unused-vars
 
 
 // ------------------------------------------------------------------------------------------------------
 // ------------------------------ Sever functionalities and API below here ------------------------------
 // ------------------------------------------------------------------------------------------------------
-
 
 // ---------------------------------- Auth ----------------------------------
 app.post('/login', async (req, res) => {
@@ -176,171 +174,6 @@ app.delete('/cart/:product_id', requireAuth, async (req, res) => {
         return res.status(200).json(result);
     });
 });
-
-function wantsXml(req) {
-    return (req.headers.accept || '').includes('application/xml');
-}
-
-function orderToXml(order, items, buyer, sellers) {
-    const preDiscountTotal = Math.round(
-        items.reduce((sum, { price, quantity }) => sum + price * quantity, 0) * 100
-    ) / 100;
-    const finalTotal = parseFloat(order.total_price ?? preDiscountTotal);
-    const saved = Math.round((preDiscountTotal - finalTotal) * 100) / 100;
-
-    const issueDate = new Date(order.created_at);
-    const issueDateStr = issueDate.toISOString().split('T')[0];
-    const issueTimeStr = issueDate.toISOString().split('T')[1].replace(/\.\d+Z$/, '');
-
-    const root = create({ version: '1.0', encoding: 'UTF-8' })
-        .ele('Order', {
-            'xmlns': 'urn:oasis:names:specification:ubl:schema:xsd:Order-2',
-            'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
-            'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
-        });
-
-    root.ele('cbc:UBLVersionID').txt('2.1');
-    root.ele('cbc:ID').txt(String(order.id));
-    root.ele('cbc:IssueDate').txt(issueDateStr);
-    root.ele('cbc:IssueTime').txt(issueTimeStr);
-    root.ele('cbc:DocumentCurrencyCode').txt('AUD');
-    root.ele('cbc:Note').txt(`Status: ${order.status}`);
-
-    const buyerParty = root.ele('cac:BuyerCustomerParty').ele('cac:Party');
-    buyerParty.ele('cac:PartyName').ele('cbc:Name').txt(buyer?.name ?? '');
-    const buyerAddr = buyerParty.ele('cac:PostalAddress');
-    if (buyer?.street) buyerAddr.ele('cbc:StreetName').txt(buyer.street);
-    if (buyer?.city) buyerAddr.ele('cbc:CityName').txt(buyer.city);
-    if (buyer?.postcode) buyerAddr.ele('cbc:PostalZone').txt(buyer.postcode);
-    if (buyer?.country) buyerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(buyer.country);
-
-    for (const seller of (sellers || [])) {
-        const sellerParty = root.ele('cac:SellerSupplierParty').ele('cac:Party');
-        sellerParty.ele('cac:PartyIdentification').ele('cbc:ID').txt(String(seller.id));
-        sellerParty.ele('cac:PartyName').ele('cbc:Name').txt(seller.name ?? '');
-        const sellerAddr = sellerParty.ele('cac:PostalAddress');
-        if (seller.street) sellerAddr.ele('cbc:StreetName').txt(seller.street);
-        if (seller.city) sellerAddr.ele('cbc:CityName').txt(seller.city);
-        if (seller.postcode) sellerAddr.ele('cbc:PostalZone').txt(seller.postcode);
-        if (seller.country) sellerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(seller.country);
-    }
-
-    items.forEach((item, index) => {
-        const lineExt = Math.round(item.price * item.quantity * 100) / 100;
-        const line = root.ele('cac:OrderLine');
-        const lineItem = line.ele('cac:LineItem');
-        lineItem.ele('cbc:ID').txt(String(index + 1));
-        lineItem.ele('cbc:Quantity', { unitCode: 'C62' }).txt(String(item.quantity));
-        lineItem.ele('cbc:LineExtensionAmount', { currencyID: 'AUD' }).txt(String(lineExt));
-        lineItem.ele('cac:Price').ele('cbc:PriceAmount', { currencyID: 'AUD' }).txt(String(item.price));
-        const itemEle = lineItem.ele('cac:Item');
-        itemEle.ele('cbc:Name').txt(item.product_name ?? '');
-        itemEle.ele('cac:SellersItemIdentification').ele('cbc:ID').txt(String(item.product_id));
-    });
-
-    const totals = root.ele('cac:AnticipatedMonetaryTotal');
-    totals.ele('cbc:LineExtensionAmount', { currencyID: 'AUD' }).txt(String(preDiscountTotal));
-    if (saved > 0) totals.ele('cbc:AllowanceTotalAmount', { currencyID: 'AUD' }).txt(String(saved));
-    totals.ele('cbc:PayableAmount', { currencyID: 'AUD' }).txt(String(finalTotal));
-
-    return root.end({ prettyPrint: true });
-}
-
-function orderResponseToXml(response, order, items, buyer, seller) {
-    const issueDate = new Date(response.created_at);
-    const issueDateStr = issueDate.toISOString().split('T')[0];
-    const issueTimeStr = issueDate.toISOString().split('T')[1].replace(/\.\d+Z$/, '');
-
-    const root = create({ version: '1.0', encoding: 'UTF-8' })
-        .ele('OrderResponse', {
-            'xmlns': 'urn:oasis:names:specification:ubl:schema:xsd:OrderResponse-2',
-            'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
-            'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
-        });
-
-    root.ele('cbc:UBLVersionID').txt('2.1');
-    root.ele('cbc:ID').txt(String(response.id));
-    root.ele('cbc:IssueDate').txt(issueDateStr);
-    root.ele('cbc:IssueTime').txt(issueTimeStr);
-    root.ele('cbc:OrderCommunicationTypeCode').txt(response.response_code);
-    if (response.note) root.ele('cbc:Note').txt(response.note);
-
-    root.ele('cac:OrderReference').ele('cbc:ID').txt(String(order.id));
-
-    const sellerParty = root.ele('cac:SellerSupplierParty').ele('cac:Party');
-    sellerParty.ele('cac:PartyIdentification').ele('cbc:ID').txt(String(seller.id));
-    sellerParty.ele('cac:PartyName').ele('cbc:Name').txt(seller.name ?? '');
-    const sellerAddr = sellerParty.ele('cac:PostalAddress');
-    if (seller.street) sellerAddr.ele('cbc:StreetName').txt(seller.street);
-    if (seller.city) sellerAddr.ele('cbc:CityName').txt(seller.city);
-    if (seller.postcode) sellerAddr.ele('cbc:PostalZone').txt(seller.postcode);
-    if (seller.country) sellerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(seller.country);
-
-    const buyerParty = root.ele('cac:BuyerCustomerParty').ele('cac:Party');
-    buyerParty.ele('cac:PartyName').ele('cbc:Name').txt(buyer?.name ?? '');
-    const buyerAddr = buyerParty.ele('cac:PostalAddress');
-    if (buyer?.street) buyerAddr.ele('cbc:StreetName').txt(buyer.street);
-    if (buyer?.city) buyerAddr.ele('cbc:CityName').txt(buyer.city);
-    if (buyer?.postcode) buyerAddr.ele('cbc:PostalZone').txt(buyer.postcode);
-    if (buyer?.country) buyerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(buyer.country);
-
-    items.forEach((item, index) => {
-        const lineExt = Math.round(item.price * item.quantity * 100) / 100;
-        const line = root.ele('cac:OrderLine');
-        const lineItem = line.ele('cac:LineItem');
-        lineItem.ele('cbc:ID').txt(String(index + 1));
-        lineItem.ele('cbc:Quantity', { unitCode: 'C62' }).txt(String(item.quantity));
-        lineItem.ele('cbc:LineExtensionAmount', { currencyID: 'AUD' }).txt(String(lineExt));
-        lineItem.ele('cac:Price').ele('cbc:PriceAmount', { currencyID: 'AUD' }).txt(String(item.price));
-        const itemEle = lineItem.ele('cac:Item');
-        itemEle.ele('cbc:Name').txt(item.product_name ?? '');
-        itemEle.ele('cac:SellersItemIdentification').ele('cbc:ID').txt(String(item.product_id));
-    });
-
-    return root.end({ prettyPrint: true });
-}
-
-function orderCancellationToXml(cancellation, order, buyer, sellers) {
-    const issueDate = new Date(cancellation.created_at);
-    const issueDateStr = issueDate.toISOString().split('T')[0];
-    const issueTimeStr = issueDate.toISOString().split('T')[1].replace(/\.\d+Z$/, '');
-
-    const root = create({ version: '1.0', encoding: 'UTF-8' })
-        .ele('OrderCancellation', {
-            'xmlns': 'urn:oasis:names:specification:ubl:schema:xsd:OrderCancellation-2',
-            'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
-            'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
-        });
-
-    root.ele('cbc:UBLVersionID').txt('2.1');
-    root.ele('cbc:ID').txt(String(cancellation.id));
-    root.ele('cbc:IssueDate').txt(issueDateStr);
-    root.ele('cbc:IssueTime').txt(issueTimeStr);
-    if (cancellation.reason) root.ele('cbc:Note').txt(cancellation.reason);
-
-    root.ele('cac:OrderReference').ele('cbc:ID').txt(String(order.id));
-
-    const buyerParty = root.ele('cac:BuyerCustomerParty').ele('cac:Party');
-    buyerParty.ele('cac:PartyName').ele('cbc:Name').txt(buyer?.name ?? '');
-    const buyerAddr = buyerParty.ele('cac:PostalAddress');
-    if (buyer?.street) buyerAddr.ele('cbc:StreetName').txt(buyer.street);
-    if (buyer?.city) buyerAddr.ele('cbc:CityName').txt(buyer.city);
-    if (buyer?.postcode) buyerAddr.ele('cbc:PostalZone').txt(buyer.postcode);
-    if (buyer?.country) buyerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(buyer.country);
-
-    for (const seller of (sellers || [])) {
-        const sellerParty = root.ele('cac:SellerSupplierParty').ele('cac:Party');
-        sellerParty.ele('cac:PartyIdentification').ele('cbc:ID').txt(String(seller.id));
-        sellerParty.ele('cac:PartyName').ele('cbc:Name').txt(seller.name ?? '');
-        const sellerAddr = sellerParty.ele('cac:PostalAddress');
-        if (seller.street) sellerAddr.ele('cbc:StreetName').txt(seller.street);
-        if (seller.city) sellerAddr.ele('cbc:CityName').txt(seller.city);
-        if (seller.postcode) sellerAddr.ele('cbc:PostalZone').txt(seller.postcode);
-        if (seller.country) sellerAddr.ele('cac:Country').ele('cbc:IdentificationCode').txt(seller.country);
-    }
-
-    return root.end({ prettyPrint: true });
-}
 
 // ---------------------------------- Order Controller ----------------------------------
 app.post('/orders', requireAuth, async (req, res) => {
@@ -547,13 +380,6 @@ app.use(function(req, res, next)
     next();
 });
 
-
-app.get('/', function(req, res)
-{
-    res.send('Walke API running');
-});
-
-
 app.get('/health', function(req, res)
 {
     res.status(200).json({
@@ -570,11 +396,9 @@ app.use(function(req, res)
     });
 });
 
-export { app };
+app.listen(PORT, function()
+{
+    console.log('⚡️ Server started on port ' + PORT);
+});
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    app.listen(PORT, function()
-    {
-        console.log('⚡️ Server started on port ' + PORT);
-    });
-}
+export { app };
