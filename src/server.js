@@ -79,6 +79,7 @@ app.use(express.json());
 
 // Use middleware for allowing access form different domain: for frontend
 app.use(cors());
+app.use(express.static('public'));
 
 const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
 app.get('/', (req, res) => res.redirect('/docs'));
