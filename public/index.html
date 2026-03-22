@@ -7,323 +7,70 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
 <style>
-/* ─── Reset & Variables ─── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
 :root {
-  --bg:        #0e0e11;
-  --surface:   #18181d;
-  --surface2:  #222228;
-  --border:    #2a2a32;
-  --text:      #e8e6e1;
-  --text-dim:  #8a8890;
-  --accent:    #c8ff2e;
-  --accent-dim:#a0cc24;
-  --danger:    #ff5c5c;
-  --success:   #2ecc71;
-  --radius:    12px;
-  --font-body: 'DM Sans', sans-serif;
-  --font-display: 'Playfair Display', serif;
+  --bg:#0e0e11;--surface:#18181d;--surface2:#222228;--border:#2a2a32;
+  --text:#e8e6e1;--text-dim:#8a8890;--accent:#c8ff2e;--accent-dim:#a0cc24;
+  --danger:#ff5c5c;--success:#2ecc71;--radius:12px;
+  --font-body:'DM Sans',sans-serif;--font-display:'Playfair Display',serif;
 }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  line-height: 1.6;
-  min-height: 100vh;
-}
-
-/* ─── Grain Overlay ─── */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
-}
-
-/* ─── Layout ─── */
-.app { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-
-/* ─── Header ─── */
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 28px 0;
-  border-bottom: 1px solid var(--border);
-}
-.logo {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--accent);
-}
-.logo span { color: var(--text); font-weight: 600; }
-
-.auth-strip {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.auth-strip .user-badge {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  padding: 6px 16px;
-  border-radius: 99px;
-  font-size: 0.85rem;
-  color: var(--accent);
-  font-weight: 500;
-}
-.auth-strip .user-badge.offline { color: var(--text-dim); }
-
-/* ─── Buttons ─── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 22px;
-  border: none;
-  border-radius: 99px;
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-primary {
-  background: var(--accent);
-  color: var(--bg);
-}
-.btn-primary:hover { background: var(--accent-dim); transform: translateY(-1px); }
-.btn-outline {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-.btn-danger {
-  background: transparent;
-  border: 1px solid var(--danger);
-  color: var(--danger);
-}
-.btn-danger:hover { background: var(--danger); color: #fff; }
-.btn-sm { padding: 6px 14px; font-size: 0.78rem; }
-
-/* ─── Navigation Tabs ─── */
-nav {
-  display: flex;
-  gap: 4px;
-  padding: 20px 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-nav::-webkit-scrollbar { display: none; }
-nav button {
-  padding: 10px 24px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-dim);
-  border-radius: 99px;
-  font-family: var(--font-body);
-  font-size: 0.88rem;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-nav button:hover { color: var(--text); background: var(--surface); }
-nav button.active {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
-}
-
-/* ─── Sections ─── */
-.section { display: none; padding: 12px 0 60px; animation: fadeUp 0.35s ease; }
-.section.active { display: block; }
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 28px;
-}
-.section-header h2 {
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  font-weight: 600;
-}
-
-/* ─── Cards Grid ─── */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 18px;
-}
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 22px;
-  transition: border-color 0.2s, transform 0.2s;
-}
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.card-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-.card-meta {
-  font-size: 0.82rem;
-  color: var(--text-dim);
-  margin-bottom: 14px;
-}
-.card-price {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  color: var(--accent);
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-.card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-/* ─── Table ─── */
-.table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-}
-th, td { padding: 14px 18px; text-align: left; }
-th {
-  background: var(--surface2);
-  color: var(--text-dim);
-  font-weight: 500;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-td { border-top: 1px solid var(--border); }
-tr:hover td { background: var(--surface); }
-
-.badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 99px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.badge-pending  { background: #3a3520; color: #ffd966; }
-.badge-confirmed { background: #1a3324; color: var(--success); }
-.badge-cancelled { background: #331a1a; color: var(--danger); }
-.badge-completed { background: #1a2d33; color: #5ecde6; }
-
-/* ─── Forms / Modals ─── */
-.modal-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
-  backdrop-filter: blur(6px);
-  z-index: 100;
-  justify-content: center;
-  align-items: center;
-}
-.modal-backdrop.open { display: flex; }
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 36px;
-  width: 100%;
-  max-width: 480px;
-  animation: fadeUp 0.25s ease;
-}
-.modal h3 {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  margin-bottom: 24px;
-}
-.field { margin-bottom: 18px; }
-.field label {
-  display: block;
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-}
-.field input, .field select, .field textarea {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 0.92rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.field input:focus, .field select:focus, .field textarea:focus {
-  border-color: var(--accent);
-}
-.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
-
-/* ─── Toast ─── */
-.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
-.toast {
-  padding: 14px 22px;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  animation: slideIn 0.3s ease, fadeOut 0.3s 2.5s ease forwards;
-  max-width: 380px;
-}
-.toast-success { background: #1a3324; color: var(--success); border: 1px solid #2a5a3a; }
-.toast-error   { background: #331a1a; color: var(--danger); border: 1px solid #5a2a2a; }
-
-@keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-@keyframes fadeOut  { to { opacity: 0; transform: translateY(10px); } }
-
-/* ─── Empty State ─── */
-.empty {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-dim);
-}
-.empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
-.empty p { font-size: 0.95rem; }
-
-/* ─── Responsive ─── */
-@media (max-width: 640px) {
-  .section-header { flex-direction: column; gap: 12px; align-items: flex-start; }
-  .grid { grid-template-columns: 1fr; }
-  .modal { margin: 16px; }
-}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+.app{max-width:1200px;margin:0 auto;padding:0 24px}
+header{display:flex;justify-content:space-between;align-items:center;padding:28px 0;border-bottom:1px solid var(--border)}
+.logo{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.02em;color:var(--accent)}
+.logo span{color:var(--text);font-weight:600}
+.auth-strip{display:flex;align-items:center;gap:14px}
+.user-badge{background:var(--surface2);border:1px solid var(--border);padding:6px 16px;border-radius:99px;font-size:.85rem;color:var(--accent);font-weight:500}
+.user-badge.offline{color:var(--text-dim)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border:none;border-radius:99px;font-family:var(--font-body);font-size:.85rem;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--accent);color:var(--bg)}.btn-primary:hover{background:var(--accent-dim);transform:translateY(-1px)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger)}.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 14px;font-size:.78rem}
+nav{display:flex;gap:4px;padding:20px 0;overflow-x:auto;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
+nav button{padding:10px 24px;border:1px solid transparent;background:transparent;color:var(--text-dim);border-radius:99px;font-family:var(--font-body);font-size:.88rem;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .2s}
+nav button:hover{color:var(--text);background:var(--surface)}
+nav button.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.section{display:none;padding:12px 0 60px;animation:fadeUp .35s ease}.section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.section-header h2{font-family:var(--font-display);font-size:1.8rem;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;transition:border-color .2s,transform .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card-title{font-size:1.1rem;font-weight:700;margin-bottom:6px}
+.card-meta{font-size:.82rem;color:var(--text-dim);margin-bottom:14px}
+.card-price{font-family:var(--font-display);font-size:1.4rem;color:var(--accent);font-weight:600;margin-bottom:12px}
+.card-actions{display:flex;gap:8px;flex-wrap:wrap}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:14px 18px;text-align:left}
+th{background:var(--surface2);color:var(--text-dim);font-weight:500;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
+td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.badge-pending{background:#3a3520;color:#ffd966}.badge-confirmed{background:#1a3324;color:var(--success)}
+.badge-cancelled,.badge-rejected{background:#331a1a;color:var(--danger)}.badge-completed{background:#1a2d33;color:#5ecde6}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:100;justify-content:center;align-items:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px;width:100%;max-width:480px;animation:fadeUp .25s ease}
+.modal h3{font-family:var(--font-display);font-size:1.4rem;margin-bottom:24px}
+.field{margin-bottom:18px}.field label{display:block;font-size:.8rem;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:500}
+.field input,.field select,.field textarea{width:100%;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.92rem;outline:none;transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{padding:14px 22px;border-radius:10px;font-size:.88rem;font-weight:500;animation:slideIn .3s ease,fadeOut .3s 2.5s ease forwards;max-width:380px}
+.toast-success{background:#1a3324;color:var(--success);border:1px solid #2a5a3a}
+.toast-error{background:#331a1a;color:var(--danger);border:1px solid #5a2a2a}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{to{opacity:0;transform:translateY(10px)}}
+.empty{text-align:center;padding:60px 20px;color:var(--text-dim)}.empty-icon{font-size:3rem;margin-bottom:12px;opacity:.4}.empty p{font-size:.95rem}
+@media(max-width:640px){.section-header{flex-direction:column;gap:12px;align-items:flex-start}.grid{grid-template-columns:1fr}.modal{margin:16px}}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- ═══ HEADER ═══ -->
   <header>
     <div class="logo">W<span>alke</span></div>
     <div class="auth-strip">
@@ -331,8 +78,6 @@ tr:hover td { background: var(--surface); }
       <button class="btn btn-primary btn-sm" id="btnAuthToggle" onclick="openModal('loginModal')">Log In</button>
     </div>
   </header>
-
-  <!-- ═══ NAVIGATION ═══ -->
   <nav id="mainNav">
     <button class="active" data-tab="products">Products</button>
     <button data-tab="cart">Cart</button>
@@ -340,145 +85,92 @@ tr:hover td { background: var(--surface); }
     <button data-tab="vouchers">Vouchers</button>
     <button data-tab="users">Users</button>
   </nav>
-
-  <!-- ═══════════════════════════ PRODUCTS ═══════════════════════════ -->
   <section id="products" class="section active">
-    <div class="section-header">
-      <h2>Products</h2>
-      <button class="btn btn-primary" onclick="openModal('productModal')">+ New Product</button>
-    </div>
+    <div class="section-header"><h2>Products</h2><button class="btn btn-primary" onclick="openModal('productModal')">+ New Product</button></div>
     <div class="grid" id="productGrid"></div>
   </section>
-
-  <!-- ═══════════════════════════ CART ═══════════════════════════ -->
   <section id="cart" class="section">
-    <div class="section-header">
-      <h2>Your Cart</h2>
-    </div>
+    <div class="section-header"><h2>Your Cart</h2></div>
     <div id="cartContent"></div>
   </section>
-
-  <!-- ═══════════════════════════ ORDERS ═══════════════════════════ -->
   <section id="orders" class="section">
-    <div class="section-header">
-      <h2>Orders</h2>
-      <button class="btn btn-primary" onclick="placeOrder()">Place Order from Cart</button>
-    </div>
+    <div class="section-header"><h2>Orders</h2><button class="btn btn-primary" onclick="placeOrder()">Place Order from Cart</button></div>
     <div id="ordersContent"></div>
   </section>
-
-  <!-- ═══════════════════════════ VOUCHERS ═══════════════════════════ -->
   <section id="vouchers" class="section">
-    <div class="section-header">
-      <h2>Vouchers</h2>
-      <button class="btn btn-primary" onclick="openModal('voucherModal')">+ New Voucher</button>
-    </div>
+    <div class="section-header"><h2>Vouchers</h2><button class="btn btn-primary" onclick="openModal('voucherModal')">+ New Voucher</button></div>
     <div class="grid" id="voucherGrid"></div>
   </section>
-
-  <!-- ═══════════════════════════ USERS ═══════════════════════════ -->
   <section id="users" class="section">
-    <div class="section-header">
-      <h2>Users</h2>
-      <button class="btn btn-primary" onclick="openModal('registerModal')">+ Register</button>
-    </div>
+    <div class="section-header"><h2>Users</h2><button class="btn btn-primary" onclick="openModal('registerModal')">+ Register</button></div>
     <div id="usersContent"></div>
   </section>
 </div>
-
-<!-- ═══ TOAST CONTAINER ═══ -->
 <div class="toast-container" id="toasts"></div>
 
-<!-- ═══════════════════════════ MODALS ═══════════════════════════ -->
+<!-- Modals -->
+<div class="modal-backdrop" id="loginModal"><div class="modal"><h3>Welcome Back</h3>
+  <div class="field"><label>Username</label><input id="loginName" placeholder="johndoe"></div>
+  <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="••••••"></div>
+  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('loginModal')">Cancel</button><button class="btn btn-primary" onclick="doLogin()">Log In</button></div>
+</div></div>
 
-<!-- Login -->
-<div class="modal-backdrop" id="loginModal">
-  <div class="modal">
-    <h3>Welcome Back</h3>
-    <div class="field"><label>Username</label><input id="loginName" placeholder="johndoe"></div>
-    <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="••••••"></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="closeModal('loginModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doLogin()">Log In</button>
-    </div>
-  </div>
-</div>
+<div class="modal-backdrop" id="registerModal"><div class="modal"><h3>Create Account</h3>
+  <div class="field"><label>Username</label><input id="regName" placeholder="johndoe"></div>
+  <div class="field"><label>Password</label><input id="regPass" type="password" placeholder="••••••"></div>
+  <div class="field"><label>Street</label><input id="regStreet" placeholder="123 Main St"></div>
+  <div class="field"><label>City</label><input id="regCity" placeholder="Sydney"></div>
+  <div class="field"><label>Postcode</label><input id="regPostcode" placeholder="2000"></div>
+  <div class="field"><label>Country</label><input id="regCountry" placeholder="AU"></div>
+  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('registerModal')">Cancel</button><button class="btn btn-primary" onclick="doRegister()">Register</button></div>
+</div></div>
 
-<!-- Register -->
-<div class="modal-backdrop" id="registerModal">
-  <div class="modal">
-    <h3>Create Account</h3>
-    <div class="field"><label>Username</label><input id="regName" placeholder="johndoe"></div>
-    <div class="field"><label>Password</label><input id="regPass" type="password" placeholder="••••••"></div>
-    <div class="field"><label>Street</label><input id="regStreet" placeholder="123 Main St"></div>
-    <div class="field"><label>City</label><input id="regCity" placeholder="Sydney"></div>
-    <div class="field"><label>Postcode</label><input id="regPostcode" placeholder="2000"></div>
-    <div class="field"><label>Country</label><input id="regCountry" placeholder="AU"></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="closeModal('registerModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doRegister()">Register</button>
-    </div>
-  </div>
-</div>
+<div class="modal-backdrop" id="productModal"><div class="modal"><h3>New Product</h3>
+  <div class="field"><label>Name</label><input id="prodName" placeholder="Widget"></div>
+  <div class="field"><label>Price</label><input id="prodPrice" type="number" step="0.01" placeholder="9.99"></div>
+  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button><button class="btn btn-primary" onclick="doCreateProduct()">Create</button></div>
+</div></div>
 
-<!-- New Product -->
-<div class="modal-backdrop" id="productModal">
-  <div class="modal">
-    <h3>New Product</h3>
-    <div class="field"><label>Name</label><input id="prodName" placeholder="Widget"></div>
-    <div class="field"><label>Price</label><input id="prodPrice" type="number" step="0.01" placeholder="9.99"></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doCreateProduct()">Create</button>
-    </div>
-  </div>
-</div>
+<div class="modal-backdrop" id="voucherModal"><div class="modal"><h3>New Voucher</h3>
+  <div class="field"><label>Name</label><input id="vouchName" placeholder="SUMMER20"></div>
+  <div class="field"><label>Discount (&lt; 1 = %, &ge; 1 = flat $)</label><input id="vouchDiscount" type="number" step="0.01" placeholder="0.2"></div>
+  <div class="field"><label>Expiry (optional)</label><input id="vouchExpiry" type="date"></div>
+  <div class="field"><label>Max Uses</label><input id="vouchMaxUses" type="number" placeholder="100"></div>
+  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('voucherModal')">Cancel</button><button class="btn btn-primary" onclick="doCreateVoucher()">Create</button></div>
+</div></div>
 
-<!-- New Voucher -->
-<div class="modal-backdrop" id="voucherModal">
-  <div class="modal">
-    <h3>New Voucher</h3>
-    <div class="field"><label>Name</label><input id="vouchName" placeholder="SUMMER20"></div>
-    <div class="field"><label>Discount (< 1 = %, >= 1 = flat)</label><input id="vouchDiscount" type="number" step="0.01" placeholder="0.2"></div>
-    <div class="field"><label>Expiry (optional)</label><input id="vouchExpiry" type="date"></div>
-    <div class="field"><label>Max Uses</label><input id="vouchMaxUses" type="number" placeholder="100"></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="closeModal('voucherModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doCreateVoucher()">Create</button>
-    </div>
-  </div>
-</div>
-
-<!-- Add to Cart -->
-<div class="modal-backdrop" id="cartAddModal">
-  <div class="modal">
-    <h3>Add to Cart</h3>
-    <input type="hidden" id="cartAddProdId">
-    <p id="cartAddProdName" style="color:var(--text-dim);margin-bottom:18px;"></p>
-    <div class="field"><label>Quantity</label><input id="cartAddQty" type="number" min="1" value="1"></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="closeModal('cartAddModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doAddToCart()">Add</button>
-    </div>
-  </div>
-</div>
+<div class="modal-backdrop" id="cartAddModal"><div class="modal"><h3>Add to Cart</h3>
+  <input type="hidden" id="cartAddProdId">
+  <p id="cartAddProdName" style="color:var(--text-dim);margin-bottom:18px;"></p>
+  <div class="field"><label>Quantity</label><input id="cartAddQty" type="number" min="1" value="1"></div>
+  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('cartAddModal')">Cancel</button><button class="btn btn-primary" onclick="doAddToCart()">Add</button></div>
+</div></div>
 
 <script>
-// ══════════════════════════════════════════════════════
-//  CONFIG
-// ══════════════════════════════════════════════════════
-const API = 'http://127.0.0.1:3000';
+
+//  Empty string = same origin (frontend served by Express)
+const API = '';
+
 let token = localStorage.getItem('walke_token') || null;
 let currentUser = null;
 
-// ── Helpers ──
+// ── Core fetch wrapper ──
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...opts.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { ...opts, headers });
-  const data = res.headers.get('content-type')?.includes('json') ? await res.json() : await res.text();
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('json') ? await res.json() : await res.text();
   if (!res.ok) throw { status: res.status, data };
   return data;
+}
+
+// Your controllers throw 404 when a list is empty.
+// This wrapper treats 404 as an empty array so the UI shows
+// "No items yet" instead of "Failed to load".
+async function apiList(path) {
+  try { return await api(path); }
+  catch (e) { if (e.status === 404) return []; throw e; }
 }
 
 function toast(msg, type = 'success') {
@@ -488,147 +180,88 @@ function toast(msg, type = 'success') {
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => el.remove(), 3000);
 }
-
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-function statusBadge(status) {
-  const cls = { pending:'badge-pending', confirmed:'badge-confirmed', cancelled:'badge-cancelled', completed:'badge-completed' };
-  return `<span class="badge ${cls[status] || 'badge-pending'}">${status}</span>`;
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch { return null; } }
+function statusBadge(s) {
+  const c = { pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled',completed:'badge-completed',rejected:'badge-rejected' };
+  return `<span class="badge ${c[s]||'badge-pending'}">${s}</span>`;
 }
 
-// ── Decode JWT payload ──
-function parseJwt(t) {
-  try { return JSON.parse(atob(t.split('.')[1])); } catch { return null; }
-}
-
-// ══════════════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════════════
+// ── Auth ──
 function updateAuthUI() {
-  const badge = document.getElementById('userBadge');
-  const btn = document.getElementById('btnAuthToggle');
+  const badge = document.getElementById('userBadge'), btn = document.getElementById('btnAuthToggle');
   if (token) {
     currentUser = parseJwt(token);
-    badge.textContent = currentUser?.name || 'User';
-    badge.classList.remove('offline');
-    btn.textContent = 'Log Out';
-    btn.onclick = doLogout;
+    badge.textContent = currentUser?.name || 'User'; badge.classList.remove('offline');
+    btn.textContent = 'Log Out'; btn.onclick = doLogout;
   } else {
-    badge.textContent = 'Not logged in';
-    badge.classList.add('offline');
-    btn.textContent = 'Log In';
-    btn.onclick = () => openModal('loginModal');
+    badge.textContent = 'Not logged in'; badge.classList.add('offline');
+    btn.textContent = 'Log In'; btn.onclick = () => openModal('loginModal');
     currentUser = null;
   }
 }
-
 async function doLogin() {
   try {
-    const name = document.getElementById('loginName').value;
-    const password = document.getElementById('loginPass').value;
-    const data = await api('/login', { method: 'POST', body: JSON.stringify({ name, password }) });
-    token = data.token;
-    localStorage.setItem('walke_token', token);
-    closeModal('loginModal');
-    updateAuthUI();
-    toast(`Logged in as ${parseJwt(token)?.name}`);
-    loadTab(activeTab());
-  } catch (e) {
-    toast(e.data?.error || 'Login failed', 'error');
-  }
+    const data = await api('/login', { method:'POST', body: JSON.stringify({ name: document.getElementById('loginName').value, password: document.getElementById('loginPass').value }) });
+    token = data.token; localStorage.setItem('walke_token', token);
+    closeModal('loginModal'); updateAuthUI();
+    toast(`Logged in as ${parseJwt(token)?.name}`); loadTab(activeTab());
+  } catch (e) { toast(e.data?.error || 'Login failed', 'error'); }
 }
-
-function doLogout() {
-  token = null;
-  localStorage.removeItem('walke_token');
-  updateAuthUI();
-  toast('Logged out');
-  loadTab(activeTab());
-}
-
+function doLogout() { token = null; localStorage.removeItem('walke_token'); updateAuthUI(); toast('Logged out'); loadTab(activeTab()); }
 async function doRegister() {
   try {
-    const body = {
-      name: document.getElementById('regName').value,
-      password: document.getElementById('regPass').value,
-      street: document.getElementById('regStreet').value || undefined,
-      city: document.getElementById('regCity').value || undefined,
-      postcode: document.getElementById('regPostcode').value || undefined,
-      country: document.getElementById('regCountry').value || undefined,
-    };
-    await api('/users', { method: 'POST', body: JSON.stringify(body) });
-    closeModal('registerModal');
-    toast('Account created — you can now log in');
-    loadTab('users');
-  } catch (e) {
-    toast(e.data?.error || 'Registration failed', 'error');
-  }
+    const body = { name:document.getElementById('regName').value, password:document.getElementById('regPass').value,
+      street:document.getElementById('regStreet').value||undefined, city:document.getElementById('regCity').value||undefined,
+      postcode:document.getElementById('regPostcode').value||undefined, country:document.getElementById('regCountry').value||undefined };
+    await api('/users', { method:'POST', body:JSON.stringify(body) });
+    closeModal('registerModal'); toast('Account created — you can now log in'); loadTab('users');
+  } catch (e) { toast(e.data?.error || 'Registration failed', 'error'); }
 }
 
-// ══════════════════════════════════════════════════════
-//  PRODUCTS
-// ══════════════════════════════════════════════════════
+// ── Products ──
 async function loadProducts() {
   const grid = document.getElementById('productGrid');
   try {
-    const products = await api('/products');
-    if (!products.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>No products yet</p></div>`; return; }
-    grid.innerHTML = products.map(p => `
-      <div class="card">
-        <div class="card-meta">ID #${p.id} · Seller #${p.seller_id || '—'}</div>
-        <div class="card-title">${esc(p.name)}</div>
-        <div class="card-price">$${Number(p.price).toFixed(2)}</div>
-        <div class="card-actions">
-          <button class="btn btn-primary btn-sm" onclick="openAddToCart(${p.id}, '${esc(p.name)}')">Add to Cart</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>
-        </div>
-      </div>
-    `).join('');
+    const products = await apiList('/products');
+    if (!products.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>No products yet — create one!</p></div>`; return; }
+    grid.innerHTML = products.map(p => `<div class="card">
+      <div class="card-meta">ID #${p.id} · Seller #${p.seller_id||'—'}</div>
+      <div class="card-title">${esc(p.name)}</div>
+      <div class="card-price">$${Number(p.price).toFixed(2)}</div>
+      <div class="card-actions">
+        <button class="btn btn-primary btn-sm" onclick="openAddToCart(${p.id},'${esc(p.name)}')">Add to Cart</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>
+      </div></div>`).join('');
   } catch { grid.innerHTML = `<div class="empty"><p>Failed to load products</p></div>`; }
 }
-
 async function doCreateProduct() {
   try {
-    const body = {
-      name: document.getElementById('prodName').value,
-      price: parseFloat(document.getElementById('prodPrice').value),
-      seller_id: currentUser?.id || 1,
-    };
-    await api('/products', { method: 'POST', body: JSON.stringify(body) });
-    closeModal('productModal');
-    toast('Product created');
-    loadProducts();
-  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+    await api('/products', { method:'POST', body:JSON.stringify({ name:document.getElementById('prodName').value, price:parseFloat(document.getElementById('prodPrice').value), seller_id:currentUser?.id||1 }) });
+    closeModal('productModal'); toast('Product created'); loadProducts();
+  } catch (e) { toast(e.data?.error || 'Failed — are you logged in?', 'error'); }
 }
-
 async function deleteProduct(id) {
   if (!confirm('Delete this product?')) return;
-  try { await api(`/products/${id}`, { method: 'DELETE' }); toast('Deleted'); loadProducts(); }
-  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+  try { await api(`/products/${id}`,{method:'DELETE'}); toast('Deleted'); loadProducts(); } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
 
-// ══════════════════════════════════════════════════════
-//  CART
-// ══════════════════════════════════════════════════════
+// ── Cart ──
 function openAddToCart(id, name) {
-  if (!token) { toast('Log in first', 'error'); return; }
+  if (!token) { toast('Log in first','error'); return; }
   document.getElementById('cartAddProdId').value = id;
   document.getElementById('cartAddProdName').textContent = `Product: ${name}`;
   document.getElementById('cartAddQty').value = 1;
   openModal('cartAddModal');
 }
-
 async function doAddToCart() {
   try {
-    const product_id = parseInt(document.getElementById('cartAddProdId').value);
-    const quantity = parseInt(document.getElementById('cartAddQty').value);
-    await api('/cart', { method: 'POST', body: JSON.stringify({ product_id, quantity }) });
-    closeModal('cartAddModal');
-    toast('Added to cart');
-  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+    await api('/cart', { method:'POST', body:JSON.stringify({ product_id:parseInt(document.getElementById('cartAddProdId').value), quantity:parseInt(document.getElementById('cartAddQty').value) }) });
+    closeModal('cartAddModal'); toast('Added to cart');
+  } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
-
 async function loadCart() {
   const el = document.getElementById('cartContent');
   if (!token) { el.innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><p>Log in to view your cart</p></div>`; return; }
@@ -637,200 +270,130 @@ async function loadCart() {
     if (!items.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">🛒</div><p>Your cart is empty</p></div>`; return; }
     el.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>Product ID</th><th>Quantity</th><th>Actions</th></tr></thead>
-      <tbody>${items.map(i => `<tr>
-        <td>#${i.product_id}</td>
-        <td>${i.quantity}</td>
-        <td>
-          <button class="btn btn-outline btn-sm" onclick="updateCart(${i.product_id})">Edit Qty</button>
-          <button class="btn btn-danger btn-sm" onclick="removeCart(${i.product_id})">Remove</button>
-        </td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
+      <tbody>${items.map(i=>`<tr><td>#${i.product_id}</td><td>${i.quantity}</td><td>
+        <button class="btn btn-outline btn-sm" onclick="updateCart(${i.product_id})">Edit Qty</button>
+        <button class="btn btn-danger btn-sm" onclick="removeCart(${i.product_id})">Remove</button>
+      </td></tr>`).join('')}</tbody></table></div>`;
   } catch { el.innerHTML = `<div class="empty"><p>Failed to load cart</p></div>`; }
 }
-
-async function updateCart(productId) {
-  const qty = prompt('New quantity:');
-  if (!qty || isNaN(qty) || qty < 1) return;
-  try { await api(`/cart/${productId}`, { method: 'PATCH', body: JSON.stringify({ quantity: parseInt(qty) }) }); toast('Updated'); loadCart(); }
-  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+async function updateCart(pid) {
+  const q = prompt('New quantity:'); if (!q||isNaN(q)||q<1) return;
+  try { await api(`/cart/${pid}`,{method:'PATCH',body:JSON.stringify({quantity:parseInt(q)})}); toast('Updated'); loadCart(); } catch(e){ toast(e.data?.error||'Failed','error'); }
+}
+async function removeCart(pid) {
+  try { await api(`/cart/${pid}`,{method:'DELETE'}); toast('Removed'); loadCart(); } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
 
-async function removeCart(productId) {
-  try { await api(`/cart/${productId}`, { method: 'DELETE' }); toast('Removed'); loadCart(); }
-  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
-}
-
-// ══════════════════════════════════════════════════════
-//  ORDERS
-// ══════════════════════════════════════════════════════
+// ── Orders ──
 async function loadOrders() {
   const el = document.getElementById('ordersContent');
   try {
-    const orders = await api('/orders');
+    const orders = await apiList('/orders');
     if (!orders.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No orders yet</p></div>`; return; }
     el.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>ID</th><th>Buyer</th><th>Status</th><th>Total</th><th>Voucher</th><th>Actions</th></tr></thead>
-      <tbody>${orders.map(o => `<tr>
-        <td>#${o.id}</td>
-        <td>User #${o.buyer_id}</td>
-        <td>${statusBadge(o.status)}</td>
-        <td>$${Number(o.total_price).toFixed(2)}</td>
-        <td>${o.voucher_id ? '#' + o.voucher_id : '—'}</td>
+      <tbody>${orders.map(o=>`<tr>
+        <td>#${o.id}</td><td>User #${o.buyer_id}</td><td>${statusBadge(o.status)}</td>
+        <td>$${Number(o.total_price).toFixed(2)}</td><td>${o.voucher_id?'#'+o.voucher_id:'—'}</td>
         <td>
-          ${o.status === 'pending' ? `<button class="btn btn-outline btn-sm" onclick="respondOrder(${o.id})">Respond</button>` : ''}
-          ${['pending','confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-sm" onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
+          ${o.status==='pending'?`<button class="btn btn-outline btn-sm" onclick="respondOrder(${o.id})">Respond</button>`:''}
+          ${['pending','confirmed'].includes(o.status)?`<button class="btn btn-danger btn-sm" onclick="cancelOrder(${o.id})">Cancel</button>`:''}
           <button class="btn btn-outline btn-sm" onclick="viewOrderXml(${o.id})">XML</button>
           <button class="btn btn-danger btn-sm" onclick="deleteOrder(${o.id})">Delete</button>
-        </td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
+        </td></tr>`).join('')}</tbody></table></div>`;
   } catch { el.innerHTML = `<div class="empty"><p>Failed to load orders</p></div>`; }
 }
-
 async function placeOrder() {
-  if (!token) { toast('Log in first', 'error'); return; }
+  if (!token) { toast('Log in first','error'); return; }
   const vid = prompt('Voucher ID (leave blank for none):');
   try {
-    const body = vid ? { voucher_id: parseInt(vid) } : {};
-    await api('/orders', { method: 'POST', body: JSON.stringify(body) });
-    toast('Order placed!');
-    loadOrders();
-    loadCart();
-  } catch (e) { toast(e.data?.error || 'Failed to place order', 'error'); }
+    const body = vid ? { voucher_id:parseInt(vid) } : {};
+    await api('/orders',{method:'POST',body:JSON.stringify(body)}); toast('Order placed!'); loadOrders(); loadCart();
+  } catch(e){ toast(e.data?.error||'Failed to place order','error'); }
 }
-
 async function cancelOrder(id) {
-  if (!token) { toast('Log in first', 'error'); return; }
-  const reason = prompt('Cancellation reason (optional):') || '';
-  try {
-    await api(`/orders/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) });
-    toast('Order cancelled');
-    loadOrders();
-  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+  if (!token) { toast('Log in first','error'); return; }
+  const reason = prompt('Cancellation reason (optional):')||'';
+  try { await api(`/orders/${id}/cancel`,{method:'POST',body:JSON.stringify({reason})}); toast('Order cancelled'); loadOrders(); }
+  catch(e){ toast(e.data?.error||'Failed','error'); }
 }
-
 async function respondOrder(id) {
-  if (!token) { toast('Log in first', 'error'); return; }
-  const code = prompt('Response code (AB = accept, RE = reject):');
-  if (!code) return;
-  const note = prompt('Note (optional):') || '';
-  try {
-    await api(`/orders/${id}/response`, { method: 'POST', body: JSON.stringify({ response_code: code.toUpperCase(), note }) });
-    toast(`Response "${code.toUpperCase()}" sent`);
-    loadOrders();
-  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+  if (!token) { toast('Log in first','error'); return; }
+  const code = prompt('Response code (AB = accept, RE = reject):'); if (!code) return;
+  const note = prompt('Note (optional):')||'';
+  try { await api(`/orders/${id}/response`,{method:'POST',body:JSON.stringify({response_code:code.toUpperCase(),note})}); toast(`Response "${code.toUpperCase()}" sent`); loadOrders(); }
+  catch(e){ toast(e.data?.error||'Failed','error'); }
 }
-
 async function viewOrderXml(id) {
   try {
-    const xml = await fetch(`${API}/orders/${id}`, { headers: { Accept: 'application/xml' } }).then(r => r.text());
-    const w = window.open('', '_blank');
-    w.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;padding:20px;">${esc(xml)}</pre>`);
-  } catch { toast('Failed to load XML', 'error'); }
+    const h = { Accept:'application/xml' }; if (token) h['Authorization'] = `Bearer ${token}`;
+    const xml = await fetch(`${API}/orders/${id}`,{headers:h}).then(r=>r.text());
+    const w = window.open('','_blank'); w.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;padding:20px">${esc(xml)}</pre>`);
+  } catch { toast('Failed to load XML','error'); }
 }
-
 async function deleteOrder(id) {
   if (!confirm('Delete this order?')) return;
-  try { await api(`/orders/${id}`, { method: 'DELETE' }); toast('Deleted'); loadOrders(); }
-  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+  try { await api(`/orders/${id}`,{method:'DELETE'}); toast('Deleted'); loadOrders(); } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
 
-// ══════════════════════════════════════════════════════
-//  VOUCHERS
-// ══════════════════════════════════════════════════════
+// ── Vouchers ──
 async function loadVouchers() {
   const grid = document.getElementById('voucherGrid');
   try {
-    const vouchers = await api('/vouchers');
-    if (!vouchers.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">🎟️</div><p>No vouchers yet</p></div>`; return; }
-    grid.innerHTML = vouchers.map(v => `
-      <div class="card">
-        <div class="card-meta">ID #${v.id}</div>
-        <div class="card-title">${esc(v.name)}</div>
-        <div class="card-price">${v.discount < 1 ? (v.discount * 100) + '% off' : '$' + Number(v.discount).toFixed(2) + ' off'}</div>
-        <div class="card-meta">${v.expiry ? 'Expires: ' + new Date(v.expiry).toLocaleDateString() : 'No expiry'} · Max uses: ${v.max_uses ?? '∞'}</div>
-        <div class="card-actions">
-          <button class="btn btn-danger btn-sm" onclick="deleteVoucher(${v.id})">Delete</button>
-        </div>
-      </div>
-    `).join('');
+    const vouchers = await apiList('/vouchers');
+    if (!vouchers.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">🎟️</div><p>No vouchers yet — create one!</p></div>`; return; }
+    grid.innerHTML = vouchers.map(v=>`<div class="card">
+      <div class="card-meta">ID #${v.id}</div>
+      <div class="card-title">${esc(v.name)}</div>
+      <div class="card-price">${v.discount<1?(v.discount*100)+'% off':'$'+Number(v.discount).toFixed(2)+' off'}</div>
+      <div class="card-meta">${v.expiry?'Expires: '+new Date(v.expiry).toLocaleDateString():'No expiry'} · Max uses: ${v.max_uses??'∞'}</div>
+      <div class="card-actions"><button class="btn btn-danger btn-sm" onclick="deleteVoucher(${v.id})">Delete</button></div>
+    </div>`).join('');
   } catch { grid.innerHTML = `<div class="empty"><p>Failed to load vouchers</p></div>`; }
 }
-
 async function doCreateVoucher() {
   try {
-    const body = {
-      name: document.getElementById('vouchName').value,
-      discount: parseFloat(document.getElementById('vouchDiscount').value),
-      expiry: document.getElementById('vouchExpiry').value || null,
-      max_uses: parseInt(document.getElementById('vouchMaxUses').value) || null,
-    };
-    await api('/vouchers', { method: 'POST', body: JSON.stringify(body) });
-    closeModal('voucherModal');
-    toast('Voucher created');
-    loadVouchers();
-  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+    await api('/vouchers',{method:'POST',body:JSON.stringify({ name:document.getElementById('vouchName').value, discount:parseFloat(document.getElementById('vouchDiscount').value),
+      expiry:document.getElementById('vouchExpiry').value||null, max_uses:parseInt(document.getElementById('vouchMaxUses').value)||null })});
+    closeModal('voucherModal'); toast('Voucher created'); loadVouchers();
+  } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
-
 async function deleteVoucher(id) {
   if (!confirm('Delete this voucher?')) return;
-  try { await api(`/vouchers/${id}`, { method: 'DELETE' }); toast('Deleted'); loadVouchers(); }
-  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+  try { await api(`/vouchers/${id}`,{method:'DELETE'}); toast('Deleted'); loadVouchers(); } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
 
-// ══════════════════════════════════════════════════════
-//  USERS
-// ══════════════════════════════════════════════════════
+// ── Users ──
 async function loadUsers() {
   const el = document.getElementById('usersContent');
   try {
-    const users = await api('/users');
-    if (!users.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><p>No users yet</p></div>`; return; }
+    const users = await apiList('/users');
+    if (!users.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><p>No users yet — register one!</p></div>`; return; }
     el.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Actions</th></tr></thead>
-      <tbody>${users.map(u => `<tr>
-        <td>#${u.id}</td>
-        <td>${esc(u.name)}</td>
-        <td>${[u.street, u.city, u.postcode, u.country].filter(Boolean).join(', ') || '—'}</td>
+      <tbody>${users.map(u=>`<tr><td>#${u.id}</td><td>${esc(u.name)}</td>
+        <td>${[u.street,u.city,u.postcode,u.country].filter(Boolean).join(', ')||'—'}</td>
         <td><button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button></td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
+      </tr>`).join('')}</tbody></table></div>`;
   } catch { el.innerHTML = `<div class="empty"><p>Failed to load users</p></div>`; }
 }
-
 async function deleteUser(id) {
   if (!confirm('Delete this user?')) return;
-  try { await api(`/users/${id}`, { method: 'DELETE' }); toast('Deleted'); loadUsers(); }
-  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+  try { await api(`/users/${id}`,{method:'DELETE'}); toast('Deleted'); loadUsers(); } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
 
-// ══════════════════════════════════════════════════════
-//  TAB NAVIGATION
-// ══════════════════════════════════════════════════════
-function activeTab() { return document.querySelector('nav button.active')?.dataset.tab || 'products'; }
-
-function loadTab(tab) {
-  const loaders = { products: loadProducts, cart: loadCart, orders: loadOrders, vouchers: loadVouchers, users: loadUsers };
-  loaders[tab]?.();
-}
-
-document.getElementById('mainNav').addEventListener('click', e => {
-  if (e.target.tagName !== 'BUTTON') return;
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+// ── Tabs ──
+function activeTab() { return document.querySelector('nav button.active')?.dataset.tab||'products'; }
+function loadTab(tab) { ({products:loadProducts,cart:loadCart,orders:loadOrders,vouchers:loadVouchers,users:loadUsers})[tab]?.(); }
+document.getElementById('mainNav').addEventListener('click',e=>{
+  if (e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   e.target.classList.add('active');
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById(e.target.dataset.tab).classList.add('active');
   loadTab(e.target.dataset.tab);
 });
-
-// close modals on backdrop click
-document.querySelectorAll('.modal-backdrop').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
-});
-
-// XSS escape
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+document.querySelectorAll('.modal-backdrop').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }); });
 
 // ── Boot ──
 updateAuthUI();
