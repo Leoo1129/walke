@@ -24,6 +24,7 @@ CREATE TABLE products (
     price DOUBLE PRECISION NOT NULL,
     seller_id INTEGER NOT NULL,
     tags TEXT[],
+    image_url TEXT,
     unique_buyers INTEGER DEFAULT 0,
     FOREIGN KEY (seller_id) REFERENCES users(id)
 );
