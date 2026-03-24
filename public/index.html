@@ -81,6 +81,7 @@ td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
     <div class="logo">W<span>alke</span></div>
     <div class="auth-strip">
       <div id="userBadge" class="user-badge offline">Not logged in</div>
+      <button class="btn btn-outline btn-sm" id="btnRegisterToggle" onclick="openModal('registerModal')">Register</button>
       <button class="btn btn-primary btn-sm" id="btnAuthToggle" onclick="openModal('loginModal')">Log In</button>
     </div>
   </header>
@@ -248,13 +249,16 @@ function attachNavListener() {
 // ── Auth ──
 function updateAuthUI() {
   const badge = document.getElementById('userBadge'), btn = document.getElementById('btnAuthToggle');
+  const regBtn = document.getElementById('btnRegisterToggle');
   if (token) {
     currentUser = parseJwt(token);
     badge.textContent = currentUser?.name || 'User'; badge.classList.remove('offline');
     btn.textContent = 'Log Out'; btn.onclick = doLogout;
+    regBtn.style.display = 'none';
   } else {
     badge.textContent = 'Not logged in'; badge.classList.add('offline');
     btn.textContent = 'Log In'; btn.onclick = () => openModal('loginModal');
+    regBtn.style.display = '';
     currentUser = null;
   }
   renderNav();
