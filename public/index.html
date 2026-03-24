@@ -128,6 +128,7 @@ td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
 <div class="modal-backdrop" id="productModal"><div class="modal"><h3>New Product</h3>
   <div class="field"><label>Name</label><input id="prodName" placeholder="Widget"></div>
   <div class="field"><label>Price</label><input id="prodPrice" type="number" step="0.01" placeholder="9.99"></div>
+  <div class="field"><label>Image URL (optional)</label><input id="prodImageUrl" placeholder="https://example.com/image.jpg"></div>
   <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button><button class="btn btn-primary" onclick="doCreateProduct()">Create</button></div>
 </div></div>
 
@@ -228,6 +229,7 @@ async function loadProducts() {
     const products = await apiList('/products');
     if (!products.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>No products yet — create one!</p></div>`; return; }
     grid.innerHTML = products.map(p => `<div class="card">
+      ${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" style="width:100%;height:180px;object-fit:cover;border-radius:8px;margin-bottom:14px;">` : ''}
       <div class="card-meta">ID #${p.id} · Seller #${p.seller_id||'—'}</div>
       <div class="card-title">${esc(p.name)}</div>
       <div class="card-price">$${Number(p.price).toFixed(2)}</div>
@@ -239,7 +241,8 @@ async function loadProducts() {
 }
 async function doCreateProduct() {
   try {
-    await api('/products', { method:'POST', body:JSON.stringify({ name:document.getElementById('prodName').value, price:parseFloat(document.getElementById('prodPrice').value), seller_id:currentUser?.id||1 }) });
+    const imageUrl = document.getElementById('prodImageUrl').value;
+    await api('/products', { method:'POST', body:JSON.stringify({ name:document.getElementById('prodName').value, price:parseFloat(document.getElementById('prodPrice').value), seller_id:currentUser?.id||1, image_url:imageUrl||undefined }) });
     closeModal('productModal'); toast('Product created'); loadProducts();
   } catch (e) { toast(e.data?.error || 'Failed — are you logged in?', 'error'); }
 }

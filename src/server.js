@@ -297,8 +297,8 @@ app.get('/orders/:id/cancel', async (req, res) => {
 // ---------------------------------- Product Controller ----------------------------------
 app.post('/products', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
-        const { name, price, seller_id, tags } = req.body;
-        const result = await createProduct(name, price, seller_id, tags);
+        const { name, price, seller_id, tags, image_url } = req.body;
+        const result = await createProduct(name, price, seller_id, tags, image_url);
         return res.status(201).json(result);
     });
 });
