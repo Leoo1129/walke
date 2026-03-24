@@ -66,6 +66,12 @@ td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
 @keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes fadeOut{to{opacity:0;transform:translateY(10px)}}
 .empty{text-align:center;padding:60px 20px;color:var(--text-dim)}.empty-icon{font-size:3rem;margin-bottom:12px;opacity:.4}.empty p{font-size:.95rem}
+.sub-header{font-size:1rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin:28px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:480px}
+.profile-name{font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:6px}
+.profile-field{display:flex;gap:10px;font-size:.9rem;color:var(--text-dim);margin-top:10px}
+.profile-field span:first-child{color:var(--text)}
+.own-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:600;background:#1a2d1a;color:var(--accent);border:1px solid #2a4a2a;margin-left:6px;vertical-align:middle}
 @media(max-width:640px){.section-header{flex-direction:column;gap:12px;align-items:flex-start}.grid{grid-template-columns:1fr}.modal{margin:16px}}
 </style>
 </head>
@@ -78,23 +84,11 @@ td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
       <button class="btn btn-primary btn-sm" id="btnAuthToggle" onclick="openModal('loginModal')">Log In</button>
     </div>
   </header>
-  <nav id="mainNav">
-    <button class="active" data-tab="products">Products</button>
-    <button data-tab="cart">Cart</button>
-    <button data-tab="orders">Orders</button>
-    <button data-tab="vouchers">Vouchers</button>
-    <button data-tab="users">Users</button>
-  </nav>
-  <section id="products" class="section active">
-    <div class="section-header"><h2>Products</h2><button class="btn btn-primary" onclick="openModal('productModal')">+ New Product</button></div>
-    <div class="grid" id="productGrid"></div>
-  </section>
-  <section id="cart" class="section">
-    <div class="section-header"><h2>Your Cart</h2></div>
-    <div id="cartContent"></div>
-  </section>
+  <nav id="mainNav"></nav>
+
+  <!-- ── Admin sections ── -->
   <section id="orders" class="section">
-    <div class="section-header"><h2>Orders</h2><button class="btn btn-primary" onclick="placeOrder()">Place Order from Cart</button></div>
+    <div class="section-header"><h2>All Orders</h2><button class="btn btn-primary" onclick="placeOrder()">Place Order from Cart</button></div>
     <div id="ordersContent"></div>
   </section>
   <section id="vouchers" class="section">
@@ -104,6 +98,26 @@ td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
   <section id="users" class="section">
     <div class="section-header"><h2>Users</h2><button class="btn btn-primary" onclick="openModal('registerModal')">+ Register</button></div>
     <div id="usersContent"></div>
+  </section>
+
+  <!-- ── Shared sections ── -->
+  <section id="products" class="section">
+    <div class="section-header"><h2>Products</h2><button id="btnNewProduct" class="btn btn-primary" onclick="openModal('productModal')" style="display:none">+ New Product</button></div>
+    <div class="grid" id="productGrid"></div>
+  </section>
+  <section id="cart" class="section">
+    <div class="section-header"><h2>Your Cart</h2></div>
+    <div id="cartContent"></div>
+  </section>
+
+  <!-- ── User sections ── -->
+  <section id="myorders" class="section">
+    <div class="section-header"><h2>My Orders</h2><button class="btn btn-primary" onclick="placeOrder()">Place Order from Cart</button></div>
+    <div id="myOrdersContent"></div>
+  </section>
+  <section id="profile" class="section">
+    <div class="section-header"><h2>My Profile</h2></div>
+    <div id="profileContent"></div>
   </section>
 </div>
 <div class="toast-container" id="toasts"></div>
@@ -149,7 +163,6 @@ td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
 
 <script>
 
-//  Empty string = same origin (frontend served by Express)
 const API = '';
 
 let token = localStorage.getItem('walke_token') || null;
@@ -166,9 +179,6 @@ async function api(path, opts = {}) {
   return data;
 }
 
-// Your controllers throw 404 when a list is empty.
-// This wrapper treats 404 as an empty array so the UI shows
-// "No items yet" instead of "Failed to load".
 async function apiList(path) {
   try { return await api(path); }
   catch (e) { if (e.status === 404) return []; throw e; }
@@ -189,6 +199,51 @@ function statusBadge(s) {
   const c = { pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled',completed:'badge-completed',rejected:'badge-rejected' };
   return `<span class="badge ${c[s]||'badge-pending'}">${s}</span>`;
 }
+function isAdmin() { return currentUser?.name === 'WALKE_ADMIN'; }
+
+// ── Nav ──
+function renderNav() {
+  const nav = document.getElementById('mainNav');
+  if (!currentUser) {
+    nav.innerHTML = `<button class="active" data-tab="products">Products</button>`;
+  } else if (isAdmin()) {
+    nav.innerHTML = `
+      <button class="active" data-tab="products">Products</button>
+      <button data-tab="cart">Cart</button>
+      <button data-tab="orders">Orders</button>
+      <button data-tab="vouchers">Vouchers</button>
+      <button data-tab="users">Users</button>`;
+  } else {
+    nav.innerHTML = `
+      <button class="active" data-tab="products">Products</button>
+      <button data-tab="cart">Cart</button>
+      <button data-tab="myorders">My Orders</button>
+      <button data-tab="profile">My Profile</button>`;
+  }
+  attachNavListener();
+  showSection(currentUser && !isAdmin() ? 'products' : 'products');
+  document.getElementById('btnNewProduct').style.display = token ? '' : 'none';
+}
+
+function showSection(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  const sec = document.getElementById(tab);
+  if (sec) sec.classList.add('active');
+  const btn = document.querySelector(`nav button[data-tab="${tab}"]`);
+  if (btn) btn.classList.add('active');
+}
+
+function attachNavListener() {
+  const nav = document.getElementById('mainNav');
+  nav.replaceWith(nav.cloneNode(true)); // remove old listeners
+  document.getElementById('mainNav').addEventListener('click', e => {
+    if (e.target.tagName !== 'BUTTON') return;
+    const tab = e.target.dataset.tab;
+    showSection(tab);
+    loadTab(tab);
+  });
+}
 
 // ── Auth ──
 function updateAuthUI() {
@@ -202,23 +257,31 @@ function updateAuthUI() {
     btn.textContent = 'Log In'; btn.onclick = () => openModal('loginModal');
     currentUser = null;
   }
+  renderNav();
 }
+
 async function doLogin() {
   try {
     const data = await api('/login', { method:'POST', body: JSON.stringify({ name: document.getElementById('loginName').value, password: document.getElementById('loginPass').value }) });
     token = data.token; localStorage.setItem('walke_token', token);
     closeModal('loginModal'); updateAuthUI();
-    toast(`Logged in as ${parseJwt(token)?.name}`); loadTab(activeTab());
+    toast(`Logged in as ${parseJwt(token)?.name}`); loadTab('products');
   } catch (e) { toast(e.data?.error || 'Login failed', 'error'); }
 }
-function doLogout() { token = null; localStorage.removeItem('walke_token'); updateAuthUI(); toast('Logged out'); loadTab(activeTab()); }
+
+function doLogout() {
+  token = null; localStorage.removeItem('walke_token');
+  updateAuthUI(); toast('Logged out'); loadTab('products');
+}
+
 async function doRegister() {
   try {
     const body = { name:document.getElementById('regName').value, password:document.getElementById('regPass').value,
       street:document.getElementById('regStreet').value||undefined, city:document.getElementById('regCity').value||undefined,
       postcode:document.getElementById('regPostcode').value||undefined, country:document.getElementById('regCountry').value||undefined };
     await api('/users', { method:'POST', body:JSON.stringify(body) });
-    closeModal('registerModal'); toast('Account created — you can now log in'); loadTab('users');
+    closeModal('registerModal'); toast('Account created — you can now log in');
+    if (isAdmin()) loadTab('users');
   } catch (e) { toast(e.data?.error || 'Registration failed', 'error'); }
 }
 
@@ -227,25 +290,32 @@ async function loadProducts() {
   const grid = document.getElementById('productGrid');
   try {
     const products = await apiList('/products');
-    if (!products.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>No products yet — create one!</p></div>`; return; }
-    grid.innerHTML = products.map(p => `<div class="card">
-      ${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" style="width:100%;height:180px;object-fit:cover;border-radius:8px;margin-bottom:14px;">` : ''}
-      <div class="card-meta">ID #${p.id} · Seller #${p.seller_id||'—'}</div>
-      <div class="card-title">${esc(p.name)}</div>
-      <div class="card-price">$${Number(p.price).toFixed(2)}</div>
-      <div class="card-actions">
-        <button class="btn btn-primary btn-sm" onclick="openAddToCart(${p.id},'${esc(p.name)}')">Add to Cart</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>
-      </div></div>`).join('');
+    if (!products.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>No products yet</p></div>`; return; }
+    grid.innerHTML = products.map(p => {
+      const mine = currentUser && p.seller_id === currentUser.id;
+      const canDelete = isAdmin() || mine;
+      return `<div class="card">
+        ${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" style="width:100%;height:180px;object-fit:cover;border-radius:8px;margin-bottom:14px;">` : ''}
+        <div class="card-meta">ID #${p.id} · Seller #${p.seller_id||'—'}${mine ? '<span class="own-badge">Yours</span>' : ''}</div>
+        <div class="card-title">${esc(p.name)}</div>
+        <div class="card-price">$${Number(p.price).toFixed(2)}</div>
+        <div class="card-actions">
+          ${token ? `<button class="btn btn-primary btn-sm" onclick="openAddToCart(${p.id},'${esc(p.name)}')">Add to Cart</button>` : ''}
+          ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>` : ''}
+        </div></div>`;
+    }).join('');
   } catch { grid.innerHTML = `<div class="empty"><p>Failed to load products</p></div>`; }
 }
+
 async function doCreateProduct() {
+  if (!token) { toast('Log in first', 'error'); return; }
   try {
     const imageUrl = document.getElementById('prodImageUrl').value;
-    await api('/products', { method:'POST', body:JSON.stringify({ name:document.getElementById('prodName').value, price:parseFloat(document.getElementById('prodPrice').value), seller_id:currentUser?.id||1, image_url:imageUrl||undefined }) });
+    await api('/products', { method:'POST', body:JSON.stringify({ name:document.getElementById('prodName').value, price:parseFloat(document.getElementById('prodPrice').value), seller_id:currentUser.id, image_url:imageUrl||undefined }) });
     closeModal('productModal'); toast('Product created'); loadProducts();
-  } catch (e) { toast(e.data?.error || 'Failed — are you logged in?', 'error'); }
+  } catch (e) { toast(e.data?.error || 'Failed to create product', 'error'); }
 }
+
 async function deleteProduct(id) {
   if (!confirm('Delete this product?')) return;
   try { await api(`/products/${id}`,{method:'DELETE'}); toast('Deleted'); loadProducts(); } catch(e){ toast(e.data?.error||'Failed','error'); }
@@ -287,7 +357,7 @@ async function removeCart(pid) {
   try { await api(`/cart/${pid}`,{method:'DELETE'}); toast('Removed'); loadCart(); } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
 
-// ── Orders ──
+// ── Orders (admin) ──
 async function loadOrders() {
   const el = document.getElementById('ordersContent');
   try {
@@ -306,27 +376,102 @@ async function loadOrders() {
         </td></tr>`).join('')}</tbody></table></div>`;
   } catch { el.innerHTML = `<div class="empty"><p>Failed to load orders</p></div>`; }
 }
+
+// ── My Orders (user) ──
+async function loadMyOrders() {
+  const el = document.getElementById('myOrdersContent');
+  if (!token) { el.innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><p>Log in to view your orders</p></div>`; return; }
+  try {
+    const all = await apiList('/orders');
+
+    // Orders I placed as a buyer
+    const myPurchases = all.filter(o => o.buyer_id === currentUser.id);
+
+    // Pending orders I might need to respond to as a seller
+    const pendingOrders = all.filter(o => o.status === 'pending' && o.buyer_id !== currentUser.id);
+
+    let html = '';
+
+    html += `<div class="sub-header">My Purchases</div>`;
+    if (!myPurchases.length) {
+      html += `<div class="empty" style="padding:30px 20px"><div class="empty-icon">🛒</div><p>You haven't placed any orders yet</p></div>`;
+    } else {
+      html += `<div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Status</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>${myPurchases.map(o=>`<tr>
+          <td>#${o.id}</td><td>${statusBadge(o.status)}</td>
+          <td>$${Number(o.total_price).toFixed(2)}</td>
+          <td>${new Date(o.created_at).toLocaleDateString()}</td>
+          <td>
+            ${['pending','confirmed'].includes(o.status)?`<button class="btn btn-danger btn-sm" onclick="cancelOrder(${o.id})">Cancel</button>`:''}
+            <button class="btn btn-outline btn-sm" onclick="viewOrderXml(${o.id})">XML</button>
+          </td></tr>`).join('')}</tbody></table></div>`;
+    }
+
+    html += `<div class="sub-header" style="margin-top:36px">Incoming Orders (Pending)</div>`;
+    if (!pendingOrders.length) {
+      html += `<div class="empty" style="padding:30px 20px"><div class="empty-icon">📭</div><p>No pending incoming orders</p></div>`;
+    } else {
+      html += `<div class="table-wrap"><table>
+        <thead><tr><th>Order ID</th><th>Buyer</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>${pendingOrders.map(o=>`<tr>
+          <td>#${o.id}</td><td>User #${o.buyer_id}</td>
+          <td>$${Number(o.total_price).toFixed(2)}</td>
+          <td>${new Date(o.created_at).toLocaleDateString()}</td>
+          <td><button class="btn btn-outline btn-sm" onclick="respondOrder(${o.id})">Respond</button></td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    el.innerHTML = html;
+  } catch { el.innerHTML = `<div class="empty"><p>Failed to load orders</p></div>`; }
+}
+
+// ── Profile ──
+async function loadProfile() {
+  const el = document.getElementById('profileContent');
+  if (!token || !currentUser) { el.innerHTML = `<div class="empty"><p>Log in to view your profile</p></div>`; return; }
+  try {
+    const user = await api(`/users/${currentUser.id}`);
+    const address = [user.street, user.city, user.postcode, user.country].filter(Boolean).join(', ');
+    el.innerHTML = `<div class="profile-card">
+      <div class="profile-name">${esc(user.name)}</div>
+      <div class="card-meta">User #${user.id}</div>
+      ${address ? `<div class="profile-field"><span>Address</span><span>${esc(address)}</span></div>` : ''}
+      <div class="profile-field"><span>Member since</span><span>${new Date(user.created_at).toLocaleDateString()}</span></div>
+    </div>`;
+  } catch { el.innerHTML = `<div class="empty"><p>Failed to load profile</p></div>`; }
+}
+
 async function placeOrder() {
   if (!token) { toast('Log in first','error'); return; }
   const vid = prompt('Voucher ID (leave blank for none):');
   try {
     const body = vid ? { voucher_id:parseInt(vid) } : {};
-    await api('/orders',{method:'POST',body:JSON.stringify(body)}); toast('Order placed!'); loadOrders(); loadCart();
+    await api('/orders',{method:'POST',body:JSON.stringify(body)}); toast('Order placed!');
+    loadCart();
+    isAdmin() ? loadOrders() : loadMyOrders();
   } catch(e){ toast(e.data?.error||'Failed to place order','error'); }
 }
+
 async function cancelOrder(id) {
   if (!token) { toast('Log in first','error'); return; }
   const reason = prompt('Cancellation reason (optional):')||'';
-  try { await api(`/orders/${id}/cancel`,{method:'POST',body:JSON.stringify({reason})}); toast('Order cancelled'); loadOrders(); }
-  catch(e){ toast(e.data?.error||'Failed','error'); }
+  try {
+    await api(`/orders/${id}/cancel`,{method:'POST',body:JSON.stringify({reason})}); toast('Order cancelled');
+    isAdmin() ? loadOrders() : loadMyOrders();
+  } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
+
 async function respondOrder(id) {
   if (!token) { toast('Log in first','error'); return; }
   const code = prompt('Response code (AB = accept, RE = reject):'); if (!code) return;
   const note = prompt('Note (optional):')||'';
-  try { await api(`/orders/${id}/response`,{method:'POST',body:JSON.stringify({response_code:code.toUpperCase(),note})}); toast(`Response "${code.toUpperCase()}" sent`); loadOrders(); }
-  catch(e){ toast(e.data?.error||'Failed','error'); }
+  try {
+    await api(`/orders/${id}/response`,{method:'POST',body:JSON.stringify({response_code:code.toUpperCase(),note})}); toast(`Response "${code.toUpperCase()}" sent`);
+    isAdmin() ? loadOrders() : loadMyOrders();
+  } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
+
 async function viewOrderXml(id) {
   try {
     const h = { Accept:'application/xml' }; if (token) h['Authorization'] = `Bearer ${token}`;
@@ -334,6 +479,7 @@ async function viewOrderXml(id) {
     const w = window.open('','_blank'); w.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;padding:20px">${esc(xml)}</pre>`);
   } catch { toast('Failed to load XML','error'); }
 }
+
 async function deleteOrder(id) {
   if (!confirm('Delete this order?')) return;
   try { await api(`/orders/${id}`,{method:'DELETE'}); toast('Deleted'); loadOrders(); } catch(e){ toast(e.data?.error||'Failed','error'); }
@@ -344,7 +490,7 @@ async function loadVouchers() {
   const grid = document.getElementById('voucherGrid');
   try {
     const vouchers = await apiList('/vouchers');
-    if (!vouchers.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">🎟️</div><p>No vouchers yet — create one!</p></div>`; return; }
+    if (!vouchers.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">🎟️</div><p>No vouchers yet</p></div>`; return; }
     grid.innerHTML = vouchers.map(v=>`<div class="card">
       <div class="card-meta">ID #${v.id}</div>
       <div class="card-title">${esc(v.name)}</div>
@@ -366,12 +512,12 @@ async function deleteVoucher(id) {
   try { await api(`/vouchers/${id}`,{method:'DELETE'}); toast('Deleted'); loadVouchers(); } catch(e){ toast(e.data?.error||'Failed','error'); }
 }
 
-// ── Users ──
+// ── Users (admin) ──
 async function loadUsers() {
   const el = document.getElementById('usersContent');
   try {
     const users = await apiList('/users');
-    if (!users.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><p>No users yet — register one!</p></div>`; return; }
+    if (!users.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><p>No users yet</p></div>`; return; }
     el.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Actions</th></tr></thead>
       <tbody>${users.map(u=>`<tr><td>#${u.id}</td><td>${esc(u.name)}</td>
@@ -386,17 +532,14 @@ async function deleteUser(id) {
 }
 
 // ── Tabs ──
-function activeTab() { return document.querySelector('nav button.active')?.dataset.tab||'products'; }
-function loadTab(tab) { ({products:loadProducts,cart:loadCart,orders:loadOrders,vouchers:loadVouchers,users:loadUsers})[tab]?.(); }
-document.getElementById('mainNav').addEventListener('click',e=>{
-  if (e.target.tagName!=='BUTTON') return;
-  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-  e.target.classList.add('active');
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.getElementById(e.target.dataset.tab).classList.add('active');
-  loadTab(e.target.dataset.tab);
+function loadTab(tab) {
+  ({ products:loadProducts, cart:loadCart, orders:loadOrders, myorders:loadMyOrders,
+     profile:loadProfile, vouchers:loadVouchers, users:loadUsers })[tab]?.();
+}
+
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
-document.querySelectorAll('.modal-backdrop').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }); });
 
 // ── Boot ──
 updateAuthUI();
