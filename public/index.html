@@ -1,175 +1,502 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Walke — Marketplace</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ── Theme tokens ── */
 :root {
-  --bg:#0e0e11;--surface:#18181d;--surface2:#222228;--border:#2a2a32;
-  --text:#e8e6e1;--text-dim:#8a8890;--accent:#c8ff2e;--accent-dim:#a0cc24;
-  --danger:#ff5c5c;--success:#2ecc71;--radius:12px;
-  --font-body:'DM Sans',sans-serif;--font-display:'Playfair Display',serif;
+  --bg: #0e0e11;
+  --surface: #18181d;
+  --surface2: #222228;
+  --surface3: #2c2c35;
+  --border: #2a2a34;
+  --border-hover: #3e3e4a;
+  --text: #e8e6e1;
+  --text-dim: #8a8890;
+  --text-muted: #55545c;
+  --accent: #c8ff2e;
+  --accent-dim: #a0cc24;
+  --accent-fg: #0e0e11;
+  --danger: #ff5c5c;
+  --danger-bg: #2d1616;
+  --success: #2ecc71;
+  --success-bg: #122a1e;
+  --warning: #ffd966;
+  --warning-bg: #2a2410;
+  --info: #60c3f5;
+  --info-bg: #0f2030;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.35);
+  --shadow: 0 4px 24px rgba(0,0,0,.5);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,.6);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Playfair Display', serif;
+  --transition: .18s cubic-bezier(.4,0,.2,1);
 }
-body{background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.6;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
-.app{max-width:1200px;margin:0 auto;padding:0 24px}
-header{display:flex;justify-content:space-between;align-items:center;padding:28px 0;border-bottom:1px solid var(--border)}
-.logo{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.02em;color:var(--accent)}
-.logo span{color:var(--text);font-weight:600}
-.auth-strip{display:flex;align-items:center;gap:14px}
-.user-badge{background:var(--surface2);border:1px solid var(--border);padding:6px 16px;border-radius:99px;font-size:.85rem;color:var(--accent);font-weight:500}
-.user-badge.offline{color:var(--text-dim)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border:none;border-radius:99px;font-family:var(--font-body);font-size:.85rem;font-weight:500;cursor:pointer;transition:all .2s}
-.btn-primary{background:var(--accent);color:var(--bg)}.btn-primary:hover{background:var(--accent-dim);transform:translateY(-1px)}
-.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
-.btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger)}.btn-danger:hover{background:var(--danger);color:#fff}
-.btn-sm{padding:6px 14px;font-size:.78rem}
-nav{display:flex;gap:4px;padding:20px 0;overflow-x:auto;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
-nav button{padding:10px 24px;border:1px solid transparent;background:transparent;color:var(--text-dim);border-radius:99px;font-family:var(--font-body);font-size:.88rem;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .2s}
-nav button:hover{color:var(--text);background:var(--surface)}
-nav button.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
-.section{display:none;padding:12px 0 60px;animation:fadeUp .35s ease}.section.active{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
-.section-header h2{font-family:var(--font-display);font-size:1.8rem;font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;transition:border-color .2s,transform .2s}
-.card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.card-title{font-size:1.1rem;font-weight:700;margin-bottom:6px}
-.card-meta{font-size:.82rem;color:var(--text-dim);margin-bottom:14px}
-.card-price{font-family:var(--font-display);font-size:1.4rem;color:var(--accent);font-weight:600;margin-bottom:12px}
-.card-actions{display:flex;gap:8px;flex-wrap:wrap}
-.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)}
-table{width:100%;border-collapse:collapse;font-size:.88rem}
-th,td{padding:14px 18px;text-align:left}
-th{background:var(--surface2);color:var(--text-dim);font-weight:500;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
-td{border-top:1px solid var(--border)}tr:hover td{background:var(--surface)}
-.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.badge-pending{background:#3a3520;color:#ffd966}.badge-confirmed{background:#1a3324;color:var(--success)}
-.badge-cancelled,.badge-rejected{background:#331a1a;color:var(--danger)}.badge-completed{background:#1a2d33;color:#5ecde6}
-.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:100;justify-content:center;align-items:center}
-.modal-backdrop.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px;width:100%;max-width:480px;animation:fadeUp .25s ease}
-.modal h3{font-family:var(--font-display);font-size:1.4rem;margin-bottom:24px}
-.field{margin-bottom:18px}.field label{display:block;font-size:.8rem;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:500}
-.field input,.field select,.field textarea{width:100%;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.92rem;outline:none;transition:border-color .2s}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
-.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
-.toast-container{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px}
-.toast{padding:14px 22px;border-radius:10px;font-size:.88rem;font-weight:500;animation:slideIn .3s ease,fadeOut .3s 2.5s ease forwards;max-width:380px}
-.toast-success{background:#1a3324;color:var(--success);border:1px solid #2a5a3a}
-.toast-error{background:#331a1a;color:var(--danger);border:1px solid #5a2a2a}
-@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes fadeOut{to{opacity:0;transform:translateY(10px)}}
-.empty{text-align:center;padding:60px 20px;color:var(--text-dim)}.empty-icon{font-size:3rem;margin-bottom:12px;opacity:.4}.empty p{font-size:.95rem}
-.sub-header{font-size:1rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin:28px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:480px}
-.profile-name{font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:6px}
-.profile-field{display:flex;gap:10px;font-size:.9rem;color:var(--text-dim);margin-top:10px}
-.profile-field span:first-child{color:var(--text)}
-.own-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:600;background:#1a2d1a;color:var(--accent);border:1px solid #2a4a2a;margin-left:6px;vertical-align:middle}
-@media(max-width:640px){.section-header{flex-direction:column;gap:12px;align-items:flex-start}.grid{grid-template-columns:1fr}.modal{margin:16px}}
+
+[data-theme="light"] {
+  --bg: #f5f4ef;
+  --surface: #ffffff;
+  --surface2: #f0efe9;
+  --surface3: #e8e7e0;
+  --border: #dddbd4;
+  --border-hover: #bfbdb6;
+  --text: #1c1b20;
+  --text-dim: #6a6872;
+  --text-muted: #9a98a2;
+  --accent: #4f8b00;
+  --accent-dim: #3d6d00;
+  --accent-fg: #ffffff;
+  --danger: #cc2222;
+  --danger-bg: #fdeaea;
+  --success: #1a8a4a;
+  --success-bg: #eaf7ef;
+  --warning: #b07800;
+  --warning-bg: #fdf6e3;
+  --info: #1a6fa0;
+  --info-bg: #e8f4fd;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.08);
+  --shadow: 0 4px 24px rgba(0,0,0,.12);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,.16);
+}
+
+/* ── Base ── */
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; min-height: 100vh; transition: background var(--transition), color var(--transition); }
+
+/* noise texture - dark mode only */
+[data-theme="dark"] body::before { content: ''; position: fixed; inset: 0; opacity: .025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9999; }
+
+.app { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+/* ── Header ── */
+header { display: flex; align-items: center; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 50; transition: background var(--transition); }
+
+.logo { font-family: var(--font-display); font-size: 1.75rem; font-weight: 800; letter-spacing: -.03em; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+.logo span { color: var(--text); font-weight: 600; }
+
+nav { display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+nav::-webkit-scrollbar { display: none; }
+nav button { padding: 8px 20px; border: 1px solid transparent; background: transparent; color: var(--text-dim); border-radius: 99px; font-family: var(--font-body); font-size: .85rem; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all var(--transition); }
+nav button:hover { color: var(--text); background: var(--surface); border-color: var(--border); }
+nav button.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+.header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+/* Theme toggle */
+.theme-btn { width: 36px; height: 36px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all var(--transition); }
+.theme-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Cart button */
+.cart-btn { position: relative; width: 36px; height: 36px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all var(--transition); }
+.cart-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cart-badge { position: absolute; top: -5px; right: -5px; background: var(--accent); color: var(--accent-fg); font-size: .65rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 99px; display: flex; align-items: center; justify-content: center; padding: 0 4px; display: none; }
+.cart-badge.show { display: flex; }
+
+/* User badge */
+.user-badge { background: var(--surface2); border: 1px solid var(--border); padding: 6px 14px; border-radius: 99px; font-size: .82rem; color: var(--accent); font-weight: 500; white-space: nowrap; }
+.user-badge.offline { color: var(--text-muted); }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: none; border-radius: 99px; font-family: var(--font-body); font-size: .84rem; font-weight: 500; cursor: pointer; transition: all var(--transition); white-space: nowrap; }
+.btn-primary { background: var(--accent); color: var(--accent-fg); }
+.btn-primary:hover { background: var(--accent-dim); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--border-hover); background: var(--surface); }
+.btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+.btn-danger:hover { background: var(--danger-bg); }
+.btn-success { background: var(--success-bg); border: 1px solid var(--success); color: var(--success); }
+.btn-success:hover { background: var(--success); color: #fff; }
+.btn-ghost { background: transparent; border: 1px solid transparent; color: var(--text-dim); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-sm { padding: 6px 14px; font-size: .78rem; }
+.btn-xs { padding: 4px 10px; font-size: .74rem; }
+.btn:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+/* ── Cart Panel ── */
+.cart-panel-wrap { position: fixed; top: 0; right: 0; height: 100vh; z-index: 200; display: flex; pointer-events: none; }
+.cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; transition: opacity var(--transition); pointer-events: none; }
+.cart-overlay.show { opacity: 1; pointer-events: all; }
+.cart-panel { width: 380px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1); pointer-events: all; box-shadow: var(--shadow-lg); }
+.cart-panel.open { transform: translateX(0); }
+.cart-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 24px; border-bottom: 1px solid var(--border); }
+.cart-panel-head h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; }
+.cart-items { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.cart-item { display: flex; gap: 12px; padding: 12px; background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border); align-items: center; }
+.cart-item-img { width: 48px; height: 48px; border-radius: var(--radius-xs); object-fit: cover; background: var(--surface3); flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.2rem; }
+.cart-item-info { flex: 1; min-width: 0; }
+.cart-item-name { font-size: .88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cart-item-meta { font-size: .78rem; color: var(--text-dim); margin-top: 2px; }
+.cart-item-price { font-size: .9rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.cart-footer { padding: 16px; border-top: 1px solid var(--border); }
+.cart-total { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: .95rem; }
+.cart-total strong { font-family: var(--font-display); font-size: 1.3rem; color: var(--accent); }
+.cart-voucher { display: flex; gap: 8px; margin-bottom: 14px; }
+.cart-voucher input { flex: 1; padding: 9px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text); font-family: var(--font-body); font-size: .85rem; outline: none; transition: border-color var(--transition); }
+.cart-voucher input:focus { border-color: var(--accent); }
+.cart-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); }
+.cart-empty-icon { font-size: 2.5rem; opacity: .4; }
+
+/* ── Page Sections ── */
+.section { display: none; padding: 32px 0 80px; animation: fadeUp .3s ease; }
+.section.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; gap: 16px; flex-wrap: wrap; }
+.page-header-left h2 { font-family: var(--font-display); font-size: 2rem; font-weight: 700; margin-bottom: 4px; }
+.page-header-left p { color: var(--text-dim); font-size: .9rem; }
+.page-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Grid ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+
+/* ── Product Cards ── */
+.product-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition); display: flex; flex-direction: column; }
+.product-card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: var(--shadow); }
+.product-card-img { width: 100%; height: 200px; object-fit: cover; background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 2.5rem; flex-shrink: 0; }
+.product-card-img img { width: 100%; height: 100%; object-fit: cover; }
+.product-card-body { padding: 18px; flex: 1; display: flex; flex-direction: column; }
+.product-card-meta { font-size: .78rem; color: var(--text-muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.product-card-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; line-height: 1.3; }
+.product-card-price { font-family: var(--font-display); font-size: 1.5rem; color: var(--accent); font-weight: 600; margin-bottom: 14px; }
+.product-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+
+/* ── Tables ── */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+th, td { padding: 14px 18px; text-align: left; }
+th { background: var(--surface2); color: var(--text-dim); font-weight: 500; font-size: .75rem; text-transform: uppercase; letter-spacing: .07em; border-bottom: 1px solid var(--border); }
+td { border-top: 1px solid var(--border); }
+tr:hover td { background: var(--surface2); }
+.td-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ── Badges ── */
+.badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.badge-pending { background: var(--warning-bg); color: var(--warning); }
+.badge-confirmed { background: var(--info-bg); color: var(--info); }
+.badge-completed { background: var(--success-bg); color: var(--success); }
+.badge-cancelled, .badge-rejected { background: var(--danger-bg); color: var(--danger); }
+.own-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 99px; font-size: .7rem; font-weight: 600; background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+
+/* ── Modals ── */
+.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 300; justify-content: center; align-items: center; padding: 20px; }
+.modal-backdrop.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px; width: 100%; max-width: 500px; animation: fadeUp .25s ease; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto; }
+.modal h3 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 6px; }
+.modal-subtitle { color: var(--text-dim); font-size: .88rem; margin-bottom: 24px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: .78rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; font-weight: 500; }
+.field input, .field select, .field textarea { width: 100%; padding: 11px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body); font-size: .92rem; outline: none; transition: border-color var(--transition); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field select option { background: var(--surface); }
+.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Response modal specific */
+.response-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.response-btn { padding: 18px; border-radius: var(--radius-sm); border: 2px solid transparent; cursor: pointer; font-family: var(--font-body); font-weight: 700; font-size: .95rem; transition: all var(--transition); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.response-btn .response-icon { font-size: 1.6rem; }
+.response-btn.accept { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+.response-btn.accept:hover, .response-btn.accept.selected { background: var(--success); color: #fff; }
+.response-btn.reject { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+.response-btn.reject:hover, .response-btn.reject.selected { background: var(--danger); color: #fff; }
+
+/* ── Profile / User cards ── */
+.profile-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 800px; }
+.info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; }
+.info-card h4 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .88rem; gap: 16px; }
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-dim); flex-shrink: 0; }
+.info-value { color: var(--text); font-weight: 500; text-align: right; word-break: break-word; }
+
+/* ── Voucher cards ── */
+.voucher-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; transition: border-color var(--transition); }
+.voucher-card:hover { border-color: var(--border-hover); }
+.voucher-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; letter-spacing: .04em; }
+.voucher-discount { font-family: var(--font-display); font-size: 1.6rem; color: var(--accent); font-weight: 600; margin: 8px 0; }
+.voucher-meta { font-size: .8rem; color: var(--text-dim); }
+.voucher-id { font-size: .75rem; color: var(--text-muted); margin-bottom: 10px; }
+
+/* ── Toasts ── */
+.toast-container { position: fixed; bottom: 28px; right: 28px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 13px 20px; border-radius: 10px; font-size: .86rem; font-weight: 500; animation: slideIn .3s ease, fadeOut .3s 2.7s ease forwards; max-width: 360px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow); }
+.toast-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+.toast-error { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+.toast-info { background: var(--info-bg); color: var(--info); border: 1px solid var(--info); }
+@keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeOut { to { opacity: 0; transform: translateY(8px); } }
+
+/* ── Empty states ── */
+.empty { text-align: center; padding: 70px 20px; color: var(--text-muted); }
+.empty-icon { font-size: 3rem; margin-bottom: 14px; opacity: .35; }
+.empty h4 { font-size: 1rem; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; }
+.empty p { font-size: .88rem; }
+
+/* ── Section divider ── */
+.divider { font-size: .8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; margin: 32px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Inline edit ── */
+.edit-form { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 20px; margin-top: 16px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .app { padding: 0 16px; }
+  .profile-wrap { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .response-actions { grid-template-columns: 1fr; }
+  .cart-panel { width: 100vw; }
+  .page-header { flex-direction: column; }
+}
+@media (max-width: 640px) {
+  .modal { padding: 24px; }
+  header { gap: 10px; }
+  .logo { font-size: 1.4rem; }
+}
 </style>
 </head>
 <body>
+
 <div class="app">
   <header>
     <div class="logo">W<span>alke</span></div>
-    <div class="auth-strip">
+    <nav id="mainNav"></nav>
+    <div class="header-right">
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+      <button class="cart-btn" id="cartBtn" onclick="toggleCart()" title="Cart" style="display:none">
+        🛒
+        <span class="cart-badge" id="cartBadge">0</span>
+      </button>
       <div id="userBadge" class="user-badge offline">Not logged in</div>
       <button class="btn btn-outline btn-sm" id="btnRegisterToggle" onclick="openModal('registerModal')">Register</button>
       <button class="btn btn-primary btn-sm" id="btnAuthToggle" onclick="openModal('loginModal')">Log In</button>
     </div>
   </header>
-  <nav id="mainNav"></nav>
 
-  <!-- ── Admin sections ── -->
+  <!-- ── Sections ── -->
+  <section id="products" class="section">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Products</h2>
+        <p>Browse all available products</p>
+      </div>
+      <div class="page-header-actions">
+        <button id="btnNewProduct" class="btn btn-primary" onclick="openModal('productModal')" style="display:none">+ New Product</button>
+      </div>
+    </div>
+    <div class="grid" id="productGrid"></div>
+  </section>
+
   <section id="orders" class="section">
-    <div class="section-header"><h2>All Orders</h2><button class="btn btn-primary" onclick="placeOrder()">Place Order from Cart</button></div>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Orders</h2>
+        <p id="ordersSubtitle">All orders on the platform</p>
+      </div>
+    </div>
     <div id="ordersContent"></div>
   </section>
-  <section id="vouchers" class="section">
-    <div class="section-header"><h2>Vouchers</h2><button class="btn btn-primary" onclick="openModal('voucherModal')">+ New Voucher</button></div>
-    <div class="grid" id="voucherGrid"></div>
-  </section>
+
   <section id="users" class="section">
-    <div class="section-header"><h2>Users</h2><button class="btn btn-primary" onclick="openModal('registerModal')">+ Register</button></div>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Users</h2>
+        <p>Manage registered users</p>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" onclick="openModal('registerModal')">+ New User</button>
+      </div>
+    </div>
     <div id="usersContent"></div>
   </section>
 
-  <!-- ── Shared sections ── -->
-  <section id="products" class="section">
-    <div class="section-header"><h2>Products</h2><button id="btnNewProduct" class="btn btn-primary" onclick="openModal('productModal')" style="display:none">+ New Product</button></div>
-    <div class="grid" id="productGrid"></div>
-  </section>
-  <section id="cart" class="section">
-    <div class="section-header"><h2>Your Cart</h2></div>
-    <div id="cartContent"></div>
+  <section id="vouchers" class="section">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Vouchers</h2>
+        <p>Discount codes and promotions</p>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" onclick="openModal('voucherModal')">+ New Voucher</button>
+      </div>
+    </div>
+    <div class="grid" id="voucherGrid"></div>
   </section>
 
-  <!-- ── User sections ── -->
-  <section id="myorders" class="section">
-    <div class="section-header"><h2>My Orders</h2><button class="btn btn-primary" onclick="placeOrder()">Place Order from Cart</button></div>
-    <div id="myOrdersContent"></div>
-  </section>
   <section id="profile" class="section">
-    <div class="section-header"><h2>My Profile</h2></div>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>My Profile</h2>
+        <p>Your account details and settings</p>
+      </div>
+    </div>
     <div id="profileContent"></div>
   </section>
 </div>
+
+<!-- ── Cart Side Panel ── -->
+<div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
+<div class="cart-panel-wrap">
+  <div class="cart-panel" id="cartPanel">
+    <div class="cart-panel-head">
+      <h3>Your Cart</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeCart()">✕ Close</button>
+    </div>
+    <div class="cart-items" id="cartItemsList"></div>
+    <div class="cart-footer" id="cartFooter" style="display:none">
+      <div class="cart-total">
+        <span>Subtotal</span>
+        <strong id="cartSubtotal">$0.00</strong>
+      </div>
+      <div class="cart-voucher">
+        <input id="cartVoucherCode" placeholder="Voucher code (optional)" autocomplete="off">
+        <button class="btn btn-outline btn-sm" onclick="applyVoucher()">Apply</button>
+      </div>
+      <div id="voucherApplied" style="display:none; font-size:.82rem; color:var(--success); margin-bottom:10px; padding:6px 10px; background:var(--success-bg); border-radius:var(--radius-xs);"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="placeOrder()">Place Order</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toasts"></div>
 
-<!-- Modals -->
-<div class="modal-backdrop" id="loginModal"><div class="modal"><h3>Welcome Back</h3>
-  <div class="field"><label>Username</label><input id="loginName" placeholder="johndoe"></div>
-  <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="••••••"></div>
-  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('loginModal')">Cancel</button><button class="btn btn-primary" onclick="doLogin()">Log In</button></div>
-</div></div>
+<!-- ── Modals ── -->
+<div class="modal-backdrop" id="loginModal">
+  <div class="modal">
+    <h3>Welcome Back</h3>
+    <p class="modal-subtitle">Sign in to your account</p>
+    <div class="field"><label>Username</label><input id="loginName" placeholder="johndoe" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="••••••" autocomplete="current-password"></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('loginModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doLogin()">Log In</button>
+    </div>
+  </div>
+</div>
 
-<div class="modal-backdrop" id="registerModal"><div class="modal"><h3>Create Account</h3>
-  <div class="field"><label>Username</label><input id="regName" placeholder="johndoe"></div>
-  <div class="field"><label>Password</label><input id="regPass" type="password" placeholder="••••••"></div>
-  <div class="field"><label>Street</label><input id="regStreet" placeholder="123 Main St"></div>
-  <div class="field"><label>City</label><input id="regCity" placeholder="Sydney"></div>
-  <div class="field"><label>Postcode</label><input id="regPostcode" placeholder="2000"></div>
-  <div class="field"><label>Country</label><input id="regCountry" placeholder="AU"></div>
-  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('registerModal')">Cancel</button><button class="btn btn-primary" onclick="doRegister()">Register</button></div>
-</div></div>
+<div class="modal-backdrop" id="registerModal">
+  <div class="modal">
+    <h3>Create Account</h3>
+    <p class="modal-subtitle">Join the Walke marketplace</p>
+    <div class="field"><label>Username</label><input id="regName" placeholder="johndoe"></div>
+    <div class="field"><label>Password</label><input id="regPass" type="password" placeholder="••••••"></div>
+    <div class="form-row">
+      <div class="field"><label>Street</label><input id="regStreet" placeholder="123 Main St"></div>
+      <div class="field"><label>City</label><input id="regCity" placeholder="Sydney"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Postcode</label><input id="regPostcode" placeholder="2000"></div>
+      <div class="field"><label>Country</label><input id="regCountry" placeholder="AU"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('registerModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doRegister()">Register</button>
+    </div>
+  </div>
+</div>
 
-<div class="modal-backdrop" id="productModal"><div class="modal"><h3>New Product</h3>
-  <div class="field"><label>Name</label><input id="prodName" placeholder="Widget"></div>
-  <div class="field"><label>Price</label><input id="prodPrice" type="number" step="0.01" placeholder="9.99"></div>
-  <div class="field"><label>Image URL (optional)</label><input id="prodImageUrl" placeholder="https://example.com/image.jpg"></div>
-  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button><button class="btn btn-primary" onclick="doCreateProduct()">Create</button></div>
-</div></div>
+<div class="modal-backdrop" id="productModal">
+  <div class="modal">
+    <h3 id="productModalTitle">New Product</h3>
+    <p class="modal-subtitle">Add a product to the marketplace</p>
+    <input type="hidden" id="editProductId">
+    <div class="field"><label>Name</label><input id="prodName" placeholder="Widget Pro"></div>
+    <div class="field"><label>Price ($)</label><input id="prodPrice" type="number" step="0.01" min="0" placeholder="9.99"></div>
+    <div class="field"><label>Image URL (optional)</label><input id="prodImageUrl" placeholder="https://example.com/image.jpg"></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('productModal')">Cancel</button>
+      <button class="btn btn-primary" id="productModalSubmit" onclick="doSaveProduct()">Create Product</button>
+    </div>
+  </div>
+</div>
 
-<div class="modal-backdrop" id="voucherModal"><div class="modal"><h3>New Voucher</h3>
-  <div class="field"><label>Name</label><input id="vouchName" placeholder="SUMMER20"></div>
-  <div class="field"><label>Discount (&lt; 1 = %, &ge; 1 = flat $)</label><input id="vouchDiscount" type="number" step="0.01" placeholder="0.2"></div>
-  <div class="field"><label>Expiry (optional)</label><input id="vouchExpiry" type="date"></div>
-  <div class="field"><label>Max Uses</label><input id="vouchMaxUses" type="number" placeholder="100"></div>
-  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('voucherModal')">Cancel</button><button class="btn btn-primary" onclick="doCreateVoucher()">Create</button></div>
-</div></div>
+<div class="modal-backdrop" id="voucherModal">
+  <div class="modal">
+    <h3>New Voucher</h3>
+    <p class="modal-subtitle">Create a discount code</p>
+    <div class="field"><label>Code / Name</label><input id="vouchName" placeholder="SUMMER20"></div>
+    <div class="field">
+      <label>Discount (below 1 = percentage, 1+ = flat amount $)</label>
+      <input id="vouchDiscount" type="number" step="0.01" placeholder="0.2 = 20% off, 10 = $10 off">
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Expiry (optional)</label><input id="vouchExpiry" type="date"></div>
+      <div class="field"><label>Max Uses</label><input id="vouchMaxUses" type="number" placeholder="100"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('voucherModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doCreateVoucher()">Create Voucher</button>
+    </div>
+  </div>
+</div>
 
-<div class="modal-backdrop" id="cartAddModal"><div class="modal"><h3>Add to Cart</h3>
-  <input type="hidden" id="cartAddProdId">
-  <p id="cartAddProdName" style="color:var(--text-dim);margin-bottom:18px;"></p>
-  <div class="field"><label>Quantity</label><input id="cartAddQty" type="number" min="1" value="1"></div>
-  <div class="form-actions"><button class="btn btn-outline" onclick="closeModal('cartAddModal')">Cancel</button><button class="btn btn-primary" onclick="doAddToCart()">Add</button></div>
-</div></div>
+<div class="modal-backdrop" id="editUserModal">
+  <div class="modal">
+    <h3>Edit User</h3>
+    <p class="modal-subtitle" id="editUserSubtitle"></p>
+    <input type="hidden" id="editUserId">
+    <div class="field"><label>Username</label><input id="editUserName" placeholder="johndoe"></div>
+    <div class="form-row">
+      <div class="field"><label>Street</label><input id="editUserStreet" placeholder="123 Main St"></div>
+      <div class="field"><label>City</label><input id="editUserCity" placeholder="Sydney"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Postcode</label><input id="editUserPostcode" placeholder="2000"></div>
+      <div class="field"><label>Country</label><input id="editUserCountry" placeholder="AU"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('editUserModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doSaveUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="respondModal">
+  <div class="modal">
+    <h3>Respond to Order</h3>
+    <p class="modal-subtitle" id="respondOrderMeta"></p>
+    <input type="hidden" id="respondOrderId">
+    <input type="hidden" id="respondCode">
+    <div class="response-actions">
+      <button class="response-btn accept" onclick="selectResponse('AB')">
+        <span class="response-icon">✅</span>
+        <span>Accept Order</span>
+        <small style="font-weight:400;font-size:.75rem;opacity:.8">Confirm & proceed</small>
+      </button>
+      <button class="response-btn reject" onclick="selectResponse('RE')">
+        <span class="response-icon">❌</span>
+        <span>Reject Order</span>
+        <small style="font-weight:400;font-size:.75rem;opacity:.8">Decline this order</small>
+      </button>
+    </div>
+    <div class="field">
+      <label>Note (optional)</label>
+      <textarea id="respondNote" placeholder="Add a message to the buyer..." rows="3" style="resize:vertical"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('respondModal')">Cancel</button>
+      <button class="btn btn-primary" id="respondSubmitBtn" onclick="doRespond()" disabled>Send Response</button>
+    </div>
+  </div>
+</div>
 
 <script>
-
 const API = '';
 
 let token = localStorage.getItem('walke_token') || null;
 let currentUser = null;
+let cartData = [];
+let themeIsDark = localStorage.getItem('walke_theme') !== 'light';
 
-// ── Core fetch wrapper ──
+// ── Core fetch ──
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...opts.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -185,22 +512,37 @@ async function apiList(path) {
   catch (e) { if (e.status === 404) return []; throw e; }
 }
 
+// ── Utilities ──
 function toast(msg, type = 'success') {
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  el.textContent = msg;
+  el.innerHTML = `<span>${icons[type] || '•'}</span><span>${esc(String(msg))}</span>`;
   document.getElementById('toasts').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), 3200);
 }
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s||''); return d.innerHTML; }
 function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch { return null; } }
-function statusBadge(s) {
-  const c = { pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled',completed:'badge-completed',rejected:'badge-rejected' };
-  return `<span class="badge ${c[s]||'badge-pending'}">${s}</span>`;
-}
 function isAdmin() { return currentUser?.name === 'WALKE_ADMIN'; }
+function fmt$(n) { return '$' + Number(n).toFixed(2); }
+function fmtDate(d) { return new Date(d).toLocaleDateString('en-AU', { year:'numeric', month:'short', day:'numeric' }); }
+
+function statusBadge(s) {
+  return `<span class="badge badge-${s||'pending'}">${s||'pending'}</span>`;
+}
+
+// ── Theme ──
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', themeIsDark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = themeIsDark ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  themeIsDark = !themeIsDark;
+  localStorage.setItem('walke_theme', themeIsDark ? 'dark' : 'light');
+  applyTheme();
+}
 
 // ── Nav ──
 function renderNav() {
@@ -209,21 +551,22 @@ function renderNav() {
     nav.innerHTML = `<button class="active" data-tab="products">Products</button>`;
   } else if (isAdmin()) {
     nav.innerHTML = `
-      <button class="active" data-tab="products">Products</button>
-      <button data-tab="cart">Cart</button>
+      <button data-tab="products">Products</button>
       <button data-tab="orders">Orders</button>
       <button data-tab="vouchers">Vouchers</button>
       <button data-tab="users">Users</button>`;
   } else {
     nav.innerHTML = `
-      <button class="active" data-tab="products">Products</button>
-      <button data-tab="cart">Cart</button>
-      <button data-tab="myorders">My Orders</button>
-      <button data-tab="profile">My Profile</button>`;
+      <button data-tab="products">Products</button>
+      <button data-tab="orders">My Orders</button>
+      <button data-tab="profile">Profile</button>`;
   }
-  attachNavListener();
-  showSection(currentUser && !isAdmin() ? 'products' : 'products');
+  attachNavListeners();
+  showSection('products');
   document.getElementById('btnNewProduct').style.display = token ? '' : 'none';
+  document.getElementById('cartBtn').style.display = token ? '' : 'none';
+  if (isAdmin()) document.getElementById('ordersSubtitle').textContent = 'All orders on the platform';
+  else document.getElementById('ordersSubtitle').textContent = 'Your purchases and incoming seller orders';
 }
 
 function showSection(tab) {
@@ -235,10 +578,11 @@ function showSection(tab) {
   if (btn) btn.classList.add('active');
 }
 
-function attachNavListener() {
+function attachNavListeners() {
   const nav = document.getElementById('mainNav');
-  nav.replaceWith(nav.cloneNode(true)); // remove old listeners
-  document.getElementById('mainNav').addEventListener('click', e => {
+  const clone = nav.cloneNode(true);
+  nav.replaceWith(clone);
+  clone.addEventListener('click', e => {
     if (e.target.tagName !== 'BUTTON') return;
     const tab = e.target.dataset.tab;
     showSection(tab);
@@ -248,15 +592,18 @@ function attachNavListener() {
 
 // ── Auth ──
 function updateAuthUI() {
-  const badge = document.getElementById('userBadge'), btn = document.getElementById('btnAuthToggle');
+  const badge = document.getElementById('userBadge');
+  const btn = document.getElementById('btnAuthToggle');
   const regBtn = document.getElementById('btnRegisterToggle');
   if (token) {
     currentUser = parseJwt(token);
-    badge.textContent = currentUser?.name || 'User'; badge.classList.remove('offline');
+    badge.textContent = currentUser?.name || 'User';
+    badge.classList.remove('offline');
     btn.textContent = 'Log Out'; btn.onclick = doLogout;
     regBtn.style.display = 'none';
   } else {
-    badge.textContent = 'Not logged in'; badge.classList.add('offline');
+    badge.textContent = 'Not logged in';
+    badge.classList.add('offline');
     btn.textContent = 'Log In'; btn.onclick = () => openModal('loginModal');
     regBtn.style.display = '';
     currentUser = null;
@@ -266,288 +613,625 @@ function updateAuthUI() {
 
 async function doLogin() {
   try {
-    const data = await api('/login', { method:'POST', body: JSON.stringify({ name: document.getElementById('loginName').value, password: document.getElementById('loginPass').value }) });
-    token = data.token; localStorage.setItem('walke_token', token);
-    closeModal('loginModal'); updateAuthUI();
-    toast(`Logged in as ${parseJwt(token)?.name}`); loadTab('products');
+    const data = await api('/login', { method:'POST', body: JSON.stringify({
+      name: document.getElementById('loginName').value,
+      password: document.getElementById('loginPass').value
+    })});
+    token = data.token;
+    localStorage.setItem('walke_token', token);
+    closeModal('loginModal');
+    updateAuthUI();
+    toast(`Welcome back, ${parseJwt(token)?.name}!`);
+    loadTab('products');
+    refreshCartCount();
   } catch (e) { toast(e.data?.error || 'Login failed', 'error'); }
 }
 
 function doLogout() {
-  token = null; localStorage.removeItem('walke_token');
-  updateAuthUI(); toast('Logged out'); loadTab('products');
+  token = null;
+  localStorage.removeItem('walke_token');
+  closeCart();
+  updateAuthUI();
+  toast('Logged out');
+  loadTab('products');
 }
 
 async function doRegister() {
   try {
-    const body = { name:document.getElementById('regName').value, password:document.getElementById('regPass').value,
-      street:document.getElementById('regStreet').value||undefined, city:document.getElementById('regCity').value||undefined,
-      postcode:document.getElementById('regPostcode').value||undefined, country:document.getElementById('regCountry').value||undefined };
-    await api('/users', { method:'POST', body:JSON.stringify(body) });
-    closeModal('registerModal'); toast('Account created — you can now log in');
+    const body = {
+      name: document.getElementById('regName').value,
+      password: document.getElementById('regPass').value,
+      street: document.getElementById('regStreet').value || undefined,
+      city: document.getElementById('regCity').value || undefined,
+      postcode: document.getElementById('regPostcode').value || undefined,
+      country: document.getElementById('regCountry').value || undefined
+    };
+    await api('/users', { method:'POST', body: JSON.stringify(body) });
+    closeModal('registerModal');
+    toast('Account created — you can now log in');
     if (isAdmin()) loadTab('users');
   } catch (e) { toast(e.data?.error || 'Registration failed', 'error'); }
+}
+
+// ── Cart Panel ──
+function toggleCart() {
+  const panel = document.getElementById('cartPanel');
+  if (panel.classList.contains('open')) closeCart();
+  else openCart();
+}
+
+function openCart() {
+  document.getElementById('cartPanel').classList.add('open');
+  document.getElementById('cartOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  loadCartPanel();
+}
+
+function closeCart() {
+  document.getElementById('cartPanel').classList.remove('open');
+  document.getElementById('cartOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+async function loadCartPanel() {
+  const list = document.getElementById('cartItemsList');
+  const footer = document.getElementById('cartFooter');
+  if (!token) {
+    list.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🔒</div><p>Log in to use your cart</p></div>`;
+    footer.style.display = 'none';
+    return;
+  }
+  list.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">⏳</div><p>Loading…</p></div>`;
+  try {
+    cartData = await api('/cart');
+    if (!cartData.length) {
+      list.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛒</div><h4>Your cart is empty</h4><p>Add products to get started</p></div>`;
+      footer.style.display = 'none';
+      return;
+    }
+    list.innerHTML = cartData.map(i => `
+      <div class="cart-item">
+        <div class="cart-item-img">
+          ${i.image_url ? `<img src="${esc(i.image_url)}" alt="${esc(i.product_name)}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-xs)">` : '📦'}
+        </div>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${esc(i.product_name)}</div>
+          <div class="cart-item-meta">
+            Qty: <input type="number" min="1" value="${i.quantity}" style="width:54px;padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:.8rem" onchange="updateCartQty(${i.product_id},this.value)">
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="cart-item-price">${fmt$(i.price * i.quantity)}</div>
+          <button class="btn btn-danger btn-xs" onclick="removeCartItem(${i.product_id})">Remove</button>
+        </div>
+      </div>`).join('');
+    const subtotal = cartData.reduce((s, i) => s + i.price * i.quantity, 0);
+    document.getElementById('cartSubtotal').textContent = fmt$(subtotal);
+    footer.style.display = '';
+    document.getElementById('voucherApplied').style.display = 'none';
+    document.getElementById('cartVoucherCode').value = '';
+  } catch { list.innerHTML = `<div class="cart-empty"><p>Failed to load cart</p></div>`; footer.style.display = 'none'; }
+}
+
+async function refreshCartCount() {
+  if (!token) { document.getElementById('cartBadge').classList.remove('show'); return; }
+  try {
+    const items = await api('/cart');
+    const badge = document.getElementById('cartBadge');
+    if (items.length) { badge.textContent = items.length; badge.classList.add('show'); }
+    else badge.classList.remove('show');
+    cartData = items;
+  } catch { document.getElementById('cartBadge').classList.remove('show'); }
+}
+
+async function updateCartQty(pid, qty) {
+  qty = parseInt(qty);
+  if (!qty || qty < 1) return;
+  try {
+    await api(`/cart/${pid}`, { method:'PATCH', body: JSON.stringify({ quantity: qty }) });
+    const subtotal = cartData.reduce((s, i) => {
+      if (i.product_id === pid) i.quantity = qty;
+      return s + i.price * i.quantity;
+    }, 0);
+    document.getElementById('cartSubtotal').textContent = fmt$(subtotal);
+    refreshCartCount();
+  } catch (e) { toast(e.data?.error || 'Failed to update', 'error'); }
+}
+
+async function removeCartItem(pid) {
+  try {
+    await api(`/cart/${pid}`, { method:'DELETE' });
+    toast('Removed from cart');
+    loadCartPanel();
+    refreshCartCount();
+  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+}
+
+function applyVoucher() {
+  const code = document.getElementById('cartVoucherCode').value.trim();
+  if (!code) { document.getElementById('voucherApplied').style.display = 'none'; return; }
+  const el = document.getElementById('voucherApplied');
+  el.style.display = '';
+  el.textContent = `Voucher "${code}" will be applied at checkout`;
+}
+
+async function placeOrder() {
+  if (!token) { toast('Log in first', 'error'); return; }
+  const voucherCode = document.getElementById('cartVoucherCode').value.trim() || null;
+  try {
+    const body = voucherCode ? { voucher_code: voucherCode } : {};
+    await api('/orders', { method:'POST', body: JSON.stringify(body) });
+    toast('Order placed successfully!');
+    closeCart();
+    refreshCartCount();
+    loadTab('orders');
+  } catch (e) { toast(e.data?.error || 'Failed to place order', 'error'); }
+}
+
+// ── Add to Cart (from product cards) ──
+function openAddToCart(id, name) {
+  if (!token) { toast('Log in to add items to cart', 'error'); return; }
+  if (confirm(`Add "${name}" to cart?\n\nQuantity: `) === false) return;
+  const qty = parseInt(prompt(`Add "${name}" to cart\n\nQuantity:`));
+  if (!qty || qty < 1) return;
+  addToCartDirect(id, qty, name);
+}
+
+async function addToCartDirect(pid, qty, name) {
+  try {
+    await api('/cart', { method:'POST', body: JSON.stringify({ product_id: pid, quantity: qty }) });
+    toast(`Added "${name}" to cart`);
+    refreshCartCount();
+  } catch (e) { toast(e.data?.error || 'Failed to add', 'error'); }
 }
 
 // ── Products ──
 async function loadProducts() {
   const grid = document.getElementById('productGrid');
+  grid.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><p>Loading products…</p></div>`;
   try {
     const products = await apiList('/products');
-    if (!products.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>No products yet</p></div>`; return; }
+    if (!products.length) {
+      grid.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><h4>No products yet</h4><p>Be the first to list a product</p></div>`;
+      return;
+    }
     grid.innerHTML = products.map(p => {
       const mine = currentUser && p.seller_id === currentUser.id;
+      const canEdit = mine;
       const canDelete = isAdmin() || mine;
-      return `<div class="card">
-        ${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" style="width:100%;height:180px;object-fit:cover;border-radius:8px;margin-bottom:14px;">` : ''}
-        <div class="card-meta">ID #${p.id} · Seller #${p.seller_id||'—'}${mine ? '<span class="own-badge">Yours</span>' : ''}</div>
-        <div class="card-title">${esc(p.name)}</div>
-        <div class="card-price">$${Number(p.price).toFixed(2)}</div>
-        <div class="card-actions">
-          ${token ? `<button class="btn btn-primary btn-sm" onclick="openAddToCart(${p.id},'${esc(p.name)}')">Add to Cart</button>` : ''}
-          ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>` : ''}
-        </div></div>`;
+      return `<div class="product-card">
+        <div class="product-card-img">
+          ${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : '📦'}
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-meta">
+            #${p.id} · Seller: ${esc(p.seller_name || `#${p.seller_id}`) || '—'}
+            ${mine ? `<span class="own-badge">✓ Yours</span>` : ''}
+          </div>
+          <div class="product-card-title">${esc(p.name)}</div>
+          <div class="product-card-price">${fmt$(p.price)}</div>
+          <div class="product-card-actions">
+            ${token && !mine ? `<button class="btn btn-primary btn-sm" onclick="openAddToCartSimple(${p.id},'${esc(p.name).replace(/'/g,"\\'")}')">+ Add to Cart</button>` : ''}
+            ${canEdit ? `<button class="btn btn-outline btn-sm" onclick="openEditProduct(${p.id},'${esc(p.name).replace(/'/g,"\\'")}',${p.price},'${esc(p.image_url||'')}')">Edit</button>` : ''}
+            ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>` : ''}
+          </div>
+        </div>
+      </div>`;
     }).join('');
   } catch { grid.innerHTML = `<div class="empty"><p>Failed to load products</p></div>`; }
 }
 
-async function doCreateProduct() {
+async function openAddToCartSimple(id, name) {
+  if (!token) { toast('Log in to add items to cart', 'error'); return; }
+  const qty = parseInt(prompt(`Quantity for "${name}":`));
+  if (!qty || qty < 1) return;
+  await addToCartDirect(id, qty, name);
+}
+
+function openNewProduct() {
+  document.getElementById('editProductId').value = '';
+  document.getElementById('productModalTitle').textContent = 'New Product';
+  document.getElementById('productModalSubmit').textContent = 'Create Product';
+  document.getElementById('prodName').value = '';
+  document.getElementById('prodPrice').value = '';
+  document.getElementById('prodImageUrl').value = '';
+  openModal('productModal');
+}
+
+function openEditProduct(id, name, price, imageUrl) {
+  document.getElementById('editProductId').value = id;
+  document.getElementById('productModalTitle').textContent = 'Edit Product';
+  document.getElementById('productModalSubmit').textContent = 'Save Changes';
+  document.getElementById('prodName').value = name;
+  document.getElementById('prodPrice').value = price;
+  document.getElementById('prodImageUrl').value = imageUrl || '';
+  openModal('productModal');
+}
+
+async function doSaveProduct() {
   if (!token) { toast('Log in first', 'error'); return; }
+  const editId = document.getElementById('editProductId').value;
+  const name = document.getElementById('prodName').value.trim();
+  const price = parseFloat(document.getElementById('prodPrice').value);
+  const imageUrl = document.getElementById('prodImageUrl').value.trim() || undefined;
+  if (!name || isNaN(price)) { toast('Name and price are required', 'error'); return; }
   try {
-    const imageUrl = document.getElementById('prodImageUrl').value;
-    await api('/products', { method:'POST', body:JSON.stringify({ name:document.getElementById('prodName').value, price:parseFloat(document.getElementById('prodPrice').value), seller_id:currentUser.id, image_url:imageUrl||undefined }) });
-    closeModal('productModal'); toast('Product created'); loadProducts();
-  } catch (e) { toast(e.data?.error || 'Failed to create product', 'error'); }
+    if (editId) {
+      await api(`/products/${editId}`, { method:'PATCH', body: JSON.stringify({ name, price, image_url: imageUrl }) });
+      toast('Product updated');
+    } else {
+      await api('/products', { method:'POST', body: JSON.stringify({ name, price, seller_id: currentUser.id, image_url: imageUrl }) });
+      toast('Product created');
+    }
+    closeModal('productModal');
+    loadProducts();
+  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
 }
 
 async function deleteProduct(id) {
   if (!confirm('Delete this product?')) return;
-  try { await api(`/products/${id}`,{method:'DELETE'}); toast('Deleted'); loadProducts(); } catch(e){ toast(e.data?.error||'Failed','error'); }
+  try { await api(`/products/${id}`, { method:'DELETE' }); toast('Product deleted'); loadProducts(); }
+  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
 }
 
-// ── Cart ──
-function openAddToCart(id, name) {
-  if (!token) { toast('Log in first','error'); return; }
-  document.getElementById('cartAddProdId').value = id;
-  document.getElementById('cartAddProdName').textContent = `Product: ${name}`;
-  document.getElementById('cartAddQty').value = 1;
-  openModal('cartAddModal');
-}
-async function doAddToCart() {
-  try {
-    await api('/cart', { method:'POST', body:JSON.stringify({ product_id:parseInt(document.getElementById('cartAddProdId').value), quantity:parseInt(document.getElementById('cartAddQty').value) }) });
-    closeModal('cartAddModal'); toast('Added to cart');
-  } catch(e){ toast(e.data?.error||'Failed','error'); }
-}
-async function loadCart() {
-  const el = document.getElementById('cartContent');
-  if (!token) { el.innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><p>Log in to view your cart</p></div>`; return; }
-  try {
-    const items = await api('/cart');
-    if (!items.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">🛒</div><p>Your cart is empty</p></div>`; return; }
-    el.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>Product ID</th><th>Quantity</th><th>Actions</th></tr></thead>
-      <tbody>${items.map(i=>`<tr><td>#${i.product_id}</td><td>${i.quantity}</td><td>
-        <button class="btn btn-outline btn-sm" onclick="updateCart(${i.product_id})">Edit Qty</button>
-        <button class="btn btn-danger btn-sm" onclick="removeCart(${i.product_id})">Remove</button>
-      </td></tr>`).join('')}</tbody></table></div>`;
-  } catch { el.innerHTML = `<div class="empty"><p>Failed to load cart</p></div>`; }
-}
-async function updateCart(pid) {
-  const q = prompt('New quantity:'); if (!q||isNaN(q)||q<1) return;
-  try { await api(`/cart/${pid}`,{method:'PATCH',body:JSON.stringify({quantity:parseInt(q)})}); toast('Updated'); loadCart(); } catch(e){ toast(e.data?.error||'Failed','error'); }
-}
-async function removeCart(pid) {
-  try { await api(`/cart/${pid}`,{method:'DELETE'}); toast('Removed'); loadCart(); } catch(e){ toast(e.data?.error||'Failed','error'); }
-}
-
-// ── Orders (admin) ──
+// ── Orders ──
 async function loadOrders() {
   const el = document.getElementById('ordersContent');
-  try {
-    const orders = await apiList('/orders');
-    if (!orders.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No orders yet</p></div>`; return; }
-    el.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>ID</th><th>Buyer</th><th>Status</th><th>Total</th><th>Voucher</th><th>Actions</th></tr></thead>
-      <tbody>${orders.map(o=>`<tr>
-        <td>#${o.id}</td><td>User #${o.buyer_id}</td><td>${statusBadge(o.status)}</td>
-        <td>$${Number(o.total_price).toFixed(2)}</td><td>${o.voucher_id?'#'+o.voucher_id:'—'}</td>
-        <td>
-          ${o.status==='pending'?`<button class="btn btn-outline btn-sm" onclick="respondOrder(${o.id})">Respond</button>`:''}
-          ${['pending','confirmed'].includes(o.status)?`<button class="btn btn-danger btn-sm" onclick="cancelOrder(${o.id})">Cancel</button>`:''}
-          <button class="btn btn-outline btn-sm" onclick="viewOrderXml(${o.id})">XML</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteOrder(${o.id})">Delete</button>
-        </td></tr>`).join('')}</tbody></table></div>`;
-  } catch { el.innerHTML = `<div class="empty"><p>Failed to load orders</p></div>`; }
-}
-
-// ── My Orders (user) ──
-async function loadMyOrders() {
-  const el = document.getElementById('myOrdersContent');
-  if (!token) { el.innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><p>Log in to view your orders</p></div>`; return; }
+  el.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><p>Loading…</p></div>`;
   try {
     const all = await apiList('/orders');
-
-    // Orders I placed as a buyer
-    const myPurchases = all.filter(o => o.buyer_id === currentUser.id);
-
-    // Pending orders I might need to respond to as a seller
-    const pendingOrders = all.filter(o => o.status === 'pending' && o.buyer_id !== currentUser.id);
-
-    let html = '';
-
-    html += `<div class="sub-header">My Purchases</div>`;
-    if (!myPurchases.length) {
-      html += `<div class="empty" style="padding:30px 20px"><div class="empty-icon">🛒</div><p>You haven't placed any orders yet</p></div>`;
+    if (isAdmin()) {
+      renderAdminOrders(el, all);
     } else {
-      html += `<div class="table-wrap"><table>
-        <thead><tr><th>ID</th><th>Status</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
-        <tbody>${myPurchases.map(o=>`<tr>
-          <td>#${o.id}</td><td>${statusBadge(o.status)}</td>
-          <td>$${Number(o.total_price).toFixed(2)}</td>
-          <td>${new Date(o.created_at).toLocaleDateString()}</td>
-          <td>
-            ${['pending','confirmed'].includes(o.status)?`<button class="btn btn-danger btn-sm" onclick="cancelOrder(${o.id})">Cancel</button>`:''}
-            <button class="btn btn-outline btn-sm" onclick="viewOrderXml(${o.id})">XML</button>
-          </td></tr>`).join('')}</tbody></table></div>`;
+      renderUserOrders(el, all);
     }
-
-    html += `<div class="sub-header" style="margin-top:36px">Incoming Orders (Pending)</div>`;
-    if (!pendingOrders.length) {
-      html += `<div class="empty" style="padding:30px 20px"><div class="empty-icon">📭</div><p>No pending incoming orders</p></div>`;
-    } else {
-      html += `<div class="table-wrap"><table>
-        <thead><tr><th>Order ID</th><th>Buyer</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
-        <tbody>${pendingOrders.map(o=>`<tr>
-          <td>#${o.id}</td><td>User #${o.buyer_id}</td>
-          <td>$${Number(o.total_price).toFixed(2)}</td>
-          <td>${new Date(o.created_at).toLocaleDateString()}</td>
-          <td><button class="btn btn-outline btn-sm" onclick="respondOrder(${o.id})">Respond</button></td>
-        </tr>`).join('')}</tbody></table></div>`;
-    }
-
-    el.innerHTML = html;
   } catch { el.innerHTML = `<div class="empty"><p>Failed to load orders</p></div>`; }
 }
 
-// ── Profile ──
-async function loadProfile() {
-  const el = document.getElementById('profileContent');
-  if (!token || !currentUser) { el.innerHTML = `<div class="empty"><p>Log in to view your profile</p></div>`; return; }
-  try {
-    const user = await api(`/users/${currentUser.id}`);
-    const address = [user.street, user.city, user.postcode, user.country].filter(Boolean).join(', ');
-    el.innerHTML = `<div class="profile-card">
-      <div class="profile-name">${esc(user.name)}</div>
-      <div class="card-meta">User #${user.id}</div>
-      ${address ? `<div class="profile-field"><span>Address</span><span>${esc(address)}</span></div>` : ''}
-      <div class="profile-field"><span>Member since</span><span>${new Date(user.created_at).toLocaleDateString()}</span></div>
-    </div>`;
-  } catch { el.innerHTML = `<div class="empty"><p>Failed to load profile</p></div>`; }
+function renderAdminOrders(el, orders) {
+  if (!orders.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><h4>No orders yet</h4><p>Orders will appear here once placed</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Order ID</th><th>Buyer</th><th>Status</th><th>Total</th><th>Voucher</th><th>Date</th><th>Actions</th>
+    </tr></thead>
+    <tbody>${orders.map(o => `<tr>
+      <td><strong>#${o.id}</strong></td>
+      <td>
+        <div style="font-weight:600">${esc(o.buyer_name || '—')}</div>
+        <div style="font-size:.75rem;color:var(--text-muted)">ID #${o.buyer_id}</div>
+      </td>
+      <td>${statusBadge(o.status)}</td>
+      <td><strong>${fmt$(o.total_price)}</strong>${o.voucher_id ? `<div style="font-size:.75rem;color:var(--success)">voucher applied</div>` : ''}</td>
+      <td>${o.voucher_id ? `<span style="color:var(--success);font-size:.82rem">✓ #${o.voucher_id}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(o.created_at)}</td>
+      <td><div class="td-actions">
+        ${o.status === 'pending' ? `<button class="btn btn-outline btn-xs" onclick="openRespondModal(${o.id})">Respond</button>` : ''}
+        ${['pending','confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-xs" onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
+        <button class="btn btn-ghost btn-xs" onclick="viewOrderXml(${o.id})">XML</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteOrder(${o.id})">Delete</button>
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
-async function placeOrder() {
-  if (!token) { toast('Log in first','error'); return; }
-  const vid = prompt('Voucher ID (leave blank for none):');
+function renderUserOrders(el, all) {
+  const myPurchases = all.filter(o => o.buyer_id === currentUser.id);
+  const incomingOrders = all.filter(o => o.status === 'pending' && o.buyer_id !== currentUser.id);
+
+  let html = '';
+
+  // My Purchases
+  html += `<div class="divider">My Purchases</div>`;
+  if (!myPurchases.length) {
+    html += `<div class="empty" style="padding:40px 20px"><div class="empty-icon">🛍️</div><h4>No purchases yet</h4><p>Add items to your cart and place an order</p></div>`;
+  } else {
+    html += `<div class="table-wrap"><table>
+      <thead><tr><th>Order ID</th><th>Status</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody>${myPurchases.map(o => `<tr>
+        <td><strong>#${o.id}</strong></td>
+        <td>${statusBadge(o.status)}</td>
+        <td><strong>${fmt$(o.total_price)}</strong></td>
+        <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(o.created_at)}</td>
+        <td><div class="td-actions">
+          ${o.status === 'confirmed' ? `<button class="btn btn-success btn-xs" onclick="completeOrder(${o.id})">Accept Order</button>` : ''}
+          ${['pending','confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-xs" onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
+          <button class="btn btn-ghost btn-xs" onclick="viewOrderXml(${o.id})">XML</button>
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  // Incoming as seller
+  html += `<div class="divider" style="margin-top:40px">Incoming Orders (as Seller)</div>`;
+  if (!incomingOrders.length) {
+    html += `<div class="empty" style="padding:40px 20px"><div class="empty-icon">📭</div><h4>No incoming orders</h4><p>When buyers include your products, orders will appear here</p></div>`;
+  } else {
+    html += `<div class="table-wrap"><table>
+      <thead><tr><th>Order ID</th><th>Buyer</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody>${incomingOrders.map(o => `<tr>
+        <td><strong>#${o.id}</strong></td>
+        <td>
+          <div style="font-weight:600">${esc(o.buyer_name || '—')}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">ID #${o.buyer_id}</div>
+        </td>
+        <td><strong>${fmt$(o.total_price)}</strong></td>
+        <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(o.created_at)}</td>
+        <td><div class="td-actions">
+          <button class="btn btn-primary btn-xs" onclick="openRespondModal(${o.id})">Respond</button>
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ── Order Actions ──
+function openRespondModal(orderId) {
+  if (!token) { toast('Log in first', 'error'); return; }
+  document.getElementById('respondOrderId').value = orderId;
+  document.getElementById('respondCode').value = '';
+  document.getElementById('respondOrderMeta').textContent = `Order #${orderId}`;
+  document.getElementById('respondNote').value = '';
+  document.getElementById('respondSubmitBtn').disabled = true;
+  // Reset button states
+  document.querySelectorAll('.response-btn').forEach(b => b.classList.remove('selected'));
+  openModal('respondModal');
+}
+
+function selectResponse(code) {
+  document.getElementById('respondCode').value = code;
+  document.querySelectorAll('.response-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector(`.response-btn.${code === 'AB' ? 'accept' : 'reject'}`).classList.add('selected');
+  document.getElementById('respondSubmitBtn').disabled = false;
+}
+
+async function doRespond() {
+  const id = document.getElementById('respondOrderId').value;
+  const code = document.getElementById('respondCode').value;
+  const note = document.getElementById('respondNote').value.trim() || null;
+  if (!code) { toast('Select accept or reject', 'error'); return; }
   try {
-    const body = vid ? { voucher_id:parseInt(vid) } : {};
-    await api('/orders',{method:'POST',body:JSON.stringify(body)}); toast('Order placed!');
-    loadCart();
-    isAdmin() ? loadOrders() : loadMyOrders();
-  } catch(e){ toast(e.data?.error||'Failed to place order','error'); }
+    await api(`/orders/${id}/response`, { method:'POST', body: JSON.stringify({ response_code: code, note }) });
+    const label = code === 'AB' ? 'accepted' : 'rejected';
+    toast(`Order #${id} ${label}`);
+    closeModal('respondModal');
+    loadOrders();
+  } catch (e) { toast(e.data?.error || 'Failed to respond', 'error'); }
+}
+
+async function completeOrder(id) {
+  if (!confirm('Mark this order as completed? This confirms you have accepted the goods.')) return;
+  try {
+    await api(`/orders/${id}`, { method:'PATCH', body: JSON.stringify({ status: 'completed' }) });
+    toast('Order marked as completed');
+    loadOrders();
+  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
 }
 
 async function cancelOrder(id) {
-  if (!token) { toast('Log in first','error'); return; }
-  const reason = prompt('Cancellation reason (optional):')||'';
+  if (!token) { toast('Log in first', 'error'); return; }
+  const reason = prompt('Cancellation reason (optional):') ?? '';
+  if (reason === null) return;
   try {
-    await api(`/orders/${id}/cancel`,{method:'POST',body:JSON.stringify({reason})}); toast('Order cancelled');
-    isAdmin() ? loadOrders() : loadMyOrders();
-  } catch(e){ toast(e.data?.error||'Failed','error'); }
-}
-
-async function respondOrder(id) {
-  if (!token) { toast('Log in first','error'); return; }
-  const code = prompt('Response code (AB = accept, RE = reject):'); if (!code) return;
-  const note = prompt('Note (optional):')||'';
-  try {
-    await api(`/orders/${id}/response`,{method:'POST',body:JSON.stringify({response_code:code.toUpperCase(),note})}); toast(`Response "${code.toUpperCase()}" sent`);
-    isAdmin() ? loadOrders() : loadMyOrders();
-  } catch(e){ toast(e.data?.error||'Failed','error'); }
+    await api(`/orders/${id}/cancel`, { method:'POST', body: JSON.stringify({ reason }) });
+    toast('Order cancelled');
+    loadOrders();
+  } catch (e) { toast(e.data?.error || 'Failed to cancel', 'error'); }
 }
 
 async function viewOrderXml(id) {
   try {
-    const h = { Accept:'application/xml' }; if (token) h['Authorization'] = `Bearer ${token}`;
-    const xml = await fetch(`${API}/orders/${id}`,{headers:h}).then(r=>r.text());
-    const w = window.open('','_blank'); w.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;padding:20px">${esc(xml)}</pre>`);
-  } catch { toast('Failed to load XML','error'); }
+    const h = { Accept: 'application/xml' };
+    if (token) h['Authorization'] = `Bearer ${token}`;
+    const xml = await fetch(`${API}/orders/${id}`, { headers: h }).then(r => r.text());
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><title>Order #${id} XML</title><style>body{margin:0;padding:20px;background:#0e0e11;color:#e8e6e1;font-family:monospace}pre{white-space:pre-wrap;word-break:break-all}</style></head><body><pre>${esc(xml)}</pre></body></html>`);
+  } catch { toast('Failed to load XML', 'error'); }
 }
 
 async function deleteOrder(id) {
-  if (!confirm('Delete this order?')) return;
-  try { await api(`/orders/${id}`,{method:'DELETE'}); toast('Deleted'); loadOrders(); } catch(e){ toast(e.data?.error||'Failed','error'); }
+  if (!confirm('Permanently delete this order?')) return;
+  try { await api(`/orders/${id}`, { method:'DELETE' }); toast('Order deleted'); loadOrders(); }
+  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
 }
 
 // ── Vouchers ──
 async function loadVouchers() {
   const grid = document.getElementById('voucherGrid');
+  grid.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><p>Loading…</p></div>`;
   try {
     const vouchers = await apiList('/vouchers');
-    if (!vouchers.length) { grid.innerHTML = `<div class="empty"><div class="empty-icon">🎟️</div><p>No vouchers yet</p></div>`; return; }
-    grid.innerHTML = vouchers.map(v=>`<div class="card">
-      <div class="card-meta">ID #${v.id}</div>
-      <div class="card-title">${esc(v.name)}</div>
-      <div class="card-price">${v.discount<1?(v.discount*100)+'% off':'$'+Number(v.discount).toFixed(2)+' off'}</div>
-      <div class="card-meta">${v.expiry?'Expires: '+new Date(v.expiry).toLocaleDateString():'No expiry'} · Max uses: ${v.max_uses??'∞'}</div>
-      <div class="card-actions"><button class="btn btn-danger btn-sm" onclick="deleteVoucher(${v.id})">Delete</button></div>
-    </div>`).join('');
+    if (!vouchers.length) {
+      grid.innerHTML = `<div class="empty"><div class="empty-icon">🎟️</div><h4>No vouchers yet</h4><p>Create a discount code to get started</p></div>`;
+      return;
+    }
+    grid.innerHTML = vouchers.map(v => `
+      <div class="voucher-card">
+        <div class="voucher-id">ID #${v.id}</div>
+        <div class="voucher-name">${esc(v.name)}</div>
+        <div class="voucher-discount">${v.discount < 1 ? Math.round(v.discount * 100) + '% off' : fmt$(v.discount) + ' off'}</div>
+        <div class="voucher-meta">
+          ${v.expiry ? `Expires ${fmtDate(v.expiry)}` : 'No expiry'} &nbsp;·&nbsp;
+          ${v.max_uses != null ? `Max ${v.max_uses} uses` : 'Unlimited uses'}
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px">
+          <button class="btn btn-danger btn-sm" onclick="deleteVoucher(${v.id})">Delete</button>
+        </div>
+      </div>`).join('');
   } catch { grid.innerHTML = `<div class="empty"><p>Failed to load vouchers</p></div>`; }
 }
+
 async function doCreateVoucher() {
+  const name = document.getElementById('vouchName').value.trim();
+  const discount = parseFloat(document.getElementById('vouchDiscount').value);
+  const expiry = document.getElementById('vouchExpiry').value || null;
+  const maxUses = parseInt(document.getElementById('vouchMaxUses').value) || null;
+  if (!name || isNaN(discount)) { toast('Code name and discount are required', 'error'); return; }
   try {
-    await api('/vouchers',{method:'POST',body:JSON.stringify({ name:document.getElementById('vouchName').value, discount:parseFloat(document.getElementById('vouchDiscount').value),
-      expiry:document.getElementById('vouchExpiry').value||null, max_uses:parseInt(document.getElementById('vouchMaxUses').value)||null })});
-    closeModal('voucherModal'); toast('Voucher created'); loadVouchers();
-  } catch(e){ toast(e.data?.error||'Failed','error'); }
+    await api('/vouchers', { method:'POST', body: JSON.stringify({ name, discount, expiry, max_uses: maxUses }) });
+    closeModal('voucherModal');
+    toast(`Voucher "${name}" created`);
+    loadVouchers();
+  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
 }
+
 async function deleteVoucher(id) {
   if (!confirm('Delete this voucher?')) return;
-  try { await api(`/vouchers/${id}`,{method:'DELETE'}); toast('Deleted'); loadVouchers(); } catch(e){ toast(e.data?.error||'Failed','error'); }
+  try { await api(`/vouchers/${id}`, { method:'DELETE' }); toast('Voucher deleted'); loadVouchers(); }
+  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
 }
 
 // ── Users (admin) ──
 async function loadUsers() {
   const el = document.getElementById('usersContent');
+  el.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><p>Loading…</p></div>`;
   try {
     const users = await apiList('/users');
-    if (!users.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><p>No users yet</p></div>`; return; }
+    if (!users.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><h4>No users yet</h4></div>`;
+      return;
+    }
     el.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Actions</th></tr></thead>
-      <tbody>${users.map(u=>`<tr><td>#${u.id}</td><td>${esc(u.name)}</td>
-        <td>${[u.street,u.city,u.postcode,u.country].filter(Boolean).join(', ')||'—'}</td>
-        <td><button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button></td>
-      </tr>`).join('')}</tbody></table></div>`;
+      <thead><tr><th>ID</th><th>Username</th><th>Address</th><th>Joined</th><th>Actions</th></tr></thead>
+      <tbody>${users.map(u => `<tr>
+        <td style="color:var(--text-muted)"><strong>#${u.id}</strong></td>
+        <td><strong>${esc(u.name)}</strong></td>
+        <td style="color:var(--text-dim);font-size:.84rem">${[u.street, u.city, u.postcode, u.country].filter(Boolean).join(', ') || '—'}</td>
+        <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(u.created_at)}</td>
+        <td><div class="td-actions">
+          <button class="btn btn-outline btn-xs" onclick="openEditUser(${u.id},'${esc(u.name).replace(/'/g,"\\'")}','${esc(u.street||'')}','${esc(u.city||'')}','${esc(u.postcode||'')}','${esc(u.country||'')}')">Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteUser(${u.id})">Delete</button>
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
   } catch { el.innerHTML = `<div class="empty"><p>Failed to load users</p></div>`; }
 }
+
+function openEditUser(id, name, street, city, postcode, country) {
+  document.getElementById('editUserId').value = id;
+  document.getElementById('editUserSubtitle').textContent = `Editing user #${id}`;
+  document.getElementById('editUserName').value = name;
+  document.getElementById('editUserStreet').value = street;
+  document.getElementById('editUserCity').value = city;
+  document.getElementById('editUserPostcode').value = postcode;
+  document.getElementById('editUserCountry').value = country;
+  openModal('editUserModal');
+}
+
+async function doSaveUser() {
+  const id = document.getElementById('editUserId').value;
+  const body = {
+    name: document.getElementById('editUserName').value.trim() || undefined,
+    street: document.getElementById('editUserStreet').value.trim() || undefined,
+    city: document.getElementById('editUserCity').value.trim() || undefined,
+    postcode: document.getElementById('editUserPostcode').value.trim() || undefined,
+    country: document.getElementById('editUserCountry').value.trim() || undefined,
+  };
+  // remove undefined keys
+  Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
+  try {
+    await api(`/users/${id}`, { method:'PATCH', body: JSON.stringify(body) });
+    closeModal('editUserModal');
+    toast('User updated');
+    loadUsers();
+  } catch (e) { toast(e.data?.error || 'Failed to update user', 'error'); }
+}
+
 async function deleteUser(id) {
   if (!confirm('Delete this user?')) return;
-  try { await api(`/users/${id}`,{method:'DELETE'}); toast('Deleted'); loadUsers(); } catch(e){ toast(e.data?.error||'Failed','error'); }
+  try { await api(`/users/${id}`, { method:'DELETE' }); toast('User deleted'); loadUsers(); }
+  catch (e) { toast(e.data?.error || 'Failed', 'error'); }
 }
 
-// ── Tabs ──
+// ── Profile ──
+async function loadProfile() {
+  const el = document.getElementById('profileContent');
+  if (!token || !currentUser) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><p>Log in to view your profile</p></div>`;
+    return;
+  }
+  try {
+    const user = await api(`/users/${currentUser.id}`);
+    el.innerHTML = `
+      <div class="profile-wrap">
+        <div class="info-card">
+          <h4>Account Info</h4>
+          <div class="info-row"><span class="info-label">Username</span><span class="info-value">${esc(user.name)}</span></div>
+          <div class="info-row"><span class="info-label">User ID</span><span class="info-value">#${user.id}</span></div>
+          <div class="info-row"><span class="info-label">Member since</span><span class="info-value">${fmtDate(user.created_at)}</span></div>
+        </div>
+        <div class="info-card">
+          <h4>Address</h4>
+          <div class="info-row"><span class="info-label">Street</span><span class="info-value">${esc(user.street || '—')}</span></div>
+          <div class="info-row"><span class="info-label">City</span><span class="info-value">${esc(user.city || '—')}</span></div>
+          <div class="info-row"><span class="info-label">Postcode</span><span class="info-value">${esc(user.postcode || '—')}</span></div>
+          <div class="info-row"><span class="info-label">Country</span><span class="info-value">${esc(user.country || '—')}</span></div>
+        </div>
+      </div>
+      <div style="margin-top:24px">
+        <button class="btn btn-outline" onclick="openEditProfileForm(${user.id},'${esc(user.street||'')}','${esc(user.city||'')}','${esc(user.postcode||'')}','${esc(user.country||'')}')">Edit Profile</button>
+      </div>
+      <div id="profileEditForm"></div>`;
+  } catch { el.innerHTML = `<div class="empty"><p>Failed to load profile</p></div>`; }
+}
+
+function openEditProfileForm(id, street, city, postcode, country) {
+  document.getElementById('profileEditForm').innerHTML = `
+    <div class="edit-form">
+      <div style="font-weight:600;margin-bottom:16px">Edit Your Details</div>
+      <div class="form-row">
+        <div class="field"><label>Street</label><input id="pStreet" value="${esc(street)}" placeholder="123 Main St"></div>
+        <div class="field"><label>City</label><input id="pCity" value="${esc(city)}" placeholder="Sydney"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Postcode</label><input id="pPostcode" value="${esc(postcode)}" placeholder="2000"></div>
+        <div class="field"><label>Country</label><input id="pCountry" value="${esc(country)}" placeholder="AU"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-primary btn-sm" onclick="saveProfile(${id})">Save Changes</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('profileEditForm').innerHTML=''">Cancel</button>
+      </div>
+    </div>`;
+}
+
+async function saveProfile(id) {
+  const body = {
+    street: document.getElementById('pStreet').value.trim() || undefined,
+    city: document.getElementById('pCity').value.trim() || undefined,
+    postcode: document.getElementById('pPostcode').value.trim() || undefined,
+    country: document.getElementById('pCountry').value.trim() || undefined,
+  };
+  Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
+  try {
+    await api(`/users/${id}`, { method:'PATCH', body: JSON.stringify(body) });
+    toast('Profile updated');
+    loadProfile();
+  } catch (e) { toast(e.data?.error || 'Failed to update', 'error'); }
+}
+
+// ── Tab loader ──
 function loadTab(tab) {
-  ({ products:loadProducts, cart:loadCart, orders:loadOrders, myorders:loadMyOrders,
-     profile:loadProfile, vouchers:loadVouchers, users:loadUsers })[tab]?.();
+  const loaders = { products: loadProducts, orders: loadOrders, users: loadUsers, vouchers: loadVouchers, profile: loadProfile };
+  loaders[tab]?.();
 }
 
+// ── Modal close on backdrop ──
 document.querySelectorAll('.modal-backdrop').forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
 
+// ── New Product button wired ──
+document.getElementById('btnNewProduct').onclick = openNewProduct;
+
 // ── Boot ──
+applyTheme();
 updateAuthUI();
 loadProducts();
+if (token) refreshCartCount();
 </script>
 </body>
 </html>

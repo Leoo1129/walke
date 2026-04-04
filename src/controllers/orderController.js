@@ -2,7 +2,7 @@ import pool from '../database/database.js';
 
 class InputError extends Error {}
 
-export async function createOrder(buyer_id, voucher_id = null) {
+export async function createOrder(buyer_id, voucher_code = null) {
     if (!buyer_id)
         throw new InputError('buyer_id is required');
 
@@ -25,10 +25,11 @@ export async function createOrder(buyer_id, voucher_id = null) {
     let total_price = items.reduce((sum, { price, quantity }) => sum + price * quantity, 0);
 
     // Apply voucher discount if provided
-    if (voucher_id) {
+    let voucher_id = null;
+    if (voucher_code) {
         const { rows: [voucher] } = await pool.query(
-            'SELECT * FROM vouchers WHERE id = $1',
-            [voucher_id]
+            'SELECT * FROM vouchers WHERE name = $1',
+            [voucher_code]
         );
 
         if (!voucher) {
@@ -42,6 +43,8 @@ export async function createOrder(buyer_id, voucher_id = null) {
             error.statusCode = 400;
             throw error;
         }
+
+        voucher_id = voucher.id;
 
         if (voucher.discount < 1) {
             total_price = total_price * (1 - voucher.discount);  // e.g. 0.2 = 20% off
@@ -99,7 +102,12 @@ export async function createOrder(buyer_id, voucher_id = null) {
 }
 
 export async function getOrders() {
-    const { rows } = await pool.query('SELECT * FROM orders');
+    const { rows } = await pool.query(
+        `SELECT o.*, u.name AS buyer_name
+         FROM orders o
+         LEFT JOIN users u ON u.id = o.buyer_id
+         ORDER BY o.created_at DESC`
+    );
 
     if (!rows || rows.length === 0) {
         const error = new Error('No orders found');
