@@ -26,7 +26,10 @@ export async function addToCart(user_id, product_id, quantity) {
 
 export async function getCart(user_id) {
     const { rows } = await pool.query(
-        'SELECT * FROM cart_items WHERE user_id = $1',
+        `SELECT ci.product_id, ci.quantity, p.name AS product_name, p.price, p.image_url
+         FROM cart_items ci
+         JOIN products p ON p.id = ci.product_id
+         WHERE ci.user_id = $1`,
         [user_id]
     );
 

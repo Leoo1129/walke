@@ -179,8 +179,8 @@ app.delete('/cart/:product_id', requireAuth, async (req, res) => {
 // ---------------------------------- Order Controller ----------------------------------
 app.post('/orders', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
-        const { voucher_id } = req.body;
-        const { order, items, buyer, sellers } = await createOrder(req.user.id, voucher_id);
+        const { voucher_code } = req.body;
+        const { order, items, buyer, sellers } = await createOrder(req.user.id, voucher_code);
 
         if (wantsXml(req)) {
             return res.status(201)
