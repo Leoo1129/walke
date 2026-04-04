@@ -194,7 +194,8 @@ app.post('/orders', requireAuth, async (req, res) => {
 
 app.get('/orders', async (req, res) => {
     return await handleErrors(res, async () => {
-        const result = await getOrders();
+        const { seller_id } = req.query;
+        const result = await getOrders(seller_id || null);
         return res.status(200).json(result);
     });
 });
