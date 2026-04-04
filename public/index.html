@@ -879,11 +879,16 @@ async function loadOrders() {
   const el = document.getElementById('ordersContent');
   el.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><p>Loading…</p></div>`;
   try {
-    const all = await apiList('/orders');
     if (isAdmin()) {
+      const all = await apiList('/orders');
       renderAdminOrders(el, all);
     } else {
-      renderUserOrders(el, all);
+      // Fetch my purchases and my incoming seller orders separately
+      const [myPurchases, incomingOrders] = await Promise.all([
+        apiList('/orders').then(all => all.filter(o => o.buyer_id === currentUser.id)),
+        apiList(`/orders?seller_id=${currentUser.id}`).then(all => all.filter(o => o.buyer_id !== currentUser.id))
+      ]);
+      renderUserOrders(el, myPurchases, incomingOrders);
     }
   } catch { el.innerHTML = `<div class="empty"><p>Failed to load orders</p></div>`; }
 }
@@ -917,9 +922,7 @@ function renderAdminOrders(el, orders) {
   </table></div>`;
 }
 
-function renderUserOrders(el, all) {
-  const myPurchases = all.filter(o => o.buyer_id === currentUser.id);
-  const incomingOrders = all.filter(o => o.status === 'pending' && o.buyer_id !== currentUser.id);
+function renderUserOrders(el, myPurchases, incomingOrders) {
 
   let html = '';
 
@@ -950,17 +953,18 @@ function renderUserOrders(el, all) {
     html += `<div class="empty" style="padding:40px 20px"><div class="empty-icon">📭</div><h4>No incoming orders</h4><p>When buyers include your products, orders will appear here</p></div>`;
   } else {
     html += `<div class="table-wrap"><table>
-      <thead><tr><th>Order ID</th><th>Buyer</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Order ID</th><th>Buyer</th><th>Status</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead>
       <tbody>${incomingOrders.map(o => `<tr>
         <td><strong>#${o.id}</strong></td>
         <td>
           <div style="font-weight:600">${esc(o.buyer_name || '—')}</div>
           <div style="font-size:.75rem;color:var(--text-muted)">ID #${o.buyer_id}</div>
         </td>
+        <td>${statusBadge(o.status)}</td>
         <td><strong>${fmt$(o.total_price)}</strong></td>
         <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(o.created_at)}</td>
         <td><div class="td-actions">
-          <button class="btn btn-primary btn-xs" onclick="openRespondModal(${o.id})">Respond</button>
+          ${o.status === 'pending' ? `<button class="btn btn-primary btn-xs" onclick="openRespondModal(${o.id})">Respond</button>` : ''}
         </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
