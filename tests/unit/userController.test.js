@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../../src/database/database.js', () => ({
-    default: { query: vi.fn() }
+    default: {
+        query: vi.fn(),
+        connect: vi.fn()
+    }
 }));
 
 vi.mock('bcrypt', () => ({
@@ -152,17 +155,35 @@ describe('Users API (Black Box)', () => {
 
             const user = { id: 1, name: 'Alice', street: null, city: null, postcode: null, country: null };
 
-            pool.query.mockResolvedValue({ rows: [user] });
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)        // BEGIN
+                    .mockResolvedValueOnce({ rows: [user] }) // SELECT user (exists)
+                    .mockResolvedValueOnce({ rows: [] })     // UPDATE users SET is_active = false
+                    .mockResolvedValueOnce({ rows: [] })     // UPDATE products SET is_active = false
+                    .mockResolvedValueOnce({ rows: [] })     // SELECT products WHERE seller_id (none)
+                    .mockResolvedValueOnce({ rows: [] })     // UPDATE orders SET cancelled (buyer orders)
+                    .mockResolvedValueOnce(undefined),       // COMMIT
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
 
             const res = await request(app).delete('/users/1');
 
             expect(res.status).toBe(200);
-            expect(res.body).toEqual(user);
+            expect(res.body).toMatchObject(user);   // toMatchObject allows extra fields like is_active
         });
 
         it('returns 404 if user does not exist', async () => {
 
-            pool.query.mockResolvedValue({ rows: [] });
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)    // BEGIN
+                    .mockResolvedValueOnce({ rows: [] }) // SELECT user (not found)
+                    .mockResolvedValueOnce(undefined),   // ROLLBACK
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
 
             const res = await request(app).delete('/users/999');
 
@@ -171,7 +192,7 @@ describe('Users API (Black Box)', () => {
 
         it('returns 500 on database error', async () => {
 
-            pool.query.mockRejectedValue(new Error('db error'));
+            pool.connect.mockRejectedValue(new Error('db error'));
 
             const res = await request(app).delete('/users/1');
 
@@ -179,5 +200,4 @@ describe('Users API (Black Box)', () => {
         });
 
     });
-
 });
