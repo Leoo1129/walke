@@ -21,7 +21,11 @@ export async function createProduct(name, price, seller_id, tags = [], image_url
 }
 
 export async function getProducts() {
-    const { rows } = await pool.query('SELECT * FROM products');
+    const { rows } = await pool.query(
+        `SELECT p.*, u.name AS seller_name
+         FROM products p
+         LEFT JOIN users u ON u.id = p.seller_id`
+    );
 
     if (!rows || rows.length === 0) {
         const error = new Error('No products found');
@@ -76,7 +80,7 @@ export async function updateProduct(id, fields) {
 
 export async function deleteProduct(id) {
     const { rows: [product] } = await pool.query(
-        'DELETE FROM products WHERE id = $1 RETURNING *',
+        'UPDATE products SET is_active = FALSE WHERE id = $1 RETURNING *',
         [id]
     );
 

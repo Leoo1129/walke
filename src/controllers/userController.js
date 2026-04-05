@@ -49,7 +49,9 @@ export async function createUser(name, password, street, city, postcode, country
 }
 
 export async function getUsers() {
-    const { rows } = await pool.query('SELECT id, name, street, city, postcode, country, created_at, last_updated FROM users');
+    const { rows } = await pool.query(
+        'SELECT id, name, street, city, postcode, country, created_at, last_updated, is_active, is_admin FROM users'
+    );
 
     if (!rows || rows.length === 0) {
         const error = new Error('No users found');
@@ -103,16 +105,87 @@ export async function updateUser(id, fields) {
 }
 
 export async function deleteUser(id) {
-    const { rows: [user] } = await pool.query(
-        'DELETE FROM users WHERE id = $1 RETURNING id, name, street, city, postcode, country, created_at, last_updated',
-        [id]
-    );
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
 
-    if (!user) {
-        const error = new Error('User not found');
-        error.statusCode = 404;
-        throw error;
+        const { rows: [user] } = await client.query(
+            'SELECT id, name FROM users WHERE id = $1',
+            [id]
+        );
+        if (!user) {
+            const error = new Error('User not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Soft-delete user
+        await client.query('UPDATE users SET is_active = FALSE WHERE id = $1', [id]);
+
+        // Soft-delete their products
+        await client.query('UPDATE products SET is_active = FALSE WHERE seller_id = $1', [id]);
+
+        // Get this seller's product IDs
+        const { rows: sellerProducts } = await client.query(
+            'SELECT id FROM products WHERE seller_id = $1',
+            [id]
+        );
+        const productIds = sellerProducts.map(p => p.id);
+
+        if (productIds.length > 0) {
+            // Find pending orders containing this seller's products
+            const { rows: affectedOrders } = await client.query(
+                `SELECT DISTINCT o.id FROM orders o
+                 JOIN order_items oi ON oi.order_id = o.id
+                 WHERE oi.product_id = ANY($1) AND o.status = 'pending'`,
+                [productIds]
+            );
+
+            for (const { id: orderId } of affectedOrders) {
+                // Remove seller's items from order
+                await client.query(
+                    'DELETE FROM order_items WHERE order_id = $1 AND product_id = ANY($2)',
+                    [orderId, productIds]
+                );
+
+                // Check remaining items
+                const { rows: remaining } = await client.query(
+                    `SELECT oi.quantity, p.price FROM order_items oi
+                     JOIN products p ON p.id = oi.product_id
+                     WHERE oi.order_id = $1`,
+                    [orderId]
+                );
+
+                if (remaining.length === 0) {
+                    await client.query(
+                        'UPDATE orders SET status = \'cancelled\' WHERE id = $1',
+                        [orderId]
+                    );
+                } else {
+                    const newTotal = Math.round(
+                        remaining.reduce((s, { price, quantity }) => s + price * quantity, 0) * 100
+                    ) / 100;
+                    await client.query(
+                        'UPDATE orders SET total_price = $1 WHERE id = $2',
+                        [newTotal, orderId]
+                    );
+                }
+            }
+        }
+
+        // Cancel pending orders where this user is the buyer
+        await client.query(
+            `UPDATE orders SET status = 'cancelled'
+             WHERE buyer_id = $1 AND status IN ('pending', 'confirmed')`,
+            [id]
+        );
+
+        await client.query('COMMIT');
+        return { ...user, is_active: false };
+    } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+    } finally {
+        client.release();
     }
-
-    return user;
 }

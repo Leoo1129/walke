@@ -101,13 +101,28 @@ export async function createOrder(buyer_id, voucher_code = null) {
     return { order, items, buyer, sellers };
 }
 
-export async function getOrders() {
-    const { rows } = await pool.query(
-        `SELECT o.*, u.name AS buyer_name
-         FROM orders o
-         LEFT JOIN users u ON u.id = o.buyer_id
-         ORDER BY o.created_at DESC`
-    );
+export async function getOrders(seller_id = null) {
+    let rows;
+
+    if (seller_id) {
+        ({ rows } = await pool.query(
+            `SELECT DISTINCT o.*, u.name AS buyer_name
+             FROM orders o
+             LEFT JOIN users u ON u.id = o.buyer_id
+             JOIN order_items oi ON oi.order_id = o.id
+             JOIN products p ON p.id = oi.product_id
+             WHERE p.seller_id = $1
+             ORDER BY o.created_at DESC`,
+            [seller_id]
+        ));
+    } else {
+        ({ rows } = await pool.query(
+            `SELECT o.*, u.name AS buyer_name
+             FROM orders o
+             LEFT JOIN users u ON u.id = o.buyer_id
+             ORDER BY o.created_at DESC`
+        ));
+    }
 
     if (!rows || rows.length === 0) {
         const error = new Error('No orders found');

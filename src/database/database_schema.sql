@@ -7,7 +7,9 @@ CREATE TABLE users (
     postcode TEXT,
     country TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_admin BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE vouchers (
@@ -26,6 +28,7 @@ CREATE TABLE products (
     tags TEXT[],
     image_url TEXT,
     unique_buyers INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (seller_id) REFERENCES users(id)
 );
 
@@ -85,4 +88,28 @@ CREATE TABLE wishlist (
     PRIMARY KEY (user_id, product_id),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE order_chats (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL,
+    seller_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'open',
+    current_turn TEXT DEFAULT 'buyer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(order_id, seller_id),
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+
+CREATE TABLE chat_messages (
+    id SERIAL PRIMARY KEY,
+    chat_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    sender_role TEXT NOT NULL,
+    message TEXT NOT NULL,
+    action TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (chat_id) REFERENCES order_chats(id),
+    FOREIGN KEY (sender_id) REFERENCES users(id)
 );

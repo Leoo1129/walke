@@ -126,7 +126,7 @@ describe('Orders API (Black Box)', () => {
             const res = await request(app)
                 .post('/orders')
                 .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_id: 5 });
+                .send({ voucher_code: 'SAVE20' });
 
             expect(res.status).toBe(201);
             expect(res.body.voucher_id).toBe(5);
@@ -160,7 +160,7 @@ describe('Orders API (Black Box)', () => {
             const res = await request(app)
                 .post('/orders')
                 .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_id: 6 });
+                .send({ voucher_code: 'FLAT10' });
 
             expect(res.status).toBe(201);
         });
@@ -176,7 +176,7 @@ describe('Orders API (Black Box)', () => {
             const res = await request(app)
                 .post('/orders')
                 .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_id: 999 });
+                .send({ voucher_code: 'INVALID' });
 
             expect(res.status).toBe(404);
         });
@@ -193,7 +193,7 @@ describe('Orders API (Black Box)', () => {
             const res = await request(app)
                 .post('/orders')
                 .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_id: 7 });
+                .send({ voucher_code: 'OLD' });
 
             expect(res.status).toBe(400);
         });

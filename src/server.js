@@ -54,7 +54,8 @@ import {
 
 import {
     createOrderResponse,
-    getOrderResponseDetails
+    getOrderResponseDetails,
+    getAllSellerResponses
 } from './controllers/orderResponseController.js';
 
 import {
@@ -70,6 +71,14 @@ import {
 } from './controllers/XMLController.js';
 
 import { handleErrors } from './handler.js';
+
+import {
+    getOrCreateChat,
+    getChat,
+    getOrderChats,
+    sendMessage,
+    finalizeChat
+} from './controllers/chatController.js';
 
 // setup web applicatioon -- from 1531...
 // Use middleware to access .json files
@@ -194,7 +203,8 @@ app.post('/orders', requireAuth, async (req, res) => {
 
 app.get('/orders', async (req, res) => {
     return await handleErrors(res, async () => {
-        const result = await getOrders();
+        const { seller_id } = req.query;
+        const result = await getOrders(seller_id || null);
         return res.status(200).json(result);
     });
 });
@@ -373,6 +383,58 @@ app.delete('/vouchers/:id', async (req, res) => {
         return res.status(200).json(result);
     });
 });
+
+// ── Chat Controller ──
+app.post('/orders/:id/chat/:seller_id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id, seller_id } = req.params;
+        const chat = await getOrCreateChat(id, parseInt(seller_id));
+        return res.status(200).json(chat);
+    });
+});
+
+app.get('/orders/:id/chats', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const chats = await getOrderChats(id);
+        return res.status(200).json(chats);
+    });
+});
+
+app.get('/orders/:id/chat/:seller_id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id, seller_id } = req.params;
+        const chat = await getChat(id, parseInt(seller_id));
+        return res.status(200).json(chat);
+    });
+});
+
+app.post('/orders/:id/chat/:seller_id/message', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id, seller_id } = req.params;
+        const { message } = req.body;
+        const msg = await sendMessage(id, parseInt(seller_id), req.user.id, message);
+        return res.status(201).json(msg);
+    });
+});
+
+app.post('/orders/:id/chat/:seller_id/finalize', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id, seller_id } = req.params;
+        const { action } = req.body;
+        const result = await finalizeChat(id, parseInt(seller_id), req.user.id, action);
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/orders/:id/responses', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const responses = await getAllSellerResponses(id);
+        return res.status(200).json(responses);
+    });
+});
+
 
 // ---------------------------------- Other ----------------------------------
 app.use(function(req, res, next)
