@@ -200,13 +200,34 @@ tr:hover td { background: var(--surface2); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* Response modal specific */
-.response-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.response-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
 .response-btn { padding: 18px; border-radius: var(--radius-sm); border: 2px solid transparent; cursor: pointer; font-family: var(--font-body); font-weight: 700; font-size: .95rem; transition: all var(--transition); display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .response-btn .response-icon { font-size: 1.6rem; }
 .response-btn.accept { background: var(--success-bg); border-color: var(--success); color: var(--success); }
 .response-btn.accept:hover, .response-btn.accept.selected { background: var(--success); color: #fff; }
 .response-btn.reject { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
 .response-btn.reject:hover, .response-btn.reject.selected { background: var(--danger); color: #fff; }
+.response-btn.detail { background: var(--info-bg); border-color: var(--info); color: var(--info); }
+.response-btn.detail:hover, .response-btn.detail.selected { background: var(--info); color: #fff; }
+.product-card.inactive { opacity: .45; }
+.product-card.inactive .product-card-title::after { content: ' [Delisted]'; font-size: .75rem; color: var(--danger); }
+/* Chat styles */
+.chat-modal .modal { max-width: 640px; }
+.chat-header-actions { display: flex; gap: 8px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.chat-messages { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 14px; }
+.chat-msg { display: flex; flex-direction: column; max-width: 80%; }
+.chat-msg.mine { align-self: flex-end; align-items: flex-end; }
+.chat-msg.theirs { align-self: flex-start; align-items: flex-start; }
+.chat-msg-bubble { padding: 10px 14px; border-radius: 14px; font-size: .88rem; line-height: 1.5; }
+.chat-msg.mine .chat-msg-bubble { background: var(--accent); color: var(--accent-fg); border-bottom-right-radius: 4px; }
+.chat-msg.theirs .chat-msg-bubble { background: var(--surface2); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.chat-msg-bubble.system { background: var(--surface3); color: var(--text-dim); font-style: italic; font-size: .8rem; }
+.chat-msg-meta { font-size: .72rem; color: var(--text-muted); margin-top: 3px; }
+.chat-turn-notice { text-align: center; font-size: .78rem; color: var(--warning); background: var(--warning-bg); border: 1px solid var(--warning); border-radius: var(--radius-xs); padding: 6px 12px; margin-bottom: 10px; }
+.chat-send { display: flex; gap: 8px; }
+.chat-send input { flex: 1; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body); font-size: .9rem; outline: none; transition: border-color var(--transition); }
+.chat-send input:focus { border-color: var(--accent); }
+
 
 /* ── Profile / User cards ── */
 .profile-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 800px; }
@@ -470,6 +491,11 @@ tr:hover td { background: var(--surface2); }
         <span class="response-icon">✅</span>
         <span>Accept Order</span>
         <small style="font-weight:400;font-size:.75rem;opacity:.8">Confirm & proceed</small>
+      </button>
+      <button class="response-btn detail" onclick="selectResponse('IP')">
+        <span class="response-icon">💬</span>
+        <span>Request Detail</span>
+        <small style="font-weight:400;font-size:.75rem;opacity:.8">Open a chat</small>
       </button>
       <button class="response-btn reject" onclick="selectResponse('RE')">
         <span class="response-icon">❌</span>
@@ -799,7 +825,10 @@ async function loadProducts() {
       const mine = currentUser && p.seller_id === currentUser.id;
       const canEdit = mine;
       const canDelete = isAdmin() || mine;
-      return `<div class="product-card">
+      const isInactive = p.is_active === false;
+      // Hide deleted products from non-admins
+      if (isInactive && !isAdmin()) return '';
+      return `<div class="product-card${isInactive ? ' inactive' : ''}">
         <div class="product-card-img">
           ${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : '📦'}
         </div>
@@ -913,7 +942,7 @@ function renderAdminOrders(el, orders) {
       <td>${o.voucher_id ? `<span style="color:var(--success);font-size:.82rem">✓ #${o.voucher_id}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
       <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(o.created_at)}</td>
       <td><div class="td-actions">
-        ${o.status === 'pending' ? `<button class="btn btn-outline btn-xs" onclick="openRespondModal(${o.id})">Respond</button>` : ''}
+        ${o.status === 'pending' ? `<button class="btn btn-outline btn-xs" onclick="openOrderChats(${o.id})">💬 Chats</button>` : ''}
         ${['pending','confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-xs" onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
         <button class="btn btn-ghost btn-xs" onclick="viewOrderXml(${o.id})">XML</button>
         <button class="btn btn-danger btn-xs" onclick="deleteOrder(${o.id})">Delete</button>
@@ -965,6 +994,7 @@ function renderUserOrders(el, myPurchases, incomingOrders) {
         <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(o.created_at)}</td>
         <td><div class="td-actions">
           ${o.status === 'pending' ? `<button class="btn btn-primary btn-xs" onclick="openRespondModal(${o.id})">Respond</button>` : ''}
+          <button class="btn btn-outline btn-xs" onclick="openOrderChats(${o.id})">💬 Chats</button>
         </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
@@ -989,20 +1019,29 @@ function openRespondModal(orderId) {
 function selectResponse(code) {
   document.getElementById('respondCode').value = code;
   document.querySelectorAll('.response-btn').forEach(b => b.classList.remove('selected'));
-  document.querySelector(`.response-btn.${code === 'AB' ? 'accept' : 'reject'}`).classList.add('selected');
-  document.getElementById('respondSubmitBtn').disabled = false;
+  const map = { AB: 'accept', IP: 'detail', RE: 'reject' };
+  document.querySelector(`.response-btn.${map[code]}`).classList.add('selected');
+  const btn = document.getElementById('respondSubmitBtn');
+  btn.disabled = false;
+  btn.textContent = code === 'IP' ? 'Open Chat' : 'Send Response';
 }
 
 async function doRespond() {
   const id = document.getElementById('respondOrderId').value;
   const code = document.getElementById('respondCode').value;
   const note = document.getElementById('respondNote').value.trim() || null;
-  if (!code) { toast('Select accept or reject', 'error'); return; }
+  if (!code) { toast('Select a response option', 'error'); return; }
   try {
     await api(`/orders/${id}/response`, { method:'POST', body: JSON.stringify({ response_code: code, note }) });
-    const label = code === 'AB' ? 'accepted' : 'rejected';
-    toast(`Order #${id} ${label}`);
-    closeModal('respondModal');
+    if (code === 'IP') {
+      closeModal('respondModal');
+      // Seller ID = current user
+      await openChatModal(id, currentUser.id);
+    } else {
+      const label = code === 'AB' ? 'accepted' : 'rejected';
+      toast(`Order #${id} ${label}`);
+      closeModal('respondModal');
+    }
     loadOrders();
   } catch (e) { toast(e.data?.error || 'Failed to respond', 'error'); }
 }
@@ -1103,7 +1142,7 @@ async function loadUsers() {
       <thead><tr><th>ID</th><th>Username</th><th>Address</th><th>Joined</th><th>Actions</th></tr></thead>
       <tbody>${users.map(u => `<tr>
         <td style="color:var(--text-muted)"><strong>#${u.id}</strong></td>
-        <td><strong>${esc(u.name)}</strong></td>
+        <td><strong>${esc(u.name)}</strong>${!u.is_active ? ' <span class="badge badge-cancelled" style="font-size:.65rem">Deleted</span>' : ''}${u.is_admin ? ' <span class="badge badge-confirmed" style="font-size:.65rem">Admin</span>' : ''}</td>
         <td style="color:var(--text-dim);font-size:.84rem">${[u.street, u.city, u.postcode, u.country].filter(Boolean).join(', ') || '—'}</td>
         <td style="color:var(--text-dim);font-size:.82rem">${fmtDate(u.created_at)}</td>
         <td><div class="td-actions">
@@ -1217,6 +1256,127 @@ async function saveProfile(id) {
   } catch (e) { toast(e.data?.error || 'Failed to update', 'error'); }
 }
 
+// ── Chat ──
+async function openOrderChats(orderId) {
+  if (!token) { toast('Log in first', 'error'); return; }
+  try {
+    const chats = await api(`/orders/${orderId}/chats`);
+    if (!chats.length) {
+      toast('No chats for this order yet', 'info');
+      return;
+    }
+    if (chats.length === 1) {
+      await openChatModal(orderId, chats[0].seller_id);
+    } else {
+      // Multiple sellers — pick one
+      const names = chats.map((c, i) => `${i + 1}. ${c.seller_name} (${c.status})`).join('\n');
+      const pick = parseInt(prompt(`Select a chat:\n${names}\n\nEnter number:`));
+      if (!pick || pick < 1 || pick > chats.length) return;
+      await openChatModal(orderId, chats[pick - 1].seller_id);
+    }
+  } catch (e) { toast(e.data?.error || 'No chats found', 'info'); }
+}
+
+async function openChatModal(orderId, sellerId) {
+  document.getElementById('chatOrderId').value = orderId;
+  document.getElementById('chatSellerId').value = sellerId;
+  document.getElementById('chatModalTitle').textContent = `Chat — Order #${orderId}`;
+  openModal('chatModal');
+  await loadChatContent(orderId, sellerId);
+}
+
+async function loadChatContent(orderId, sellerId) {
+  document.getElementById('chatMessages').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">Loading…</div>';
+  try {
+    const chat = await api(`/orders/${orderId}/chat/${sellerId}`);
+    const msgs = chat.messages || [];
+    document.getElementById('chatModalMeta').textContent =
+      `With seller #${sellerId} · Status: ${chat.status} · Turn: ${chat.current_turn}`;
+
+    const isMyTurn = (chat.current_turn === 'buyer' && chat.status === 'open' && currentUser?.id) ||
+                     (chat.current_turn === 'seller' && chat.status === 'open' && parseInt(sellerId) === currentUser?.id);
+
+    // Determine roles
+    const iAmSeller = parseInt(sellerId) === currentUser?.id;
+    const myRole = iAmSeller ? 'seller' : 'buyer';
+    const isOpen = chat.status === 'open';
+    const isMyActualTurn = isOpen && chat.current_turn === myRole;
+
+    // Header action buttons
+    const actionsEl = document.getElementById('chatHeaderActions');
+    actionsEl.innerHTML = '';
+    if (isMyActualTurn) {
+      if (iAmSeller) {
+        actionsEl.innerHTML = `
+          <button class="btn btn-success btn-sm" onclick="doFinalizeChat('accept')">✅ Accept Order</button>
+          <button class="btn btn-danger btn-sm" onclick="doFinalizeChat('reject')">❌ Reject Order</button>`;
+      } else {
+        actionsEl.innerHTML = `
+          <button class="btn btn-success btn-sm" onclick="doFinalizeChat('confirm')">✓ Confirm Details Sent</button>
+          <button class="btn btn-danger btn-sm" onclick="doFinalizeChat('cancel')">✕ Cancel Order</button>`;
+      }
+    } else if (!isOpen) {
+      actionsEl.innerHTML = `<span style="color:var(--text-muted);font-size:.85rem">Chat closed — ${chat.status.replace('_', ' ')}</span>`;
+    } else {
+      actionsEl.innerHTML = `<span class="chat-turn-notice" style="display:inline-block">Waiting for the ${chat.current_turn} to respond…</span>`;
+    }
+
+    // Messages
+    const msgsEl = document.getElementById('chatMessages');
+    if (!msgs.length) {
+      msgsEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:.85rem">No messages yet. The buyer should send details.</div>';
+    } else {
+      msgsEl.innerHTML = msgs.map(m => {
+        const isSystem = m.action && m.action !== 'message';
+        const isMine = m.sender_id === currentUser?.id;
+        if (isSystem) {
+          return `<div style="text-align:center"><span class="chat-msg-bubble system">${esc(m.message)}</span></div>`;
+        }
+        return `<div class="chat-msg ${isMine ? 'mine' : 'theirs'}">
+          <div class="chat-msg-bubble">${esc(m.message)}</div>
+          <div class="chat-msg-meta">${esc(m.sender_name)} · ${fmtDate(m.created_at)}</div>
+        </div>`;
+      }).join('');
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+
+    // Send area
+    const sendArea = document.getElementById('chatSendArea');
+    sendArea.style.display = isMyActualTurn ? '' : 'none';
+    if (isMyActualTurn) {
+      document.getElementById('chatInput').focus();
+    }
+
+  } catch (e) {
+    document.getElementById('chatMessages').innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px">Failed to load chat</div>';
+  }
+}
+
+async function sendChatMsg() {
+  const orderId = document.getElementById('chatOrderId').value;
+  const sellerId = document.getElementById('chatSellerId').value;
+  const msg = document.getElementById('chatInput').value.trim();
+  if (!msg) return;
+  try {
+    await api(`/orders/${orderId}/chat/${sellerId}/message`, { method:'POST', body: JSON.stringify({ message: msg }) });
+    document.getElementById('chatInput').value = '';
+    await loadChatContent(orderId, sellerId);
+  } catch (e) { toast(e.data?.error || 'Failed to send', 'error'); }
+}
+
+async function doFinalizeChat(action) {
+  const orderId = document.getElementById('chatOrderId').value;
+  const sellerId = document.getElementById('chatSellerId').value;
+  const labels = { accept: 'accept this order', reject: 'reject this order', cancel: 'cancel this order', confirm: 'confirm your details' };
+  if (action !== 'confirm' && !confirm(`Are you sure you want to ${labels[action]}?`)) return;
+  try {
+    await api(`/orders/${orderId}/chat/${sellerId}/finalize`, { method:'POST', body: JSON.stringify({ action }) });
+    toast(action === 'confirm' ? 'Details confirmed — seller\'s turn' : `Order ${action}ed`);
+    await loadChatContent(orderId, sellerId);
+    loadOrders();
+  } catch (e) { toast(e.data?.error || 'Failed', 'error'); }
+}
+
 // ── Tab loader ──
 function loadTab(tab) {
   const loaders = { products: loadProducts, orders: loadOrders, users: loadUsers, vouchers: loadVouchers, profile: loadProfile };
@@ -1237,5 +1397,24 @@ updateAuthUI();
 loadProducts();
 if (token) refreshCartCount();
 </script>
+<!-- Chat Modal -->
+<div class="modal-backdrop chat-modal" id="chatModal">
+  <div class="modal" style="max-width:640px">
+    <h3 id="chatModalTitle">Order Chat</h3>
+    <p class="modal-subtitle" id="chatModalMeta"></p>
+    <input type="hidden" id="chatOrderId">
+    <input type="hidden" id="chatSellerId">
+    <div id="chatHeaderActions" class="chat-header-actions"></div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div id="chatTurnNotice" class="chat-turn-notice" style="display:none"></div>
+    <div class="chat-send" id="chatSendArea" style="display:none">
+      <input id="chatInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendChatMsg()">
+      <button class="btn btn-primary btn-sm" onclick="sendChatMsg()">Send</button>
+    </div>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('chatModal')">Close</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

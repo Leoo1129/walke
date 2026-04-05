@@ -5,7 +5,10 @@ import jwt from 'jsonwebtoken';
 const TEST_TOKEN = jwt.sign({ id: 5, name: 'SellerUser' }, 'dev-secret-change-in-production');
 
 vi.mock('../../src/database/database.js', () => ({
-    default: { query: vi.fn() }
+    default: {
+        query: vi.fn(),
+        connect: vi.fn()
+    }
 }));
 
 import { app } from '../../src/server.js';
@@ -14,7 +17,7 @@ import pool from '../../src/database/database.js';
 describe('Order Response API (Black Box)', () => {
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
     });
 
     describe('POST /orders/:id/response', () => {
@@ -28,16 +31,28 @@ describe('Order Response API (Black Box)', () => {
             const buyer = { id: 1, name: 'BuyerUser', street: null, city: null, postcode: null, country: null };
             const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
 
+            // pool.query: 2 pre-transaction checks + 5 for getOrderResponseDetails
             pool.query
                 .mockResolvedValueOnce({ rows: [order] })       // check order exists
                 .mockResolvedValueOnce({ rows: sellerItems })   // check seller items
-                .mockResolvedValueOnce({ rows: [response] })    // insert response
-                .mockResolvedValueOnce({ rows: [] })            // update status
                 .mockResolvedValueOnce({ rows: [response] })    // getOrderResponseDetails: get response
                 .mockResolvedValueOnce({ rows: [order] })       // get order
                 .mockResolvedValueOnce({ rows: items })         // get items
                 .mockResolvedValueOnce({ rows: [buyer] })       // get buyer
                 .mockResolvedValueOnce({ rows: [seller] });     // get seller
+
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)                                            // BEGIN
+                    .mockResolvedValueOnce({ rows: [response] })                                // INSERT response
+                    .mockResolvedValueOnce({ rows: [{ seller_id: 5 }] })                        // SELECT allSellers
+                    .mockResolvedValueOnce({ rows: [{ seller_id: 5, response_code: 'AB' }] })   // SELECT latestResponses
+                    .mockResolvedValueOnce({ rows: [{ n: '1' }] })                              // SELECT COUNT(*) remaining
+                    .mockResolvedValueOnce({ rows: [] })                                        // UPDATE status = confirmed
+                    .mockResolvedValueOnce(undefined),                                          // COMMIT
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
 
             const res = await request(app)
                 .post('/orders/1/response')
@@ -59,15 +74,26 @@ describe('Order Response API (Black Box)', () => {
             const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
 
             pool.query
-                .mockResolvedValueOnce({ rows: [order] })       // check order exists
-                .mockResolvedValueOnce({ rows: sellerItems })   // check seller items
-                .mockResolvedValueOnce({ rows: [response] })    // insert response
-                .mockResolvedValueOnce({ rows: [] })            // update status
-                .mockResolvedValueOnce({ rows: [response] })    // getOrderResponseDetails: get response
-                .mockResolvedValueOnce({ rows: [order] })       // get order
-                .mockResolvedValueOnce({ rows: items })         // get items
-                .mockResolvedValueOnce({ rows: [buyer] })       // get buyer
-                .mockResolvedValueOnce({ rows: [seller] });     // get seller
+                .mockResolvedValueOnce({ rows: [order] })
+                .mockResolvedValueOnce({ rows: sellerItems })
+                .mockResolvedValueOnce({ rows: [response] })    // getOrderResponseDetails
+                .mockResolvedValueOnce({ rows: [order] })
+                .mockResolvedValueOnce({ rows: items })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
+
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)               // BEGIN
+                    .mockResolvedValueOnce({ rows: [response] })    // INSERT response
+                    .mockResolvedValueOnce({ rows: [{ id: 2 }] })  // SELECT seller's product IDs
+                    .mockResolvedValueOnce({ rows: [] })            // DELETE order_items
+                    .mockResolvedValueOnce({ rows: [] })            // SELECT remaining items (empty → all removed)
+                    .mockResolvedValueOnce({ rows: [] })            // UPDATE status = rejected
+                    .mockResolvedValueOnce(undefined),              // COMMIT (early return path)
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
 
             const res = await request(app)
                 .post('/orders/1/response')
@@ -77,6 +103,7 @@ describe('Order Response API (Black Box)', () => {
             expect(res.status).toBe(201);
             expect(res.body.response_code).toBe('RE');
         });
+
 
         it('returns 404 when order does not exist', async () => {
 
