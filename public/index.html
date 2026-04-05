@@ -970,6 +970,7 @@ function renderUserOrders(el, myPurchases, incomingOrders) {
         <td><div class="td-actions">
           ${o.status === 'confirmed' ? `<button class="btn btn-success btn-xs" onclick="completeOrder(${o.id})">Accept Order</button>` : ''}
           ${['pending','confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-xs" onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
+          <button class="btn btn-outline btn-xs" onclick="openOrderChats(${o.id})">💬 Chats</button>
           <button class="btn btn-ghost btn-xs" onclick="viewOrderXml(${o.id})">XML</button>
         </div></td>
       </tr>`).join('')}</tbody>
