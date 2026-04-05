@@ -158,7 +158,7 @@ export async function deleteUser(id) {
 
                 if (remaining.length === 0) {
                     await client.query(
-                        "UPDATE orders SET status = 'cancelled' WHERE id = $1",
+                        'UPDATE orders SET status = \'cancelled\' WHERE id = $1',
                         [orderId]
                     );
                 } else {

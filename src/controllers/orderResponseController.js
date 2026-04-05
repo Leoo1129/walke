@@ -70,7 +70,7 @@ export async function createOrderResponse(order_id, seller_id, response_code, no
             );
 
             if (remaining.length === 0) {
-                await client.query("UPDATE orders SET status = 'rejected', total_price = 0 WHERE id = $1", [order_id]);
+                await client.query('UPDATE orders SET status = \'rejected\', total_price = 0 WHERE id = $1', [order_id]);
                 await client.query('COMMIT');
                 return response;
             }

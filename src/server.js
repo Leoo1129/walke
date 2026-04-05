@@ -54,7 +54,8 @@ import {
 
 import {
     createOrderResponse,
-    getOrderResponseDetails
+    getOrderResponseDetails,
+    getAllSellerResponses
 } from './controllers/orderResponseController.js';
 
 import {
@@ -78,8 +79,6 @@ import {
     sendMessage,
     finalizeChat
 } from './controllers/chatController.js';
-
-import { getAllSellerResponses } from './controllers/orderResponseController.js';
 
 // setup web applicatioon -- from 1531...
 // Use middleware to access .json files

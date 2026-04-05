@@ -169,7 +169,7 @@ export async function finalizeChat(order_id, seller_id, sender_id, action) {
                 'INSERT INTO order_cancellations (order_id, buyer_id, reason) VALUES ($1, $2, $3)',
                 [order_id, sender_id, 'Cancelled via chat']
             );
-            await client.query("UPDATE orders SET status = 'cancelled' WHERE id = $1", [order_id]);
+            await client.query('UPDATE orders SET status = \'cancelled\' WHERE id = $1', [order_id]);
         } else {
             const e = new Error('Invalid action for your role');
             e.statusCode = 400;
@@ -212,7 +212,7 @@ export async function finalizeChat(order_id, seller_id, sender_id, action) {
                     const newTotal = Math.round(items.reduce((s, { price, quantity }) => s + price * quantity, 0) * 100) / 100;
                     await client.query('UPDATE orders SET status = $1, total_price = $2 WHERE id = $3', ['confirmed', newTotal, order_id]);
                 } else {
-                    await client.query("UPDATE orders SET status = 'rejected' WHERE id = $1", [order_id]);
+                    await client.query('UPDATE orders SET status = \'rejected\' WHERE id = $1', [order_id]);
                 }
             }
         }
