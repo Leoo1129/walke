@@ -39,7 +39,7 @@ import {
     deleteUser
 } from './controllers/userController.js';
 
-import { requireAuth } from './middleware/auth.js';
+import { requireAuth, requireAdmin } from './middleware/auth.js';
 
 import {
     createVoucher,
@@ -463,24 +463,24 @@ app.get('/products/:id', async (req, res) => {
     });
 });
 
-app.patch('/products/:id', async (req, res) => {
+app.patch('/products/:id', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await updateProduct(id, req.body);
+        const result = await updateProduct(id, req.body, req.user.id);
         return res.status(200).json(result);
     });
 });
 
-app.delete('/products/:id', async (req, res) => {
+app.delete('/products/:id', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await deleteProduct(id);
+        const result = await deleteProduct(id, req.user.id);
         return res.status(200).json(result);
     });
 });
 
 // ---------------------------------- Voucher Controller ----------------------------------
-app.post('/vouchers', async (req, res) => {
+app.post('/vouchers', requireAdmin, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name, discount, expiry, max_uses, business_id } = req.body;
         const result = await createVoucher(name, discount, expiry, max_uses, business_id);

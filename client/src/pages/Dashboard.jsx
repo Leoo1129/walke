@@ -8,11 +8,21 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const [myBusinesses, setMyBusinesses] = useState([]);
     const [sellerOrders, setSellerOrders] = useState([]);
+    const [myProducts, setMyProducts] = useState([]);
     const [showAddProduct, setShowAddProduct] = useState(false);
     const [showAddVoucher, setShowAddVoucher] = useState(false);
     const [productForm, setProductForm] = useState({ name: '', price: '', tags: '', business_id: '' });
     const [voucherForm, setVoucherForm] = useState({ name: '', discount: '', expiry: '', max_uses: '', business_id: '' });
     const [imageFile, setImageFile] = useState(null);
+    const [editingProduct, setEditingProduct] = useState(null);
+    const [editForm, setEditForm] = useState({ name: '', price: '', tags: '' });
+
+    function loadMyProducts() {
+        if (!user?.id) return;
+        api.get(`/products?seller_id=${user.id}`)
+            .then(r => setMyProducts(r.data))
+            .catch(() => setMyProducts([]));
+    }
 
     useEffect(() => {
         if (!user?.id) return;
@@ -22,6 +32,7 @@ export default function Dashboard() {
         api.get(`/orders?seller_id=${user.id}`)
             .then(r => setSellerOrders(r.data))
             .catch(() => setSellerOrders([]));
+        loadMyProducts();
     }, [user?.id]);
 
     async function addProduct(e) {
@@ -59,8 +70,44 @@ export default function Dashboard() {
             setShowAddProduct(false);
             setProductForm({ name: '', price: '', tags: '', business_id: '' });
             setImageFile(null);
+            loadMyProducts();
         } catch (err) {
             alert(err.response?.data?.error || 'Failed');
+        }
+    }
+
+    function startEditProduct(product) {
+        setEditingProduct(product.id);
+        setEditForm({
+            name: product.name,
+            price: product.price,
+            tags: (product.tags || []).join(', '),
+        });
+    }
+
+    async function saveEditProduct(e, productId) {
+        e.preventDefault();
+        try {
+            const tags = editForm.tags ? editForm.tags.split(',').map(t => t.trim()) : [];
+            await api.patch(`/products/${productId}`, {
+                name: editForm.name,
+                price: Number(editForm.price),
+                tags,
+            });
+            setEditingProduct(null);
+            loadMyProducts();
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to update product');
+        }
+    }
+
+    async function removeProduct(productId) {
+        if (!window.confirm('Remove this product?')) return;
+        try {
+            await api.delete(`/products/${productId}`);
+            loadMyProducts();
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to remove product');
         }
     }
 
@@ -114,7 +161,43 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Add Voucher */}
+            {/* My Products */}
+            <div style={styles.section}>
+                <h3 style={{ marginBottom: 12 }}>My Listed Products</h3>
+                {myProducts.length === 0 ? (
+                    <p style={{ color: '#888' }}>No products listed yet.</p>
+                ) : (
+                    <div style={styles.orderList}>
+                        {myProducts.map(p => (
+                            <div key={p.id} style={styles.productRow}>
+                                {editingProduct === p.id ? (
+                                    <form onSubmit={e => saveEditProduct(e, p.id)} style={styles.editForm}>
+                                        <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={styles.input} required />
+                                        <input type="number" step="0.01" value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} style={styles.input} required />
+                                        <input placeholder="Tags (comma separated)" value={editForm.tags} onChange={e => setEditForm(f => ({ ...f, tags: e.target.value }))} style={styles.input} />
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button type="submit" style={styles.btn}>Save</button>
+                                            <button type="button" onClick={() => setEditingProduct(null)} style={styles.outlineBtn}>Cancel</button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <>
+                                        <span style={{ fontWeight: 500 }}>{p.name}</span>
+                                        <span style={{ color: '#555' }}>${Number(p.price).toFixed(2)}</span>
+                                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                                            <button onClick={() => startEditProduct(p)} style={styles.outlineBtn}>Edit</button>
+                                            <button onClick={() => removeProduct(p.id)} style={styles.dangerBtn}>Remove</button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Add Voucher — admin only */}
+            {user?.is_admin && (
             <div style={styles.section}>
                 <div style={styles.sectionHeader}>
                     <h3>Create a Voucher</h3>
@@ -138,6 +221,7 @@ export default function Dashboard() {
                     </form>
                 )}
             </div>
+            )}
 
             {/* Incoming Orders */}
             <div style={styles.section}>
@@ -197,4 +281,8 @@ const styles = {
     bizRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: '#f9f9f9', borderRadius: 4, cursor: 'pointer' },
     meta: { color: '#888', fontSize: 13 },
     link: { color: '#0066cc', cursor: 'pointer', textDecoration: 'underline' },
+    productRow: { display: 'flex', alignItems: 'center', gap: 16, padding: '10px 12px', background: '#f9f9f9', borderRadius: 4 },
+    editForm: { display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%', alignItems: 'center' },
+    outlineBtn: { padding: '4px 12px', background: '#fff', color: '#111', border: '1px solid #111', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
+    dangerBtn: { padding: '4px 12px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
 };

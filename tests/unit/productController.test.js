@@ -135,10 +135,13 @@ describe('Products API (Black Box)', () => {
 
             const updated = { id: 1, name: 'Updated', price: 9.99, seller_id: 1 };
 
-            pool.query.mockResolvedValue({ rows: [updated] });
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ seller_id: 1 }] }) // ownership check
+                .mockResolvedValueOnce({ rows: [updated] });          // update
 
             const res = await request(app)
                 .patch('/products/1')
+                .set('Authorization', `Bearer ${TEST_TOKEN}`)
                 .send({ name: 'Updated' });
 
             expect(res.status).toBe(200);
@@ -162,6 +165,7 @@ describe('Products API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/products/1')
+                .set('Authorization', `Bearer ${TEST_TOKEN}`)
                 .send({ name: 'x' });
 
             expect(res.status).toBe(500);
@@ -175,9 +179,13 @@ describe('Products API (Black Box)', () => {
 
             const product = { id: 1, name: 'Widget', price: 9.99, seller_id: 1 };
 
-            pool.query.mockResolvedValue({ rows: [product] });
+            pool.query
+                .mockResolvedValueOnce({ rows: [product] }) // ownership check
+                .mockResolvedValueOnce({ rows: [product] }); // soft delete
 
-            const res = await request(app).delete('/products/1');
+            const res = await request(app)
+                .delete('/products/1')
+                .set('Authorization', `Bearer ${TEST_TOKEN}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(product);
@@ -187,7 +195,9 @@ describe('Products API (Black Box)', () => {
 
             pool.query.mockResolvedValue({ rows: [] });
 
-            const res = await request(app).delete('/products/999');
+            const res = await request(app)
+                .delete('/products/999')
+                .set('Authorization', `Bearer ${TEST_TOKEN}`);
 
             expect(res.status).toBe(404);
         });
@@ -196,7 +206,9 @@ describe('Products API (Black Box)', () => {
 
             pool.query.mockRejectedValue(new Error('db error'));
 
-            const res = await request(app).delete('/products/1');
+            const res = await request(app)
+                .delete('/products/1')
+                .set('Authorization', `Bearer ${TEST_TOKEN}`);
 
             expect(res.status).toBe(500);
         });
