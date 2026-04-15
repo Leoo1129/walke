@@ -37,12 +37,6 @@ export async function getProducts(seller_id = null, business_id = null) {
 
     const { rows } = await pool.query(query, params);
 
-    if (!rows || rows.length === 0) {
-        const error = new Error('No products found');
-        error.statusCode = 404;
-        throw error;
-    }
-
     return rows;
 }
 
