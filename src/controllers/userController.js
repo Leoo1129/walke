@@ -28,15 +28,17 @@ export async function login(name, password) {
     return { token };
 }
 
-export async function createUser(name, password, street, city, postcode, country) {
+export async function createUser(name, password, street, city, postcode, country, bio = null) {
     if (!name || !password)
         throw new InputError('name and password are required');
 
     const password_hash = await bcrypt.hash(password, 10);
 
     const { rows: [user] } = await pool.query(
-        'INSERT INTO users (name, password_hash, street, city, postcode, country) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, street, city, postcode, country, created_at, last_updated',
-        [name, password_hash, street, city, postcode, country]
+        `INSERT INTO users (name, password_hash, street, city, postcode, country, bio)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, name, street, city, postcode, country, logo_url, bio, created_at, last_updated`,
+        [name, password_hash, street, city, postcode, country, bio]
     );
 
     if (!user) {
@@ -50,7 +52,7 @@ export async function createUser(name, password, street, city, postcode, country
 
 export async function getUsers() {
     const { rows } = await pool.query(
-        'SELECT id, name, street, city, postcode, country, created_at, last_updated, is_active, is_admin FROM users'
+        'SELECT id, name, street, city, postcode, country, created_at, last_updated, is_active, is_admin, logo_url, bio FROM users'
     );
 
     if (!rows || rows.length === 0) {
@@ -64,7 +66,7 @@ export async function getUsers() {
 
 export async function getUser(id) {
     const { rows: [user] } = await pool.query(
-        'SELECT id, name, street, city, postcode, country, created_at, last_updated FROM users WHERE id = $1',
+        'SELECT id, name, street, city, postcode, country, created_at, last_updated, logo_url, bio FROM users WHERE id = $1',
         [id]
     );
 
@@ -78,7 +80,7 @@ export async function getUser(id) {
 }
 
 export async function updateUser(id, fields) {
-    const allowed = ['name', 'street', 'city', 'postcode', 'country'];
+    const allowed = ['name', 'street', 'city', 'postcode', 'country', 'logo_url', 'bio'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
@@ -91,7 +93,7 @@ export async function updateUser(id, fields) {
     const values = updates.map(([, v]) => v);
 
     const { rows: [user] } = await pool.query(
-        `UPDATE users SET ${setClauses} WHERE id = $${values.length + 1} RETURNING id, name, street, city, postcode, country, created_at, last_updated`,
+        `UPDATE users SET ${setClauses} WHERE id = $${values.length + 1} RETURNING id, name, street, city, postcode, country, created_at, last_updated, logo_url, bio`,
         [...values, id]
     );
 

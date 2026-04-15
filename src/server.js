@@ -6,6 +6,7 @@ import sui from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
+import multer from 'multer';
 const config = JSON.parse(fs.readFileSync(new URL('./config.json', import.meta.url), 'utf8'));
 
 // controller imports
@@ -64,6 +65,22 @@ import {
 } from './controllers/orderCancellationController.js';
 
 import {
+    createBusiness,
+    getBusinesses,
+    getBusiness,
+    updateBusiness,
+    deleteBusiness,
+    getMembers,
+    inviteMember,
+    updateMemberRole,
+    removeMember,
+    getStorefront,
+    upsertStorefront
+} from './controllers/businessController.js';
+
+import { processAndSaveImage } from './controllers/imageController.js';
+
+import {
     wantsXml,
     orderToXml,
     orderResponseToXml,
@@ -98,6 +115,11 @@ app.use('/docs', sui.serve, sui.setup(YAML.parse(file), {
 
 const PORT = parseInt(process.env.PORT || config.port);
 
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }
+});
+
 
 // ------------------------------------------------------------------------------------------------------
 // ------------------------------ Sever functionalities and API below here ------------------------------
@@ -115,8 +137,8 @@ app.post('/login', async (req, res) => {
 // ---------------------------------- User Controller ----------------------------------
 app.post('/users', async (req, res) => {
     return await handleErrors(res, async () => {
-        const { name, password, street, city, postcode, country } = req.body;
-        const result = await createUser(name, password, street, city, postcode, country);
+        const { name, password, street, city, postcode, country, bio } = req.body;
+        const result = await createUser(name, password, street, city, postcode, country, bio);
         return res.status(201).json(result);
     });
 });
@@ -149,6 +171,109 @@ app.delete('/users/:id', async (req, res) => {
         const { id } = req.params;
         const result = await deleteUser(id);
         return res.status(200).json(result);
+    });
+});
+
+// ── Business Controller ──
+app.post('/businesses', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { name, bio, logo_url } = req.body;
+        const result = await createBusiness(name, bio, logo_url, req.user.id);
+        return res.status(201).json(result);
+    });
+});
+
+app.get('/businesses', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const result = await getBusinesses();
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/businesses/:id', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await getBusiness(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.patch('/businesses/:id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await updateBusiness(id, req.body, req.user.id);
+        return res.status(200).json(result);
+    });
+});
+
+app.delete('/businesses/:id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await deleteBusiness(id, req.user.id);
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/businesses/:id/members', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await getMembers(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.post('/businesses/:id/members', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const { user_id, role } = req.body;
+        const result = await inviteMember(id, user_id, role, req.user.id);
+        return res.status(201).json(result);
+    });
+});
+
+app.patch('/businesses/:id/members/:user_id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id, user_id } = req.params;
+        const { role } = req.body;
+        const result = await updateMemberRole(id, user_id, role, req.user.id);
+        return res.status(200).json(result);
+    });
+});
+
+app.delete('/businesses/:id/members/:user_id', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id, user_id } = req.params;
+        const result = await removeMember(id, user_id, req.user.id);
+        return res.status(200).json(result);
+    });
+});
+
+app.get('/businesses/:id/storefront', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await getStorefront(id);
+        return res.status(200).json(result);
+    });
+});
+
+app.patch('/businesses/:id/storefront', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const result = await upsertStorefront(id, req.body, req.user.id);
+        return res.status(200).json(result);
+    });
+});
+
+// ── Image Upload ──
+app.post('/images', requireAuth, upload.single('image'), async (req, res) => {
+    return await handleErrors(res, async () => {
+        if (!req.file) {
+            const error = new Error('No image file provided');
+            error.statusCode = 400;
+            throw error;
+        }
+        const url = await processAndSaveImage(req.file.buffer, req.file.originalname);
+        return res.status(201).json({ url });
     });
 });
 
@@ -307,15 +432,16 @@ app.get('/orders/:id/cancel', async (req, res) => {
 // ---------------------------------- Product Controller ----------------------------------
 app.post('/products', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
-        const { name, price, seller_id, tags, image_url } = req.body;
-        const result = await createProduct(name, price, seller_id, tags, image_url);
+        const { name, price, seller_id, tags, image_url, business_id } = req.body;
+        const result = await createProduct(name, price, seller_id, tags, image_url, business_id);
         return res.status(201).json(result);
     });
 });
 
 app.get('/products', async (req, res) => {
     return await handleErrors(res, async () => {
-        const result = await getProducts();
+        const { seller_id, business_id } = req.query;
+        const result = await getProducts(seller_id || null, business_id || null);
         return res.status(200).json(result);
     });
 });
@@ -347,8 +473,8 @@ app.delete('/products/:id', async (req, res) => {
 // ---------------------------------- Voucher Controller ----------------------------------
 app.post('/vouchers', async (req, res) => {
     return await handleErrors(res, async () => {
-        const { name, discount, expiry, max_uses } = req.body;
-        const result = await createVoucher(name, discount, expiry, max_uses);
+        const { name, discount, expiry, max_uses, business_id } = req.body;
+        const result = await createVoucher(name, discount, expiry, max_uses, business_id);
         return res.status(201).json(result);
     });
 });

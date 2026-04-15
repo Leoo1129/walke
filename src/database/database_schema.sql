@@ -9,7 +9,45 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
-    is_admin BOOLEAN DEFAULT FALSE
+    is_admin BOOLEAN DEFAULT FALSE,
+    logo_url TEXT,
+    bio TEXT
+);
+
+CREATE TABLE businesses (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    bio TEXT,
+    logo_url TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    subscription_status TEXT DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE business_members (
+    business_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL DEFAULT 'viewer',
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (business_id, user_id),
+    FOREIGN KEY (business_id) REFERENCES businesses(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE storefront_config (
+    id SERIAL PRIMARY KEY,
+    business_id INTEGER NOT NULL UNIQUE,
+    primary_color TEXT DEFAULT '#1a1a1a',
+    secondary_color TEXT DEFAULT '#ffffff',
+    accent_color TEXT DEFAULT '#0066cc',
+    font TEXT DEFAULT 'sans-serif',
+    banner_url TEXT,
+    layout TEXT DEFAULT 'grid',
+    headline TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id)
 );
 
 CREATE TABLE vouchers (
@@ -17,7 +55,9 @@ CREATE TABLE vouchers (
     name TEXT NOT NULL,
     discount DOUBLE PRECISION,
     expiry TIMESTAMP,
-    max_uses INTEGER
+    max_uses INTEGER,
+    business_id INTEGER DEFAULT NULL,
+    FOREIGN KEY (business_id) REFERENCES businesses(id)
 );
 
 CREATE TABLE products (
@@ -25,11 +65,13 @@ CREATE TABLE products (
     name TEXT NOT NULL,
     price DOUBLE PRECISION NOT NULL,
     seller_id INTEGER NOT NULL,
+    business_id INTEGER DEFAULT NULL,
     tags TEXT[],
     image_url TEXT,
     unique_buyers INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (seller_id) REFERENCES users(id)
+    FOREIGN KEY (seller_id) REFERENCES users(id),
+    FOREIGN KEY (business_id) REFERENCES businesses(id)
 );
 
 CREATE TABLE orders (
