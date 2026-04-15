@@ -6,6 +6,16 @@ export async function createVoucher(name, discount, expiry, max_uses, business_i
     if (!name || discount == null)
         throw new InputError('name and discount are required');
 
+    const { rows: [existing] } = await pool.query(
+        'SELECT id FROM vouchers WHERE LOWER(name) = LOWER($1)',
+        [name]
+    );
+    if (existing) {
+        const error = new Error('A voucher with that name already exists');
+        error.statusCode = 409;
+        throw error;
+    }
+
     const { rows: [voucher] } = await pool.query(
         'INSERT INTO vouchers (name, discount, expiry, max_uses, business_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
         [name, discount, expiry, max_uses, business_id]

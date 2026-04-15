@@ -9,21 +9,35 @@ export default function Dashboard() {
     const [myBusinesses, setMyBusinesses] = useState([]);
     const [sellerOrders, setSellerOrders] = useState([]);
     const [showAddProduct, setShowAddProduct] = useState(false);
+    const [showAddVoucher, setShowAddVoucher] = useState(false);
     const [productForm, setProductForm] = useState({ name: '', price: '', tags: '', business_id: '' });
+    const [voucherForm, setVoucherForm] = useState({ name: '', discount: '', expiry: '', max_uses: '', business_id: '' });
     const [imageFile, setImageFile] = useState(null);
 
     useEffect(() => {
-        api.get('/businesses')
+        if (!user?.id) return;
+        api.get(`/businesses?member_id=${user.id}`)
             .then(r => setMyBusinesses(r.data))
             .catch(() => {});
-
-        api.get(`/orders?seller_id=${user?.id}`)
+        api.get(`/orders?seller_id=${user.id}`)
             .then(r => setSellerOrders(r.data))
             .catch(() => setSellerOrders([]));
     }, [user?.id]);
 
     async function addProduct(e) {
         e.preventDefault();
+        const business_id = productForm.business_id ? Number(productForm.business_id) : null;
+
+        // Check membership if business_id provided
+        if (business_id) {
+            const members = await api.get(`/businesses/${business_id}/members`).then(r => r.data).catch(() => []);
+            const me = members.find(m => m.id === user.id);
+            if (!me || me.role === 'viewer') {
+                alert('You must be an editor, admin, or owner of this business to add products to it.');
+                return;
+            }
+        }
+
         try {
             let image_url = null;
             if (imageFile) {
@@ -39,12 +53,30 @@ export default function Dashboard() {
                 seller_id: user.id,
                 tags,
                 image_url,
-                business_id: productForm.business_id ? Number(productForm.business_id) : null,
+                business_id,
             });
             alert('Product added!');
             setShowAddProduct(false);
             setProductForm({ name: '', price: '', tags: '', business_id: '' });
             setImageFile(null);
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed');
+        }
+    }
+
+    async function addVoucher(e) {
+        e.preventDefault();
+        try {
+            await api.post('/vouchers', {
+                name: voucherForm.name,
+                discount: Number(voucherForm.discount),
+                expiry: voucherForm.expiry || null,
+                max_uses: voucherForm.max_uses ? Number(voucherForm.max_uses) : null,
+                business_id: voucherForm.business_id ? Number(voucherForm.business_id) : null,
+            });
+            alert('Voucher created!');
+            setShowAddVoucher(false);
+            setVoucherForm({ name: '', discount: '', expiry: '', max_uses: '', business_id: '' });
         } catch (err) {
             alert(err.response?.data?.error || 'Failed');
         }
@@ -69,7 +101,12 @@ export default function Dashboard() {
                         <input placeholder="Product name" value={productForm.name} onChange={e => setProductForm(f => ({ ...f, name: e.target.value }))} style={styles.input} required />
                         <input placeholder="Price" type="number" step="0.01" value={productForm.price} onChange={e => setProductForm(f => ({ ...f, price: e.target.value }))} style={styles.input} required />
                         <input placeholder="Tags (comma separated)" value={productForm.tags} onChange={e => setProductForm(f => ({ ...f, tags: e.target.value }))} style={styles.input} />
-                        <input placeholder="Business ID (optional)" value={productForm.business_id} onChange={e => setProductForm(f => ({ ...f, business_id: e.target.value }))} style={styles.input} />
+                        <select value={productForm.business_id} onChange={e => setProductForm(f => ({ ...f, business_id: e.target.value }))} style={styles.input}>
+                            <option value="">Personal listing (no business)</option>
+                            {myBusinesses.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
                         <label style={styles.label}>Product image</label>
                         <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} />
                         <button type="submit" style={styles.btn}>Add Product</button>
@@ -77,9 +114,34 @@ export default function Dashboard() {
                 )}
             </div>
 
+            {/* Add Voucher */}
+            <div style={styles.section}>
+                <div style={styles.sectionHeader}>
+                    <h3>Create a Voucher</h3>
+                    <button onClick={() => setShowAddVoucher(s => !s)} style={styles.btn}>
+                        {showAddVoucher ? 'Cancel' : '+ Add Voucher'}
+                    </button>
+                </div>
+                {showAddVoucher && (
+                    <form onSubmit={addVoucher} style={styles.form}>
+                        <input placeholder="Voucher code / name" value={voucherForm.name} onChange={e => setVoucherForm(f => ({ ...f, name: e.target.value }))} style={styles.input} required />
+                        <input placeholder="Discount (e.g. 0.1 = 10% off, or 5 = $5 off)" type="number" step="0.01" value={voucherForm.discount} onChange={e => setVoucherForm(f => ({ ...f, discount: e.target.value }))} style={styles.input} required />
+                        <input placeholder="Expiry date (optional)" type="datetime-local" value={voucherForm.expiry} onChange={e => setVoucherForm(f => ({ ...f, expiry: e.target.value }))} style={styles.input} />
+                        <input placeholder="Max uses (optional)" type="number" value={voucherForm.max_uses} onChange={e => setVoucherForm(f => ({ ...f, max_uses: e.target.value }))} style={styles.input} />
+                        <select value={voucherForm.business_id} onChange={e => setVoucherForm(f => ({ ...f, business_id: e.target.value }))} style={styles.input}>
+                            <option value="">Global voucher (not business-specific)</option>
+                            {myBusinesses.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                        <button type="submit" style={styles.btn}>Create Voucher</button>
+                    </form>
+                )}
+            </div>
+
             {/* Incoming Orders */}
             <div style={styles.section}>
-                <h3 style={{ marginBottom: 12 }}>Incoming Orders</h3>
+                <h3 style={{ marginBottom: 12 }}>Incoming Orders (as seller)</h3>
                 {sellerOrders.length === 0 ? (
                     <p style={{ color: '#888' }}>No orders yet.</p>
                 ) : (
@@ -121,7 +183,7 @@ export default function Dashboard() {
 
 const styles = {
     wrap: { padding: 24, maxWidth: 800, margin: '0 auto' },
-    section: { marginBottom: 32, padding: 20, border: '1px solid #eee', borderRadius: 8 },
+    section: { marginBottom: 24, padding: 20, border: '1px solid #eee', borderRadius: 8, background: '#fff' },
     sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     form: { display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 400 },
     input: { padding: '8px 12px', fontSize: 14, border: '1px solid #ccc', borderRadius: 4 },

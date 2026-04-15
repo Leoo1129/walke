@@ -22,7 +22,7 @@ export async function createProduct(name, price, seller_id, tags = [], image_url
 
 export async function getProducts(seller_id = null, business_id = null) {
     let query = 'SELECT p.*, u.name AS seller_name FROM products p LEFT JOIN users u ON u.id = p.seller_id';
-    const conditions = [];
+    const conditions = ['p.is_active = TRUE'];
     const params = [];
 
     if (seller_id) {
@@ -33,7 +33,7 @@ export async function getProducts(seller_id = null, business_id = null) {
         params.push(business_id);
         conditions.push(`p.business_id = $${params.length}`);
     }
-    if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
+    query += ' WHERE ' + conditions.join(' AND ');
 
     const { rows } = await pool.query(query, params);
 
@@ -48,7 +48,7 @@ export async function getProducts(seller_id = null, business_id = null) {
 
 export async function getProduct(id) {
     const { rows: [product] } = await pool.query(
-        'SELECT * FROM products WHERE id = $1',
+        'SELECT p.*, u.name AS seller_name FROM products p LEFT JOIN users u ON u.id = p.seller_id WHERE p.id = $1',
         [id]
     );
 

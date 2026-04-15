@@ -271,14 +271,18 @@ describe('Orders API (Black Box)', () => {
 
         it('returns an order as JSON when it exists', async () => {
 
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null };
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null, buyer_name: 'Alice', buyer_city: 'Sydney', buyer_country: 'AU' };
 
-            pool.query.mockResolvedValue({ rows: [order] });
+            pool.query
+                .mockResolvedValueOnce({ rows: [order] })  // order + buyer JOIN
+                .mockResolvedValueOnce({ rows: [] });       // items (empty, so sellers query skipped)
 
             const res = await request(app).get('/orders/1');
 
             expect(res.status).toBe(200);
-            expect(res.body).toEqual(order);
+            expect(res.body).toMatchObject({ id: 1, buyer_id: 1, status: 'pending', total_price: 19.99 });
+            expect(res.body.items).toEqual([]);
+            expect(res.body.sellers).toEqual([]);
         });
 
         it('returns UBL XML when Accept: application/xml', async () => {

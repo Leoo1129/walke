@@ -20,7 +20,9 @@ describe('Vouchers API (Black Box)', () => {
 
             const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 };
 
-            pool.query.mockResolvedValue({ rows: [voucher] });
+            pool.query
+                .mockResolvedValueOnce({ rows: [] })      // duplicate-name check: no existing voucher
+                .mockResolvedValueOnce({ rows: [voucher] }); // INSERT
 
             const res = await request(app)
                 .post('/vouchers')

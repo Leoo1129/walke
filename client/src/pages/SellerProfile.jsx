@@ -63,7 +63,7 @@ export default function SellerProfile() {
 const styles = {
     wrap: { padding: 24, maxWidth: 960, margin: '0 auto' },
     back: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, marginBottom: 16, padding: 0 },
-    header: { display: 'flex', gap: 20, alignItems: 'center', marginBottom: 32, padding: 20, background: '#f9f9f9', borderRadius: 8 },
+    header: { display: 'flex', gap: 20, alignItems: 'center', marginBottom: 32, padding: 20, background: '#fff', border: '1px solid #ddd', borderRadius: 8 },
     avatar: { width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' },
     bio: { color: '#555', marginTop: 4 },
     location: { color: '#888', fontSize: 13, marginTop: 4 },
