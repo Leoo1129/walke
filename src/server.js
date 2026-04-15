@@ -6,6 +6,8 @@ import sui from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import multer from 'multer';
 const config = JSON.parse(fs.readFileSync(new URL('./config.json', import.meta.url), 'utf8'));
 
@@ -106,7 +108,7 @@ app.use(express.json());
 
 // Use middleware for allowing access form different domain: for frontend
 app.use(cors());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
 app.get('/', (req, res) => res.redirect('/docs'));
