@@ -67,10 +67,10 @@ export default function Orders() {
 const styles = {
     wrap: { padding: 24, maxWidth: 800, margin: '0 auto' },
     list: { display: 'flex', flexDirection: 'column', gap: 12 },
-    card: { border: '1px solid #ddd', borderRadius: 8, padding: 16 },
+    card: { border: '1px solid var(--border)', borderRadius: 8, padding: 16, background: 'var(--surface)' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     badge: { color: '#fff', padding: '2px 10px', borderRadius: 12, fontSize: 12 },
-    date: { color: '#888', fontSize: 13, marginTop: 4 },
+    date: { color: 'var(--text-muted)', fontSize: 13, marginTop: 4 },
     actions: { display: 'flex', gap: 8, marginTop: 12 },
     btn: { padding: '6px 14px', background: '#111', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
     cancelBtn: { padding: '6px 14px', background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
