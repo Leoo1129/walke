@@ -35,8 +35,11 @@ export default function ProductDetail() {
                     <h2>{product.name}</h2>
                     <p style={styles.price}>${Number(product.price).toFixed(2)}</p>
                     <p style={{ marginBottom: 4 }}>Sold by{' '}
-                        <span style={styles.link} onClick={() => navigate(`/profile/${product.seller_id}`)}>
-                            {product.seller_name || 'View Seller'}
+                        <span style={styles.link} onClick={() => product.business_id
+                            ? navigate(`/businesses/${product.business_id}`)
+                            : navigate(`/profile/${product.seller_id}`)
+                        }>
+                            {product.business_name || product.seller_name || 'View Seller'}
                         </span>
                     </p>
                     {product.tags?.length > 0 && (
