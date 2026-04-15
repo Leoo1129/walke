@@ -173,7 +173,7 @@ export default function Dashboard() {
             <div style={styles.section}>
                 <h3 style={{ marginBottom: 12 }}>My Listed Products</h3>
                 {myProducts.length === 0 ? (
-                    <p style={{ color: '#888' }}>No products listed yet.</p>
+                    <p style={{ color: 'var(--text-muted)' }}>No products listed yet.</p>
                 ) : (
                     <div style={styles.orderList}>
                         {myProducts.map(p => (
@@ -236,7 +236,7 @@ export default function Dashboard() {
             <div style={styles.section}>
                 <h3 style={{ marginBottom: 12 }}>Incoming Orders (as seller)</h3>
                 {sellerOrders.length === 0 ? (
-                    <p style={{ color: '#888' }}>No orders yet.</p>
+                    <p style={{ color: 'var(--text-muted)' }}>No orders yet.</p>
                 ) : (
                     <div style={styles.orderList}>
                         {sellerOrders.map(o => (
@@ -258,7 +258,7 @@ export default function Dashboard() {
                     <button onClick={() => navigate('/businesses')} style={styles.btn}>Manage</button>
                 </div>
                 {myBusinesses.length === 0 ? (
-                    <p style={{ color: '#888' }}>Not part of any business. <span style={styles.link} onClick={() => navigate('/businesses')}>Create one</span></p>
+                    <p style={{ color: 'var(--text-muted)' }}>Not part of any business. <span style={styles.link} onClick={() => navigate('/businesses')}>Create one</span></p>
                 ) : (
                     <div style={styles.bizList}>
                         {myBusinesses.map(b => (
@@ -276,22 +276,22 @@ export default function Dashboard() {
 
 const styles = {
     wrap: { padding: 24, maxWidth: 800, margin: '0 auto' },
-    section: { marginBottom: 24, padding: 20, border: '1px solid #eee', borderRadius: 8, background: '#fff' },
+    section: { marginBottom: 24, padding: 20, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' },
     sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     form: { display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 400 },
-    input: { padding: '8px 12px', fontSize: 14, border: '1px solid #ccc', borderRadius: 4 },
+    input: { padding: '8px 12px', fontSize: 14, border: '1px solid var(--border-input)', borderRadius: 4 },
     label: { fontSize: 13, fontWeight: 600 },
     btn: { padding: '8px 16px', background: '#111', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
     orderList: { display: 'flex', flexDirection: 'column', gap: 8 },
-    orderRow: { display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px', background: '#f9f9f9', borderRadius: 4 },
+    orderRow: { display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px', background: 'var(--surface-alt)', borderRadius: 4 },
     badge: { color: '#fff', padding: '2px 8px', borderRadius: 12, fontSize: 12 },
     viewBtn: { marginLeft: 'auto', padding: '4px 12px', background: '#111', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
     bizList: { display: 'flex', flexDirection: 'column', gap: 8 },
-    bizRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: '#f9f9f9', borderRadius: 4, cursor: 'pointer' },
-    meta: { color: '#888', fontSize: 13 },
+    bizRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--surface-alt)', borderRadius: 4, cursor: 'pointer' },
+    meta: { color: 'var(--text-muted)', fontSize: 13 },
     link: { color: '#0066cc', cursor: 'pointer', textDecoration: 'underline' },
-    productRow: { display: 'flex', alignItems: 'center', gap: 16, padding: '10px 12px', background: '#f9f9f9', borderRadius: 4 },
+    productRow: { display: 'flex', alignItems: 'center', gap: 16, padding: '10px 12px', background: 'var(--surface-alt)', borderRadius: 4 },
     editForm: { display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%', alignItems: 'center' },
-    outlineBtn: { padding: '4px 12px', background: '#fff', color: '#111', border: '1px solid #111', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
+    outlineBtn: { padding: '4px 12px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
     dangerBtn: { padding: '4px 12px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
 };

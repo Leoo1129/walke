@@ -66,8 +66,8 @@ const styles = {
     price: { fontSize: 24, fontWeight: 700, margin: '8px 0' },
     link: { color: '#0066cc', cursor: 'pointer', textDecoration: 'underline' },
     tags: { display: 'flex', gap: 6, flexWrap: 'wrap', margin: '12px 0' },
-    tag: { fontSize: 12, background: '#f0f0f0', padding: '3px 10px', borderRadius: 12 },
+    tag: { fontSize: 12, background: 'var(--tag-bg)', padding: '3px 10px', borderRadius: 12 },
     row: { display: 'flex', gap: 12, marginTop: 16 },
-    qty: { width: 70, padding: '8px', border: '1px solid #ccc', borderRadius: 4, fontSize: 15 },
+    qty: { width: 70, padding: '8px', border: '1px solid var(--border-input)', borderRadius: 4, fontSize: 15 },
     btn: { padding: '8px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15 },
 };

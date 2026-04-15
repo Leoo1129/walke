@@ -66,12 +66,10 @@ export default function Navbar() {
         letterSpacing: 0.5,
     };
 
-    const logoSrc = dark ? '/walkelogo_white.png' : '/walkelogo_transparent.png';
-
     return (
         <nav style={navStyle}>
             <Link to="/">
-                <img src={logoSrc} alt="Walke" style={{ height: 30, width: 'auto', display: 'block' }} />
+                <img src="/walkelogo_transparent.png" alt="Walke" style={{ height: 36, width: 'auto', display: 'block' }} />
             </Link>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Link to="/" style={linkStyle}>Marketplace</Link>

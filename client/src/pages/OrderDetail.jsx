@@ -267,7 +267,7 @@ export default function OrderDetail() {
             <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>Order Chat</h3>
                 {chats.length === 0 ? (
-                    <p style={{ color: '#888', fontSize: 14, margin: 0 }}>No chats yet.</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>No chats yet.</p>
                 ) : (
                     <div style={styles.chatList}>
                         {chats.map(c => {
@@ -306,7 +306,7 @@ export default function OrderDetail() {
                             <button onClick={() => sendMessage(activeChat)} style={styles.sendBtn}>Send</button>
                         </div>
                         <div style={styles.finalizeRow}>
-                            <span style={{ fontSize: 13, color: '#666' }}>Finalize:</span>
+                            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Finalize:</span>
                             <button onClick={() => finalizeChat(activeChat, 'accept')} style={styles.acceptBtn}>Accept</button>
                             <button onClick={() => finalizeChat(activeChat, 'reject')} style={styles.rejectBtn}>Reject</button>
                             <button onClick={() => finalizeChat(activeChat, 'confirm')} style={styles.infoBtn}>Confirm</button>
@@ -325,28 +325,28 @@ const styles = {
     header: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 },
     badge: { color: '#fff', padding: '3px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600 },
     summaryRow: { display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' },
-    summaryCard: { display: 'flex', flexDirection: 'column', padding: '10px 16px', background: '#fff', border: '1px solid #eee', borderRadius: 8, minWidth: 100 },
-    summaryLabel: { fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+    summaryCard: { display: 'flex', flexDirection: 'column', padding: '10px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, minWidth: 100 },
+    summaryLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
     summaryValue: { fontSize: 16, fontWeight: 600 },
-    section: { marginBottom: 16, padding: 16, background: '#fff', borderRadius: 8, border: '1px solid #eee' },
+    section: { marginBottom: 16, padding: 16, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' },
     sectionTitle: { margin: '0 0 12px 0', fontSize: 15, fontWeight: 600 },
     personRow: { display: 'flex', alignItems: 'center', gap: 10 },
-    personName: { fontWeight: 600, fontSize: 14, color: '#111', textDecoration: 'none' },
-    personMeta: { color: '#888', fontSize: 13 },
+    personName: { fontWeight: 600, fontSize: 14, textDecoration: 'none' },
+    personMeta: { color: 'var(--text-muted)', fontSize: 13 },
     sellerList: { display: 'flex', flexDirection: 'column', gap: 8 },
     itemList: { display: 'flex', flexDirection: 'column', gap: 8 },
-    item: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0f0f0' },
-    itemImg: { width: 48, height: 48, objectFit: 'cover', borderRadius: 4, flexShrink: 0, background: '#eee' },
+    item: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' },
+    itemImg: { width: 48, height: 48, objectFit: 'cover', borderRadius: 4, flexShrink: 0, background: 'var(--surface-alt)' },
     itemInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: 2 },
     itemName: { fontSize: 14, fontWeight: 500 },
-    itemSeller: { fontSize: 12, color: '#888' },
+    itemSeller: { fontSize: 12, color: 'var(--text-muted)' },
     itemRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 },
-    itemQty: { fontSize: 13, color: '#666' },
+    itemQty: { fontSize: 13, color: 'var(--text-muted)' },
     itemPrice: { fontSize: 14, fontWeight: 600 },
     responseRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
     responseBadge: { color: '#fff', padding: '3px 10px', borderRadius: 12, fontSize: 13, fontWeight: 600 },
-    responseCode: { color: '#888', fontSize: 13 },
-    responseNote: { margin: 0, fontSize: 14, color: '#444' },
+    responseCode: { color: 'var(--text-muted)', fontSize: 13 },
+    responseNote: { margin: 0, fontSize: 14, color: 'var(--text-muted)' },
     xmlBar: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
     xmlBtn: { padding: '6px 12px', background: '#2980b9', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
     xmlBox: { background: '#1e1e1e', borderRadius: 8, padding: 16 },
@@ -359,13 +359,13 @@ const styles = {
     chatList: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
     chatTab: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
     chatStatus: { padding: '1px 6px', borderRadius: 8, fontSize: 11 },
-    chatBox: { marginTop: 12, border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden' },
-    messages: { display: 'flex', flexDirection: 'column', gap: 8, padding: 12, minHeight: 120, maxHeight: 300, overflowY: 'auto', background: '#fafafa' },
+    chatBox: { marginTop: 12, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' },
+    messages: { display: 'flex', flexDirection: 'column', gap: 8, padding: 12, minHeight: 120, maxHeight: 300, overflowY: 'auto', background: 'var(--surface-alt)' },
     message: { maxWidth: '70%', padding: '8px 12px', borderRadius: 8, fontSize: 14 },
     msgRole: { fontSize: 11, opacity: 0.7, display: 'block', marginBottom: 2, textTransform: 'capitalize' },
     msgAction: { fontSize: 11, marginTop: 4, display: 'block', fontStyle: 'italic' },
-    msgInputRow: { display: 'flex', borderTop: '1px solid #ddd' },
-    msgInputField: { flex: 1, padding: '10px 12px', border: 'none', outline: 'none', fontSize: 14 },
+    msgInputRow: { display: 'flex', borderTop: '1px solid var(--border)' },
+    msgInputField: { flex: 1, padding: '10px 12px', border: 'none', outline: 'none', fontSize: 14, background: 'var(--surface)', color: 'var(--text)' },
     sendBtn: { padding: '10px 16px', background: '#111', color: '#fff', border: 'none', cursor: 'pointer' },
-    finalizeRow: { display: 'flex', gap: 8, padding: '8px 12px', background: '#f5f5f5', alignItems: 'center', flexWrap: 'wrap' },
+    finalizeRow: { display: 'flex', gap: 8, padding: '8px 12px', background: 'var(--surface-alt)', alignItems: 'center', flexWrap: 'wrap' },
 };

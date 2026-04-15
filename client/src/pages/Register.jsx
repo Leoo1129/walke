@@ -44,7 +44,7 @@ export default function Register() {
 const styles = {
     wrap: { maxWidth: 400, margin: '60px auto', padding: 24 },
     form: { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 },
-    input: { padding: '10px 12px', fontSize: 15, border: '1px solid #ccc', borderRadius: 4 },
+    input: { padding: '10px 12px', fontSize: 15, border: '1px solid var(--border-input)', borderRadius: 4 },
     btn: { padding: '10px', background: '#111', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15 },
     error: { color: 'red', marginBottom: 8 },
 };
