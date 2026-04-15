@@ -16,6 +16,7 @@ export default function Dashboard() {
     const [imageFile, setImageFile] = useState(null);
     const [editingProduct, setEditingProduct] = useState(null);
     const [editForm, setEditForm] = useState({ name: '', price: '', tags: '' });
+    const [editImageFile, setEditImageFile] = useState(null);
 
     function loadMyProducts() {
         if (!user?.id) return;
@@ -83,18 +84,25 @@ export default function Dashboard() {
             price: product.price,
             tags: (product.tags || []).join(', '),
         });
+        setEditImageFile(null);
     }
 
     async function saveEditProduct(e, productId) {
         e.preventDefault();
         try {
+            let image_url;
+            if (editImageFile) {
+                const fd = new FormData();
+                fd.append('image', editImageFile);
+                const { data } = await api.post('/images', fd);
+                image_url = data.url;
+            }
             const tags = editForm.tags ? editForm.tags.split(',').map(t => t.trim()) : [];
-            await api.patch(`/products/${productId}`, {
-                name: editForm.name,
-                price: Number(editForm.price),
-                tags,
-            });
+            const payload = { name: editForm.name, price: Number(editForm.price), tags };
+            if (image_url) payload.image_url = image_url;
+            await api.patch(`/products/${productId}`, payload);
             setEditingProduct(null);
+            setEditImageFile(null);
             loadMyProducts();
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to update product');
@@ -175,6 +183,7 @@ export default function Dashboard() {
                                         <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={styles.input} required />
                                         <input type="number" step="0.01" value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} style={styles.input} required />
                                         <input placeholder="Tags (comma separated)" value={editForm.tags} onChange={e => setEditForm(f => ({ ...f, tags: e.target.value }))} style={styles.input} />
+                                        <input type="file" accept="image/*" onChange={e => setEditImageFile(e.target.files[0])} />
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button type="submit" style={styles.btn}>Save</button>
                                             <button type="button" onClick={() => setEditingProduct(null)} style={styles.outlineBtn}>Cancel</button>
