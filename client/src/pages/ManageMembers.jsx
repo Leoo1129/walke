@@ -19,7 +19,8 @@ export default function ManageMembers() {
 
     useEffect(() => {
         load();
-    }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     async function invite(e) {
         e.preventDefault();

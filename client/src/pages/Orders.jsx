@@ -17,7 +17,7 @@ export default function Orders() {
             })
             .catch(() => setOrders([]))
             .finally(() => setLoading(false));
-    }, []);
+    }, [user?.id]);
 
     async function cancelOrder(id) {
         const reason = prompt('Reason for cancellation?');

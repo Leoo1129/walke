@@ -20,7 +20,7 @@ export default function Dashboard() {
         api.get(`/orders?seller_id=${user?.id}`)
             .then(r => setSellerOrders(r.data))
             .catch(() => setSellerOrders([]));
-    }, []);
+    }, [user?.id]);
 
     async function addProduct(e) {
         e.preventDefault();

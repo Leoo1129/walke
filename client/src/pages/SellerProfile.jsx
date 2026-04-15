@@ -13,7 +13,7 @@ export default function SellerProfile() {
     useEffect(() => {
         api.get(`/users/${id}`).then(r => setSeller(r.data)).catch(() => navigate('/'));
         api.get(`/products?seller_id=${id}`).then(r => setProducts(r.data)).catch(() => setProducts([]));
-    }, [id]);
+    }, [id, navigate]);
 
     async function addToCart(product_id) {
         if (!isLoggedIn) return navigate('/login');

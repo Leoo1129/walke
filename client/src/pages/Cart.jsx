@@ -21,7 +21,7 @@ export default function Cart() {
 
     useEffect(() => {
         load();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     async function updateQty(pid, qty) {
         if (qty < 1) return removeItem(pid);

@@ -22,7 +22,8 @@ export default function OrderDetail() {
 
     useEffect(() => {
         load();
-    }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     async function respondToOrder(code) {
         const note = code === 'RE' ? prompt('Reason for rejection?') : '';

@@ -19,7 +19,7 @@ export default function BusinessStorefront() {
         if (isLoggedIn) {
             api.get(`/businesses/${id}/members`).then(r => setMembers(r.data)).catch(() => setMembers([]));
         }
-    }, [id]);
+    }, [id, isLoggedIn, navigate]);
 
     const isMember = members.some(m => m.id === user?.id);
     const myRole = members.find(m => m.id === user?.id)?.role;

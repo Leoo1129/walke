@@ -12,7 +12,7 @@ export default function ProductDetail() {
 
     useEffect(() => {
         api.get(`/products/${id}`).then(r => setProduct(r.data)).catch(() => navigate('/'));
-    }, [id]);
+    }, [id, navigate]);
 
     async function addToCart() {
         if (!isLoggedIn) return navigate('/login');
