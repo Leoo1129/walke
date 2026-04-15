@@ -1,1 +1,4 @@
 node_modules/
+client/dist/
+public/uploads/*
+!public/uploads/.gitkeep
