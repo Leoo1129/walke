@@ -57,9 +57,15 @@ export default function Marketplace() {
                                 <p style={styles.price}>${Number(p.price).toFixed(2)}</p>
                                 <p style={styles.seller}>
                                     by{' '}
-                                    <span style={styles.sellerLink} onClick={() => navigate(`/profile/${p.seller_id}`)}>
-                                        {p.seller_name}
-                                    </span>
+                                    {p.business_id ? (
+                                        <span style={styles.sellerLink} onClick={() => navigate(`/businesses/${p.business_id}`)}>
+                                            {p.business_name}
+                                        </span>
+                                    ) : (
+                                        <span style={styles.sellerLink} onClick={() => navigate(`/profile/${p.seller_id}`)}>
+                                            {p.seller_name}
+                                        </span>
+                                    )}
                                 </p>
                                 {p.tags?.length > 0 && (
                                     <div style={styles.tags}>

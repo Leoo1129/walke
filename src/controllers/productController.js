@@ -21,7 +21,7 @@ export async function createProduct(name, price, seller_id, tags = [], image_url
 }
 
 export async function getProducts(seller_id = null, business_id = null) {
-    let query = 'SELECT p.*, u.name AS seller_name FROM products p LEFT JOIN users u ON u.id = p.seller_id';
+    let query = 'SELECT p.*, u.name AS seller_name, b.name AS business_name FROM products p LEFT JOIN users u ON u.id = p.seller_id LEFT JOIN businesses b ON b.id = p.business_id';
     const conditions = ['p.is_active = TRUE'];
     const params = [];
 
@@ -42,7 +42,7 @@ export async function getProducts(seller_id = null, business_id = null) {
 
 export async function getProduct(id) {
     const { rows: [product] } = await pool.query(
-        'SELECT p.*, u.name AS seller_name FROM products p LEFT JOIN users u ON u.id = p.seller_id WHERE p.id = $1',
+        'SELECT p.*, u.name AS seller_name, b.name AS business_name FROM products p LEFT JOIN users u ON u.id = p.seller_id LEFT JOIN businesses b ON b.id = p.business_id WHERE p.id = $1',
         [id]
     );
 
