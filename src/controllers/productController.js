@@ -2,13 +2,13 @@ import pool from '../database/database.js';
 
 class InputError extends Error {}
 
-export async function createProduct(name, price, seller_id, tags = [], image_url = null) {
+export async function createProduct(name, price, seller_id, tags = [], image_url = null, business_id = null) {
     if (!name || price == null || !seller_id)
         throw new InputError('name, price, and seller_id are required');
 
     const { rows: [product] } = await pool.query(
-        'INSERT INTO products (name, price, seller_id, tags, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [name, price, seller_id, tags, image_url]
+        'INSERT INTO products (name, price, seller_id, tags, image_url, business_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [name, price, seller_id, tags, image_url, business_id]
     );
 
     if (!product) {
@@ -20,12 +20,22 @@ export async function createProduct(name, price, seller_id, tags = [], image_url
     return product;
 }
 
-export async function getProducts() {
-    const { rows } = await pool.query(
-        `SELECT p.*, u.name AS seller_name
-         FROM products p
-         LEFT JOIN users u ON u.id = p.seller_id`
-    );
+export async function getProducts(seller_id = null, business_id = null) {
+    let query = 'SELECT p.*, u.name AS seller_name FROM products p LEFT JOIN users u ON u.id = p.seller_id';
+    const conditions = [];
+    const params = [];
+
+    if (seller_id) {
+        params.push(seller_id);
+        conditions.push(`p.seller_id = $${params.length}`);
+    }
+    if (business_id) {
+        params.push(business_id);
+        conditions.push(`p.business_id = $${params.length}`);
+    }
+    if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
+
+    const { rows } = await pool.query(query, params);
 
     if (!rows || rows.length === 0) {
         const error = new Error('No products found');
