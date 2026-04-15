@@ -24,6 +24,16 @@ async function getMemberRole(business_id, user_id) {
 export async function createBusiness(name, bio = null, logo_url = null, requesting_user_id) {
     if (!name) throw new InputError('name is required');
 
+    const { rows: [existing] } = await pool.query(
+        'SELECT id FROM businesses WHERE LOWER(name) = LOWER($1) AND is_active = TRUE',
+        [name]
+    );
+    if (existing) {
+        const error = new Error('A business with that name already exists');
+        error.statusCode = 409;
+        throw error;
+    }
+
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -48,15 +58,18 @@ export async function createBusiness(name, bio = null, logo_url = null, requesti
     }
 }
 
-export async function getBusinesses() {
-    const { rows } = await pool.query(
-        `SELECT b.*, COUNT(bm.user_id)::int AS member_count
+export async function getBusinesses(user_id = null) {
+    let query = `SELECT b.*, COUNT(bm.user_id)::int AS member_count
          FROM businesses b
          LEFT JOIN business_members bm ON bm.business_id = b.id
-         WHERE b.is_active = TRUE
-         GROUP BY b.id
-         ORDER BY b.created_at DESC`
-    );
+         WHERE b.is_active = TRUE`;
+    const params = [];
+    if (user_id) {
+        params.push(user_id);
+        query += ` AND EXISTS (SELECT 1 FROM business_members WHERE business_id = b.id AND user_id = $${params.length})`;
+    }
+    query += ' GROUP BY b.id ORDER BY b.created_at DESC';
+    const { rows } = await pool.query(query, params);
     return rows;
 }
 

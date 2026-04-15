@@ -50,6 +50,16 @@ export async function createUser(name, password, street, city, postcode, country
     return user;
 }
 
+export async function searchUsers(name) {
+    const { rows } = await pool.query(
+        `SELECT id, name, logo_url, bio FROM users
+         WHERE name ILIKE $1 AND is_active = TRUE
+         LIMIT 10`,
+        [`%${name}%`]
+    );
+    return rows;
+}
+
 export async function getUsers() {
     const { rows } = await pool.query(
         'SELECT id, name, street, city, postcode, country, created_at, last_updated, is_active, is_admin, logo_url, bio FROM users'

@@ -173,7 +173,10 @@ export async function getOrderDetails(id) {
 
 export async function getOrder(id) {
     const { rows: [order] } = await pool.query(
-        'SELECT * FROM orders WHERE id = $1',
+        `SELECT o.*, u.name AS buyer_name, u.city AS buyer_city, u.country AS buyer_country
+         FROM orders o
+         LEFT JOIN users u ON u.id = o.buyer_id
+         WHERE o.id = $1`,
         [id]
     );
 
@@ -183,7 +186,34 @@ export async function getOrder(id) {
         throw error;
     }
 
-    return order;
+    const { rows: items } = await pool.query(
+        `SELECT oi.product_id, oi.quantity, p.price, p.name AS name, p.seller_id, p.image_url,
+                u.name AS seller_name
+         FROM order_items oi
+         JOIN products p ON p.id = oi.product_id
+         LEFT JOIN users u ON u.id = p.seller_id
+         WHERE oi.order_id = $1`,
+        [id]
+    );
+
+    const sellerIds = [...new Set(items.map(i => i.seller_id).filter(Boolean))];
+    let sellers = [];
+    if (sellerIds.length > 0) {
+        const { rows } = await pool.query(
+            'SELECT id, name, city, country FROM users WHERE id = ANY($1)',
+            [sellerIds]
+        );
+        sellers = rows;
+    }
+
+    const buyer = {
+        id: order.buyer_id,
+        name: order.buyer_name,
+        city: order.buyer_city,
+        country: order.buyer_country,
+    };
+
+    return { ...order, items, buyer, sellers };
 }
 
 export async function updateOrder(id, fields) {

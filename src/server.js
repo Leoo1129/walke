@@ -32,6 +32,7 @@ import {
     createUser,
     getUser,
     getUsers,
+    searchUsers,
     updateUser,
     deleteUser
 } from './controllers/userController.js';
@@ -145,6 +146,11 @@ app.post('/users', async (req, res) => {
 
 app.get('/users', async (req, res) => {
     return await handleErrors(res, async () => {
+        const { name } = req.query;
+        if (name) {
+            const result = await searchUsers(name);
+            return res.status(200).json(result);
+        }
         const result = await getUsers();
         return res.status(200).json(result);
     });
@@ -185,7 +191,8 @@ app.post('/businesses', requireAuth, async (req, res) => {
 
 app.get('/businesses', async (req, res) => {
     return await handleErrors(res, async () => {
-        const result = await getBusinesses();
+        const { member_id } = req.query;
+        const result = await getBusinesses(member_id || null);
         return res.status(200).json(result);
     });
 });
