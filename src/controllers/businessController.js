@@ -29,12 +29,12 @@ export async function createBusiness(name, bio = null, logo_url = null, requesti
         await client.query('BEGIN');
 
         const { rows: [business] } = await client.query(
-            `INSERT INTO businesses (name, bio, logo_url) VALUES ($1, $2, $3) RETURNING *`,
+            'INSERT INTO businesses (name, bio, logo_url) VALUES ($1, $2, $3) RETURNING *',
             [name, bio, logo_url]
         );
 
         await client.query(
-            `INSERT INTO business_members (business_id, user_id, role) VALUES ($1, $2, 'owner')`,
+            'INSERT INTO business_members (business_id, user_id, role) VALUES ($1, $2, \'owner\')',
             [business.id, requesting_user_id]
         );
 
@@ -226,7 +226,7 @@ export async function removeMember(business_id, user_id, requesting_user_id) {
     }
 
     const { rows: [member] } = await pool.query(
-        `DELETE FROM business_members WHERE business_id = $1 AND user_id = $2 RETURNING *`,
+        'DELETE FROM business_members WHERE business_id = $1 AND user_id = $2 RETURNING *',
         [business_id, user_id]
     );
 
