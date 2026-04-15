@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
+
+const ADMIN_TOKEN = jwt.sign({ id: 1, name: 'testuser', is_admin: true }, 'dev-secret-change-in-production');
 
 vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn() }
@@ -26,6 +29,7 @@ describe('Vouchers API (Black Box)', () => {
 
             const res = await request(app)
                 .post('/vouchers')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
                 .send({
                     name: 'Summer Sale',
                     discount: 10,
@@ -43,6 +47,7 @@ describe('Vouchers API (Black Box)', () => {
 
             const res = await request(app)
                 .post('/vouchers')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
                 .send({
                     name: 'Summer Sale',
                     discount: 10

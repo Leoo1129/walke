@@ -14,7 +14,7 @@ export async function login(name, password) {
     }
 
     const { rows: [user] } = await pool.query(
-        'SELECT id, name, password_hash FROM users WHERE name = $1',
+        'SELECT id, name, password_hash, is_admin FROM users WHERE name = $1',
         [name]
     );
 
@@ -24,7 +24,7 @@ export async function login(name, password) {
         throw error;
     }
 
-    const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: user.id, name: user.name, is_admin: user.is_admin }, JWT_SECRET, { expiresIn: '24h' });
     return { token };
 }
 

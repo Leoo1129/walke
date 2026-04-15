@@ -55,12 +55,29 @@ export async function getProduct(id) {
     return product;
 }
 
-export async function updateProduct(id, fields) {
+export async function updateProduct(id, fields, requesterId) {
+    const { rows: [existing] } = await pool.query(
+        'SELECT seller_id FROM products WHERE id = $1 AND is_active = TRUE',
+        [id]
+    );
+
+    if (!existing) {
+        const error = new Error('Product not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (existing.seller_id !== requesterId) {
+        const error = new Error('You do not own this product');
+        error.statusCode = 403;
+        throw error;
+    }
+
     const allowed = ['name', 'price', 'tags', 'image_url'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
-        const error = new Error('Product not found or no valid fields to update');
+        const error = new Error('No valid fields to update');
         error.statusCode = 400;
         throw error;
     }
@@ -73,26 +90,31 @@ export async function updateProduct(id, fields) {
         [...values, id]
     );
 
-    if (!product) {
-        const error = new Error('Product not found or no valid fields to update');
-        error.statusCode = 400;
-        throw error;
-    }
-
     return product;
 }
 
-export async function deleteProduct(id) {
-    const { rows: [product] } = await pool.query(
-        'UPDATE products SET is_active = FALSE WHERE id = $1 RETURNING *',
+export async function deleteProduct(id, requesterId) {
+    const { rows: [existing] } = await pool.query(
+        'SELECT seller_id FROM products WHERE id = $1 AND is_active = TRUE',
         [id]
     );
 
-    if (!product) {
+    if (!existing) {
         const error = new Error('Product not found');
         error.statusCode = 404;
         throw error;
     }
+
+    if (existing.seller_id !== requesterId) {
+        const error = new Error('You do not own this product');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    const { rows: [product] } = await pool.query(
+        'UPDATE products SET is_active = FALSE WHERE id = $1 RETURNING *',
+        [id]
+    );
 
     return product;
 }

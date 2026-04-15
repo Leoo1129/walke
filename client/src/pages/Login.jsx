@@ -16,7 +16,7 @@ export default function Login() {
         try {
             const { data } = await api.post('/login', { name, password });
             const payload = JSON.parse(atob(data.token.split('.')[1]));
-            login(data.token, { id: payload.id, name: payload.name });
+            login(data.token, { id: payload.id, name: payload.name, is_admin: payload.is_admin });
             navigate('/');
         } catch (err) {
             setError(err.response?.data?.error || 'Login failed');
