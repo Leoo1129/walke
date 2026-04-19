@@ -1,4 +1,5 @@
 // npm imports
+import 'dotenv/config';
 import express, { json } from 'express';
 import cors from 'cors';
 import YAML from 'yaml';
@@ -118,10 +119,15 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
-app.get('/', (req, res) => res.redirect('/docs'));
 app.use('/docs', sui.serve, sui.setup(YAML.parse(file), {
     swaggerOptions: { docExpansion: 'full' }
 }));
+
+// Strip /api prefix so the production frontend's /api/* calls hit existing routes
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) req.url = req.url.slice(4);
+    next();
+});
 
 const PORT = parseInt(process.env.PORT || config.port);
 
@@ -639,11 +645,17 @@ app.get('/health', function(req, res)
     });
 });
 
+// Serve built React frontend
+app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
+
+// SPA catch-all: serve index.html for browser navigation, 404 JSON for API calls
 app.use(function(req, res)
 {
-    res.status(404).json({
-        error: 'route not found'
-    });
+    const indexPath = path.join(__dirname, '..', 'client', 'dist', 'index.html');
+    if (req.accepts('html') && fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+    }
+    res.status(404).json({ error: 'route not found' });
 });
 
 app.listen(PORT, function()
