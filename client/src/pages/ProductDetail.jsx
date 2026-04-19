@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function ProductDetail() {
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const [qty, setQty] = useState(1);
     const { isLoggedIn } = useAuth();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -33,7 +35,7 @@ export default function ProductDetail() {
                 {product.image_url && <img src={product.image_url} alt={product.name} style={styles.img} />}
                 <div style={styles.info}>
                     <h2>{product.name}</h2>
-                    <p style={styles.price}>${Number(product.price).toFixed(2)}</p>
+                    <p style={styles.price}>{formatPrice(product.price)}</p>
                     <p style={{ marginBottom: 4 }}>Sold by{' '}
                         <span style={styles.link} onClick={() => product.business_id
                             ? navigate(`/businesses/${product.business_id}`)

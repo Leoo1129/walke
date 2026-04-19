@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function Orders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -48,7 +50,7 @@ export default function Orders() {
                                 <span>Order #{o.id}</span>
                                 <span style={{ ...styles.badge, background: statusColor[o.status] || '#999' }}>{o.status}</span>
                             </div>
-                            <p>Total: <strong>${Number(o.total_price || 0).toFixed(2)}</strong></p>
+                            <p>Total: <strong>{formatPrice(o.total_price || 0)}</strong></p>
                             <p style={styles.date}>{new Date(o.created_at).toLocaleDateString()}</p>
                             <div style={styles.actions}>
                                 <button onClick={() => navigate(`/orders/${o.id}`)} style={styles.btn}>View Details</button>

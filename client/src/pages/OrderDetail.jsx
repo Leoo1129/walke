@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function OrderDetail() {
     const { id } = useParams();
@@ -14,6 +15,7 @@ export default function OrderDetail() {
     const [msgInput, setMsgInput] = useState('');
     const [xmlView, setXmlView] = useState(null);
     const { user } = useAuth();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
     async function load() {
@@ -129,7 +131,7 @@ export default function OrderDetail() {
             <div style={styles.summaryRow}>
                 <div style={styles.summaryCard}>
                     <span style={styles.summaryLabel}>Total</span>
-                    <span style={styles.summaryValue}>${Number(order.total_price || 0).toFixed(2)}</span>
+                    <span style={styles.summaryValue}>{formatPrice(order.total_price || 0)}</span>
                 </div>
                 <div style={styles.summaryCard}>
                     <span style={styles.summaryLabel}>Placed</span>
@@ -187,7 +189,7 @@ export default function OrderDetail() {
                                 </div>
                                 <div style={styles.itemRight}>
                                     <span style={styles.itemQty}>×{item.quantity}</span>
-                                    <span style={styles.itemPrice}>${Number(item.price || 0).toFixed(2)}</span>
+                                    <span style={styles.itemPrice}>{formatPrice(item.price || 0)}</span>
                                 </div>
                             </div>
                         ))}
