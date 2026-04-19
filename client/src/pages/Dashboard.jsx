@@ -20,8 +20,9 @@ export default function Dashboard() {
     const [editForm, setEditForm] = useState({ name: '', price: '', tags: '' });
     const [editImageFile, setEditImageFile] = useState(null);
     const [showEditProfile, setShowEditProfile] = useState(false);
-    const [profileForm, setProfileForm] = useState({ name: '', street: '', city: '', postcode: '', country: '', bio: '' });
+    const [profileForm, setProfileForm] = useState({ name: '', email: '', street: '', city: '', postcode: '', country: '', bio: '' });
     const [profileImageFile, setProfileImageFile] = useState(null);
+    const [emailVerificationSent, setEmailVerificationSent] = useState(false);
 
     function loadMyProducts() {
         if (!user?.id) return;
@@ -41,6 +42,7 @@ export default function Dashboard() {
         api.get(`/users/${user.id}`)
             .then(r => setProfileForm({
                 name: r.data.name || '',
+                email: r.data.email || '',
                 street: r.data.street || '',
                 city: r.data.city || '',
                 postcode: r.data.postcode || '',
@@ -136,6 +138,7 @@ export default function Dashboard() {
 
     async function saveProfile(e) {
         e.preventDefault();
+        setEmailVerificationSent(false);
         try {
             let logo_url;
             if (profileImageFile) {
@@ -146,8 +149,11 @@ export default function Dashboard() {
             }
             const payload = { ...profileForm };
             if (logo_url) payload.logo_url = logo_url;
-            await api.patch(`/users/${user.id}`, payload);
-            alert('Profile updated!');
+            if (!payload.email) delete payload.email;
+            const { data } = await api.patch(`/users/${user.id}`, payload);
+            if (data.emailVerificationSent) {
+                setEmailVerificationSent(true);
+            }
             setShowEditProfile(false);
             setProfileImageFile(null);
         } catch (err) {
@@ -187,12 +193,24 @@ export default function Dashboard() {
                         {showEditProfile ? 'Cancel' : 'Edit Profile'}
                     </button>
                 </div>
+                {emailVerificationSent && (
+                    <p style={{ color: '#27ae60', margin: '8px 0 0' }}>
+                        Verification email sent. Click the link in your inbox to confirm your new email address.
+                    </p>
+                )}
                 {showEditProfile && (
                     <form onSubmit={saveProfile} style={styles.form}>
                         <input
                             placeholder="Display name"
                             value={profileForm.name}
                             onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
+                            style={styles.input}
+                        />
+                        <input
+                            type="email"
+                            placeholder="Email address"
+                            value={profileForm.email}
+                            onChange={e => setProfileForm(f => ({ ...f, email: e.target.value }))}
                             style={styles.input}
                         />
                         <input

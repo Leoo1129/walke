@@ -9,7 +9,6 @@ export function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Authorization header required' });
     }
 
-    // remove 'Bearer ' from token...
     const token = authHeader.slice(7);
     try {
         req.user = jwt.verify(token, JWT_SECRET);
@@ -23,6 +22,15 @@ export function requireAdmin(req, res, next) {
     requireAuth(req, res, () => {
         if (!req.user.is_admin) {
             return res.status(403).json({ error: 'Admin access required' });
+        }
+        next();
+    });
+}
+
+export function requireVerified(req, res, next) {
+    requireAuth(req, res, () => {
+        if (req.user.email_verified === false) {
+            return res.status(403).json({ error: 'Please verify your email address before performing this action' });
         }
         next();
     });
