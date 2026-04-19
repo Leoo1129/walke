@@ -22,7 +22,7 @@ export async function requestEmailVerification(userId, email) {
     }
 
     await pool.query(
-        "DELETE FROM email_tokens WHERE user_id = $1 AND type = 'verify'",
+        'DELETE FROM email_tokens WHERE user_id = $1 AND type = \'verify\'',
         [userId]
     );
 
@@ -39,7 +39,7 @@ export async function requestEmailVerification(userId, email) {
 
 export async function verifyEmail(token) {
     const { rows: [row] } = await pool.query(
-        "SELECT * FROM email_tokens WHERE token = $1 AND type = 'verify' AND expires_at > NOW()",
+        'SELECT * FROM email_tokens WHERE token = $1 AND type = \'verify\' AND expires_at > NOW()',
         [token]
     );
 
@@ -74,7 +74,7 @@ export async function requestPasswordReset(email) {
     if (!user) return;
 
     await pool.query(
-        "DELETE FROM email_tokens WHERE user_id = $1 AND type = 'reset'",
+        'DELETE FROM email_tokens WHERE user_id = $1 AND type = \'reset\'',
         [user.id]
     );
 
@@ -91,7 +91,7 @@ export async function requestPasswordReset(email) {
 
 export async function validateResetToken(token) {
     const { rows: [row] } = await pool.query(
-        "SELECT id FROM email_tokens WHERE token = $1 AND type = 'reset' AND expires_at > NOW()",
+        'SELECT id FROM email_tokens WHERE token = $1 AND type = \'reset\' AND expires_at > NOW()',
         [token]
     );
 
@@ -112,7 +112,7 @@ export async function resetPassword(token, password) {
     }
 
     const { rows: [row] } = await pool.query(
-        "SELECT * FROM email_tokens WHERE token = $1 AND type = 'reset' AND expires_at > NOW()",
+        'SELECT * FROM email_tokens WHERE token = $1 AND type = \'reset\' AND expires_at > NOW()',
         [token]
     );
 
