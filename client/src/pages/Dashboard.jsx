@@ -19,6 +19,9 @@ export default function Dashboard() {
     const [editingProduct, setEditingProduct] = useState(null);
     const [editForm, setEditForm] = useState({ name: '', price: '', tags: '' });
     const [editImageFile, setEditImageFile] = useState(null);
+    const [showEditProfile, setShowEditProfile] = useState(false);
+    const [profileForm, setProfileForm] = useState({ name: '', street: '', city: '', postcode: '', country: '', bio: '' });
+    const [profileImageFile, setProfileImageFile] = useState(null);
 
     function loadMyProducts() {
         if (!user?.id) return;
@@ -35,6 +38,16 @@ export default function Dashboard() {
         api.get(`/orders?seller_id=${user.id}`)
             .then(r => setSellerOrders(r.data))
             .catch(() => setSellerOrders([]));
+        api.get(`/users/${user.id}`)
+            .then(r => setProfileForm({
+                name: r.data.name || '',
+                street: r.data.street || '',
+                city: r.data.city || '',
+                postcode: r.data.postcode || '',
+                country: r.data.country || '',
+                bio: r.data.bio || '',
+            }))
+            .catch(() => {});
         loadMyProducts();
     }, [user?.id]);
 
@@ -121,6 +134,27 @@ export default function Dashboard() {
         }
     }
 
+    async function saveProfile(e) {
+        e.preventDefault();
+        try {
+            let logo_url;
+            if (profileImageFile) {
+                const fd = new FormData();
+                fd.append('image', profileImageFile);
+                const { data } = await api.post('/images', fd);
+                logo_url = data.url;
+            }
+            const payload = { ...profileForm };
+            if (logo_url) payload.logo_url = logo_url;
+            await api.patch(`/users/${user.id}`, payload);
+            alert('Profile updated!');
+            setShowEditProfile(false);
+            setProfileImageFile(null);
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to update profile');
+        }
+    }
+
     async function addVoucher(e) {
         e.preventDefault();
         try {
@@ -144,6 +178,59 @@ export default function Dashboard() {
     return (
         <div style={styles.wrap}>
             <h2 style={{ marginBottom: 24 }}>Dashboard</h2>
+
+            {/* Edit Profile */}
+            <div style={styles.section}>
+                <div style={styles.sectionHeader}>
+                    <h3>My Profile</h3>
+                    <button onClick={() => setShowEditProfile(s => !s)} style={styles.btn}>
+                        {showEditProfile ? 'Cancel' : 'Edit Profile'}
+                    </button>
+                </div>
+                {showEditProfile && (
+                    <form onSubmit={saveProfile} style={styles.form}>
+                        <input
+                            placeholder="Display name"
+                            value={profileForm.name}
+                            onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
+                            style={styles.input}
+                        />
+                        <input
+                            placeholder="Street address"
+                            value={profileForm.street}
+                            onChange={e => setProfileForm(f => ({ ...f, street: e.target.value }))}
+                            style={styles.input}
+                        />
+                        <input
+                            placeholder="City"
+                            value={profileForm.city}
+                            onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))}
+                            style={styles.input}
+                        />
+                        <input
+                            placeholder="Postcode"
+                            value={profileForm.postcode}
+                            onChange={e => setProfileForm(f => ({ ...f, postcode: e.target.value }))}
+                            style={styles.input}
+                        />
+                        <input
+                            placeholder="Country"
+                            value={profileForm.country}
+                            onChange={e => setProfileForm(f => ({ ...f, country: e.target.value }))}
+                            style={styles.input}
+                        />
+                        <textarea
+                            placeholder="Bio"
+                            value={profileForm.bio}
+                            onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))}
+                            style={{ ...styles.input, resize: 'vertical', minHeight: 80 }}
+                        />
+                        <label style={styles.label}>Profile photo</label>
+                        <input type="file" accept="image/*" onChange={e => setProfileImageFile(e.target.files[0])} />
+                        <button type="submit" style={styles.btn}>Save Changes</button>
+                    </form>
+                )}
+            </div>
 
             {/* Add Product */}
             <div style={styles.section}>
