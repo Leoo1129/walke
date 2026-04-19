@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function SellerProfile() {
     const { id } = useParams();
     const [seller, setSeller] = useState(null);
     const [products, setProducts] = useState([]);
     const { isLoggedIn } = useAuth();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -49,7 +51,7 @@ export default function SellerProfile() {
                             {p.image_url && <img src={p.image_url} alt={p.name} style={styles.cardImg} />}
                             <div style={styles.cardBody}>
                                 <p style={styles.productName} onClick={() => navigate(`/products/${p.id}`)}>{p.name}</p>
-                                <p style={styles.price}>${Number(p.price).toFixed(2)}</p>
+                                <p style={styles.price}>{formatPrice(p.price)}</p>
                                 <button onClick={() => addToCart(p.id)} style={styles.btn}>Add to Cart</button>
                             </div>
                         </div>

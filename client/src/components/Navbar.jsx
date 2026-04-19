@@ -1,12 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { useEffect, useState } from 'react';
 import api from '../api';
 
 export default function Navbar() {
     const { user, logout, isLoggedIn } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const { currency, currencies, selectCurrency } = useCurrency();
     const navigate = useNavigate();
     const [cartCount, setCartCount] = useState(0);
 
@@ -92,6 +94,15 @@ export default function Navbar() {
                         <Link to="/register" style={linkStyle}>Register</Link>
                     </>
                 )}
+                <select
+                    value={currency}
+                    onChange={e => selectCurrency(e.target.value)}
+                    style={{ ...toggleStyle, cursor: 'pointer' }}
+                >
+                    {currencies.map(c => (
+                        <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
+                </select>
                 <button onClick={toggleTheme} style={toggleStyle}>
                     {dark ? 'Light' : 'Dark'}
                 </button>

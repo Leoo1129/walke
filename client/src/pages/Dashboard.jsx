@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function Dashboard() {
     const { user } = useAuth();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
     const [myBusinesses, setMyBusinesses] = useState([]);
     const [sellerOrders, setSellerOrders] = useState([]);
@@ -192,7 +194,7 @@ export default function Dashboard() {
                                 ) : (
                                     <>
                                         <span style={{ fontWeight: 500 }}>{p.name}</span>
-                                        <span style={{ color: '#555' }}>${Number(p.price).toFixed(2)}</span>
+                                        <span style={{ color: '#555' }}>{formatPrice(p.price)}</span>
                                         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
                                             <button onClick={() => startEditProduct(p)} style={styles.outlineBtn}>Edit</button>
                                             <button onClick={() => removeProduct(p.id)} style={styles.dangerBtn}>Remove</button>
@@ -243,7 +245,7 @@ export default function Dashboard() {
                             <div key={o.id} style={styles.orderRow}>
                                 <span>Order #{o.id}</span>
                                 <span style={{ ...styles.badge, background: statusColor[o.status] || '#999' }}>{o.status}</span>
-                                <span>${Number(o.total_price || 0).toFixed(2)}</span>
+                                <span>{formatPrice(o.total_price || 0)}</span>
                                 <button onClick={() => navigate(`/orders/${o.id}`)} style={styles.viewBtn}>View</button>
                             </div>
                         ))}

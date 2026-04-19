@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function BusinessStorefront() {
     const { id } = useParams();
@@ -10,6 +11,7 @@ export default function BusinessStorefront() {
     const [products, setProducts] = useState([]);
     const [members, setMembers] = useState([]);
     const { user, isLoggedIn } = useAuth();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -66,7 +68,7 @@ export default function BusinessStorefront() {
                                 {p.image_url && <img src={p.image_url} alt={p.name} style={styles.cardImg} />}
                                 <div style={styles.cardBody}>
                                     <p style={styles.productName} onClick={() => navigate(`/products/${p.id}`)}>{p.name}</p>
-                                    <p style={{ ...styles.price, color: accentColor }}>${Number(p.price).toFixed(2)}</p>
+                                    <p style={{ ...styles.price, color: accentColor }}>{formatPrice(p.price)}</p>
                                     <button onClick={() => addToCart(p.id)} style={{ ...styles.btn, background: bgColor }}>Add to Cart</button>
                                 </div>
                             </div>

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function Marketplace() {
     const [products, setProducts] = useState([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const { isLoggedIn } = useAuth();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -54,7 +56,7 @@ export default function Marketplace() {
                             {p.image_url && <img src={p.image_url} alt={p.name} style={styles.img} />}
                             <div style={styles.cardBody}>
                                 <h3 style={styles.productName} onClick={() => navigate(`/products/${p.id}`)}>{p.name}</h3>
-                                <p style={styles.price}>${Number(p.price).toFixed(2)}</p>
+                                <p style={styles.price}>{formatPrice(p.price)}</p>
                                 <p style={styles.seller}>
                                     by{' '}
                                     {p.business_id ? (

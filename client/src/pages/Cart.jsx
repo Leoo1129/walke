@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function Cart() {
     const [cart, setCart] = useState([]);
     const [voucher, setVoucher] = useState('');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { formatPrice } = useCurrency();
 
     async function load() {
         try {
@@ -62,14 +64,14 @@ export default function Cart() {
                                 {item.image_url && <img src={item.image_url} alt={item.name} style={styles.img} />}
                                 <div style={styles.info}>
                                     <p style={styles.name}>{item.name}</p>
-                                    <p style={styles.price}>${Number(item.price).toFixed(2)} each</p>
+                                    <p style={styles.price}>{formatPrice(item.price)} each</p>
                                 </div>
                                 <div style={styles.qtyWrap}>
                                     <button onClick={() => updateQty(item.product_id, item.quantity - 1)} style={styles.qtyBtn}>−</button>
                                     <span style={styles.qty}>{item.quantity}</span>
                                     <button onClick={() => updateQty(item.product_id, item.quantity + 1)} style={styles.qtyBtn}>+</button>
                                 </div>
-                                <p style={styles.lineTotal}>${(item.price * item.quantity).toFixed(2)}</p>
+                                <p style={styles.lineTotal}>{formatPrice(item.price * item.quantity)}</p>
                                 <button onClick={() => removeItem(item.product_id)} style={styles.removeBtn}>✕</button>
                             </div>
                         ))}
@@ -82,7 +84,7 @@ export default function Cart() {
                             onChange={e => setVoucher(e.target.value)}
                             style={styles.input}
                         />
-                        <p style={styles.total}>Total: <strong>${total.toFixed(2)}</strong></p>
+                        <p style={styles.total}>Total: <strong>{formatPrice(total)}</strong></p>
                         <button onClick={placeOrder} style={styles.orderBtn}>Place Order</button>
                     </div>
                 </>
