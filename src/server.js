@@ -39,7 +39,14 @@ import {
     deleteUser
 } from './controllers/userController.js';
 
-import { requireAuth, requireAdmin } from './middleware/auth.js';
+import { requireAuth, requireAdmin, requireVerified } from './middleware/auth.js';
+import {
+    requestEmailVerification,
+    verifyEmail,
+    requestPasswordReset,
+    validateResetToken,
+    resetPassword,
+} from './controllers/authController.js';
 
 import {
     createVoucher,
@@ -137,12 +144,44 @@ app.post('/login', async (req, res) => {
     });
 });
 
+app.post('/auth/verify-email', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { token } = req.body;
+        const result = await verifyEmail(token);
+        return res.status(200).json(result);
+    });
+});
+
+app.post('/auth/forgot-password', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { email } = req.body;
+        await requestPasswordReset(email);
+        return res.status(200).json({ message: 'If that email is registered, a reset link has been sent' });
+    });
+});
+
+app.get('/auth/reset-password/:token', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const result = await validateResetToken(req.params.token);
+        return res.status(200).json(result);
+    });
+});
+
+app.post('/auth/reset-password', async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { token, password } = req.body;
+        const result = await resetPassword(token, password);
+        return res.status(200).json(result);
+    });
+});
+
 // ---------------------------------- User Controller ----------------------------------
 app.post('/users', async (req, res) => {
     return await handleErrors(res, async () => {
-        const { name, password, street, city, postcode, country, bio } = req.body;
-        const result = await createUser(name, password, street, city, postcode, country, bio);
-        return res.status(201).json(result);
+        const { name, password, street, city, postcode, country, bio, email } = req.body;
+        const user = await createUser(name, password, street, city, postcode, country, bio, email);
+        await requestEmailVerification(user.id, email);
+        return res.status(201).json({ message: 'Account created. Please check your email to verify your address.' });
     });
 });
 
@@ -166,10 +205,23 @@ app.get('/users/:id', async (req, res) => {
     });
 });
 
-app.patch('/users/:id', async (req, res) => {
+app.patch('/users/:id', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await updateUser(id, req.body);
+        const { email, ...otherFields } = req.body;
+
+        let result;
+        if (Object.keys(otherFields).length > 0) {
+            result = await updateUser(id, otherFields);
+        } else {
+            result = await getUser(id);
+        }
+
+        if (email !== undefined) {
+            await requestEmailVerification(parseInt(id), email);
+            return res.status(200).json({ ...result, emailVerificationSent: true });
+        }
+
         return res.status(200).json(result);
     });
 });
@@ -183,7 +235,7 @@ app.delete('/users/:id', async (req, res) => {
 });
 
 // ── Business Controller ──
-app.post('/businesses', requireAuth, async (req, res) => {
+app.post('/businesses', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name, bio, logo_url } = req.body;
         const result = await createBusiness(name, bio, logo_url, req.user.id);
@@ -207,7 +259,7 @@ app.get('/businesses/:id', async (req, res) => {
     });
 });
 
-app.patch('/businesses/:id', requireAuth, async (req, res) => {
+app.patch('/businesses/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await updateBusiness(id, req.body, req.user.id);
@@ -215,7 +267,7 @@ app.patch('/businesses/:id', requireAuth, async (req, res) => {
     });
 });
 
-app.delete('/businesses/:id', requireAuth, async (req, res) => {
+app.delete('/businesses/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await deleteBusiness(id, req.user.id);
@@ -231,7 +283,7 @@ app.get('/businesses/:id/members', requireAuth, async (req, res) => {
     });
 });
 
-app.post('/businesses/:id/members', requireAuth, async (req, res) => {
+app.post('/businesses/:id/members', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { user_id, role } = req.body;
@@ -240,7 +292,7 @@ app.post('/businesses/:id/members', requireAuth, async (req, res) => {
     });
 });
 
-app.patch('/businesses/:id/members/:user_id', requireAuth, async (req, res) => {
+app.patch('/businesses/:id/members/:user_id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id, user_id } = req.params;
         const { role } = req.body;
@@ -249,7 +301,7 @@ app.patch('/businesses/:id/members/:user_id', requireAuth, async (req, res) => {
     });
 });
 
-app.delete('/businesses/:id/members/:user_id', requireAuth, async (req, res) => {
+app.delete('/businesses/:id/members/:user_id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id, user_id } = req.params;
         const result = await removeMember(id, user_id, req.user.id);
@@ -274,7 +326,7 @@ app.patch('/businesses/:id/storefront', requireAuth, async (req, res) => {
 });
 
 // ── Image Upload ──
-app.post('/images', requireAuth, upload.single('image'), async (req, res) => {
+app.post('/images', requireVerified, upload.single('image'), async (req, res) => {
     return await handleErrors(res, async () => {
         if (!req.file) {
             const error = new Error('No image file provided');
@@ -287,7 +339,7 @@ app.post('/images', requireAuth, upload.single('image'), async (req, res) => {
 });
 
 // ---------------------------------- Cart Controller ----------------------------------
-app.post('/cart', requireAuth, async (req, res) => {
+app.post('/cart', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { product_id, quantity } = req.body;
         const result = await addToCart(req.user.id, product_id, quantity);
@@ -320,7 +372,7 @@ app.delete('/cart/:product_id', requireAuth, async (req, res) => {
 });
 
 // ---------------------------------- Order Controller ----------------------------------
-app.post('/orders', requireAuth, async (req, res) => {
+app.post('/orders', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { voucher_code } = req.body;
         const { order, items, buyer, sellers } = await createOrder(req.user.id, voucher_code);
@@ -373,7 +425,7 @@ app.delete('/orders/:id', async (req, res) => {
     });
 });
 
-app.post('/orders/:id/response', requireAuth, async (req, res) => {
+app.post('/orders/:id/response', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { response_code, note } = req.body;
@@ -406,7 +458,7 @@ app.get('/orders/:id/response', async (req, res) => {
     });
 });
 
-app.post('/orders/:id/cancel', requireAuth, async (req, res) => {
+app.post('/orders/:id/cancel', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { reason } = req.body;
@@ -439,7 +491,7 @@ app.get('/orders/:id/cancel', async (req, res) => {
 });
 
 // ---------------------------------- Product Controller ----------------------------------
-app.post('/products', requireAuth, async (req, res) => {
+app.post('/products', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name, price, seller_id, tags, image_url, business_id } = req.body;
         const result = await createProduct(name, price, seller_id, tags, image_url, business_id);
@@ -463,7 +515,7 @@ app.get('/products/:id', async (req, res) => {
     });
 });
 
-app.patch('/products/:id', requireAuth, async (req, res) => {
+app.patch('/products/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await updateProduct(id, req.body, req.user.id);
@@ -471,7 +523,7 @@ app.patch('/products/:id', requireAuth, async (req, res) => {
     });
 });
 
-app.delete('/products/:id', requireAuth, async (req, res) => {
+app.delete('/products/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await deleteProduct(id, req.user.id);
@@ -520,7 +572,7 @@ app.delete('/vouchers/:id', async (req, res) => {
 });
 
 // ── Chat Controller ──
-app.post('/orders/:id/chat/:seller_id', requireAuth, async (req, res) => {
+app.post('/orders/:id/chat/:seller_id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id, seller_id } = req.params;
         const chat = await getOrCreateChat(id, parseInt(seller_id));
@@ -544,7 +596,7 @@ app.get('/orders/:id/chat/:seller_id', requireAuth, async (req, res) => {
     });
 });
 
-app.post('/orders/:id/chat/:seller_id/message', requireAuth, async (req, res) => {
+app.post('/orders/:id/chat/:seller_id/message', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id, seller_id } = req.params;
         const { message } = req.body;
@@ -553,7 +605,7 @@ app.post('/orders/:id/chat/:seller_id/message', requireAuth, async (req, res) =>
     });
 });
 
-app.post('/orders/:id/chat/:seller_id/finalize', requireAuth, async (req, res) => {
+app.post('/orders/:id/chat/:seller_id/finalize', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id, seller_id } = req.params;
         const { action } = req.body;

@@ -16,6 +16,9 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Cart from './pages/Cart';
 import Dashboard from './pages/Dashboard';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 
 function PrivateRoute({ children }) {
     const { isLoggedIn } = useAuth();
@@ -30,6 +33,9 @@ function AppRoutes() {
                 <Route path="/" element={<Marketplace />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
                 <Route path="/profile/:id" element={<SellerProfile />} />
                 <Route path="/businesses" element={<Businesses />} />

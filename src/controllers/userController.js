@@ -14,7 +14,7 @@ export async function login(name, password) {
     }
 
     const { rows: [user] } = await pool.query(
-        'SELECT id, name, password_hash, is_admin FROM users WHERE name = $1',
+        'SELECT id, name, password_hash, is_admin, email_verified FROM users WHERE name = $1',
         [name]
     );
 
@@ -24,21 +24,34 @@ export async function login(name, password) {
         throw error;
     }
 
-    const token = jwt.sign({ id: user.id, name: user.name, is_admin: user.is_admin }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign(
+        { id: user.id, name: user.name, is_admin: user.is_admin, email_verified: user.email_verified },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+    );
     return { token };
 }
 
-export async function createUser(name, password, street, city, postcode, country, bio = null) {
+export async function createUser(name, password, street, city, postcode, country, bio = null, email = null) {
     if (!name || !password)
         throw new InputError('name and password are required');
+    if (!email)
+        throw new InputError('email is required');
+
+    const { rows: taken } = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (taken.length > 0) {
+        const err = new Error('Email address is already in use');
+        err.statusCode = 409;
+        throw err;
+    }
 
     const password_hash = await bcrypt.hash(password, 10);
 
     const { rows: [user] } = await pool.query(
-        `INSERT INTO users (name, password_hash, street, city, postcode, country, bio)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING id, name, street, city, postcode, country, logo_url, bio, created_at, last_updated`,
-        [name, password_hash, street, city, postcode, country, bio]
+        `INSERT INTO users (name, password_hash, street, city, postcode, country, bio, email, email_verified)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE)
+         RETURNING id, name, email`,
+        [name, password_hash, street, city, postcode, country, bio, email]
     );
 
     if (!user) {
@@ -76,7 +89,7 @@ export async function getUsers() {
 
 export async function getUser(id) {
     const { rows: [user] } = await pool.query(
-        'SELECT id, name, street, city, postcode, country, created_at, last_updated, logo_url, bio FROM users WHERE id = $1',
+        'SELECT id, name, street, city, postcode, country, created_at, last_updated, logo_url, bio, email, email_verified FROM users WHERE id = $1',
         [id]
     );
 
@@ -91,6 +104,7 @@ export async function getUser(id) {
 
 export async function updateUser(id, fields) {
     const allowed = ['name', 'street', 'city', 'postcode', 'country', 'logo_url', 'bio'];
+    // email is handled separately via requestEmailVerification
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
@@ -103,7 +117,7 @@ export async function updateUser(id, fields) {
     const values = updates.map(([, v]) => v);
 
     const { rows: [user] } = await pool.query(
-        `UPDATE users SET ${setClauses} WHERE id = $${values.length + 1} RETURNING id, name, street, city, postcode, country, created_at, last_updated, logo_url, bio`,
+        `UPDATE users SET ${setClauses} WHERE id = $${values.length + 1} RETURNING id, name, street, city, postcode, country, created_at, last_updated, logo_url, bio, email, email_verified`,
         [...values, id]
     );
 

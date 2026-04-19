@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 
 vi.mock('../../src/database/database.js', () => ({
     default: {
@@ -14,8 +15,18 @@ vi.mock('bcrypt', () => ({
     }
 }));
 
+vi.mock('../../src/services/mailer.js', () => ({
+    sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { app } from '../../src/server.js';
 import pool from '../../src/database/database.js';
+
+const testToken = jwt.sign(
+    { id: 1, name: 'Alice', is_admin: false, email_verified: true },
+    'dev-secret-change-in-production'
+);
 
 describe('Users API (Black Box)', () => {
 
@@ -27,19 +38,28 @@ describe('Users API (Black Box)', () => {
 
         it('creates a user successfully', async () => {
 
-            const user = { id: 1, name: 'Alice', street: null, city: null, postcode: null, country: null, created_at: null, last_updated: null };
+            const user = { id: 1, name: 'Alice', email: 'alice@example.com' };
 
-            pool.query.mockResolvedValue({ rows: [user] });
+            // Sequential DB calls: email uniqueness check, INSERT user,
+            // verify email uniqueness (requestEmailVerification),
+            // delete old tokens, insert new token
+            pool.query
+                .mockResolvedValueOnce({ rows: [] })
+                .mockResolvedValueOnce({ rows: [user] })
+                .mockResolvedValueOnce({ rows: [] })
+                .mockResolvedValueOnce({ rows: [] })
+                .mockResolvedValueOnce({ rows: [{ id: 1 }] });
 
             const res = await request(app)
                 .post('/users')
                 .send({
                     name: 'Alice',
-                    password: 'secret123'
+                    password: 'secret123',
+                    email: 'alice@example.com'
                 });
 
             expect(res.status).toBe(201);
-            expect(res.body).toEqual(user);
+            expect(res.body).toEqual({ message: 'Account created. Please check your email to verify your address.' });
         });
 
         it('returns 500 on database failure', async () => {
@@ -50,7 +70,8 @@ describe('Users API (Black Box)', () => {
                 .post('/users')
                 .send({
                     name: 'Alice',
-                    password: 'secret123'
+                    password: 'secret123',
+                    email: 'alice@example.com'
                 });
 
             expect(res.status).toBe(500);
@@ -130,6 +151,7 @@ describe('Users API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/users/1')
+                .set('Authorization', `Bearer ${testToken}`)
                 .send({ name: 'Alice Updated' });
 
             expect(res.status).toBe(200);
@@ -142,6 +164,7 @@ describe('Users API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/users/1')
+                .set('Authorization', `Bearer ${testToken}`)
                 .send({ name: 'x' });
 
             expect(res.status).toBe(500);
@@ -171,7 +194,7 @@ describe('Users API (Black Box)', () => {
             const res = await request(app).delete('/users/1');
 
             expect(res.status).toBe(200);
-            expect(res.body).toMatchObject(user);   // toMatchObject allows extra fields like is_active
+            expect(res.body).toMatchObject(user);
         });
 
         it('returns 404 if user does not exist', async () => {
