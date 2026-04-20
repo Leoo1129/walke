@@ -31,6 +31,22 @@ export async function sendVerificationEmail(email, token) {
     });
 }
 
+export async function sendXmlEmail(to, xml, subject, filename) {
+    await transporter.sendMail({
+        from: FROM,
+        to,
+        subject,
+        html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+                <h2 style="margin-bottom:8px">Your Walke XML Document</h2>
+                <p>Your requested XML document (<strong>${filename}</strong>) is attached to this email.</p>
+                <p style="color:#888;font-size:13px">This document conforms to the UBL 2.1 standard.</p>
+            </div>
+        `,
+        attachments: [{ filename, content: xml, contentType: 'application/xml' }],
+    });
+}
+
 export async function sendPasswordResetEmail(email, token) {
     const link = `${APP_URL}/reset-password?token=${token}`;
     await transporter.sendMail({

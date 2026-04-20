@@ -73,29 +73,12 @@ export async function sendMessage(order_id, seller_id, sender_id, message) {
     if (!isBuyer && !isSeller) { const e = new Error('Not a participant'); e.statusCode = 403; throw e; }
 
     const senderRole = isBuyer ? 'buyer' : 'seller';
-    if (chat.current_turn !== senderRole) {
-        const e = new Error(`It is the ${chat.current_turn}'s turn`);
-        e.statusCode = 400;
-        throw e;
-    }
 
-    const nextTurn = senderRole === 'buyer' ? 'seller' : 'buyer';
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const { rows: [msg] } = await client.query(
-            'INSERT INTO chat_messages (chat_id, sender_id, sender_role, message) VALUES ($1, $2, $3, $4) RETURNING *',
-            [chat.id, sender_id, senderRole, message.trim()]
-        );
-        await client.query('UPDATE order_chats SET current_turn = $1 WHERE id = $2', [nextTurn, chat.id]);
-        await client.query('COMMIT');
-        return msg;
-    } catch (e) {
-        await client.query('ROLLBACK');
-        throw e;
-    } finally {
-        client.release();
-    }
+    const { rows: [msg] } = await pool.query(
+        'INSERT INTO chat_messages (chat_id, sender_id, sender_role, message) VALUES ($1, $2, $3, $4) RETURNING *',
+        [chat.id, sender_id, senderRole, message.trim()]
+    );
+    return msg;
 }
 
 export async function finalizeChat(order_id, seller_id, sender_id, action) {
@@ -113,11 +96,6 @@ export async function finalizeChat(order_id, seller_id, sender_id, action) {
     if (!isBuyer && !isSeller) { const e = new Error('Not a participant'); e.statusCode = 403; throw e; }
 
     const senderRole = isBuyer ? 'buyer' : 'seller';
-    if (chat.current_turn !== senderRole) {
-        const e = new Error(`It is the ${chat.current_turn}'s turn`);
-        e.statusCode = 400;
-        throw e;
-    }
 
     const client = await pool.connect();
     try {
