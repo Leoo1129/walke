@@ -55,7 +55,7 @@ export async function getProduct(id) {
     return product;
 }
 
-export async function updateProduct(id, fields, requesterId) {
+export async function updateProduct(id, fields, requesterId, isAdmin = false) {
     const { rows: [existing] } = await pool.query(
         'SELECT seller_id FROM products WHERE id = $1 AND is_active = TRUE',
         [id]
@@ -67,7 +67,7 @@ export async function updateProduct(id, fields, requesterId) {
         throw error;
     }
 
-    if (existing.seller_id !== requesterId) {
+    if (!isAdmin && existing.seller_id !== requesterId) {
         const error = new Error('You do not own this product');
         error.statusCode = 403;
         throw error;
@@ -93,7 +93,7 @@ export async function updateProduct(id, fields, requesterId) {
     return product;
 }
 
-export async function deleteProduct(id, requesterId) {
+export async function deleteProduct(id, requesterId, isAdmin = false) {
     const { rows: [existing] } = await pool.query(
         'SELECT seller_id FROM products WHERE id = $1 AND is_active = TRUE',
         [id]
@@ -105,7 +105,7 @@ export async function deleteProduct(id, requesterId) {
         throw error;
     }
 
-    if (existing.seller_id !== requesterId) {
+    if (!isAdmin && existing.seller_id !== requesterId) {
         const error = new Error('You do not own this product');
         error.statusCode = 403;
         throw error;

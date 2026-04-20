@@ -9,6 +9,7 @@ export default function Dashboard() {
     const { formatPrice } = useCurrency();
     const navigate = useNavigate();
     const [myBusinesses, setMyBusinesses] = useState([]);
+    const [adminBusinesses, setAdminBusinesses] = useState([]);
     const [sellerOrders, setSellerOrders] = useState([]);
     const [myProducts, setMyProducts] = useState([]);
     const [showAddProduct, setShowAddProduct] = useState(false);
@@ -52,6 +53,22 @@ export default function Dashboard() {
             .catch(() => {});
         loadMyProducts();
     }, [user?.id]);
+
+    // Resolve which businesses the current user can manage vouchers for (admin or owner role)
+    useEffect(() => {
+        if (!user?.id || myBusinesses.length === 0) { setAdminBusinesses([]); return; }
+        if (user.is_admin) { setAdminBusinesses(myBusinesses); return; }
+        Promise.all(
+            myBusinesses.map(b =>
+                api.get(`/businesses/${b.id}/members`)
+                    .then(r => {
+                        const me = r.data.find(m => m.id === user.id);
+                        return me && (me.role === 'owner' || me.role === 'admin') ? b : null;
+                    })
+                    .catch(() => null)
+            )
+        ).then(results => setAdminBusinesses(results.filter(Boolean)));
+    }, [myBusinesses, user?.id]);
 
     async function addProduct(e) {
         e.preventDefault();
@@ -312,8 +329,8 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Add Voucher — admin only */}
-            {user?.is_admin && (
+            {/* Create Voucher — global admin OR business admin/owner */}
+            {(user?.is_admin || adminBusinesses.length > 0) && (
             <div style={styles.section}>
                 <div style={styles.sectionHeader}>
                     <h3>Create a Voucher</h3>
@@ -321,15 +338,25 @@ export default function Dashboard() {
                         {showAddVoucher ? 'Cancel' : '+ Add Voucher'}
                     </button>
                 </div>
+                {!user?.is_admin && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '-8px 0 12px' }}>
+                        You can create vouchers for businesses where you are an admin or owner.
+                    </p>
+                )}
                 {showAddVoucher && (
                     <form onSubmit={addVoucher} style={styles.form}>
                         <input placeholder="Voucher code / name" value={voucherForm.name} onChange={e => setVoucherForm(f => ({ ...f, name: e.target.value }))} style={styles.input} required />
                         <input placeholder="Discount (e.g. 0.1 = 10% off, or 5 = $5 off)" type="number" step="0.01" value={voucherForm.discount} onChange={e => setVoucherForm(f => ({ ...f, discount: e.target.value }))} style={styles.input} required />
                         <input placeholder="Expiry date (optional)" type="datetime-local" value={voucherForm.expiry} onChange={e => setVoucherForm(f => ({ ...f, expiry: e.target.value }))} style={styles.input} />
                         <input placeholder="Max uses (optional)" type="number" value={voucherForm.max_uses} onChange={e => setVoucherForm(f => ({ ...f, max_uses: e.target.value }))} style={styles.input} />
-                        <select value={voucherForm.business_id} onChange={e => setVoucherForm(f => ({ ...f, business_id: e.target.value }))} style={styles.input}>
-                            <option value="">Global voucher (not business-specific)</option>
-                            {myBusinesses.map(b => (
+                        <select
+                            value={voucherForm.business_id}
+                            onChange={e => setVoucherForm(f => ({ ...f, business_id: e.target.value }))}
+                            style={styles.input}
+                            required={!user?.is_admin}
+                        >
+                            {user?.is_admin && <option value="">Global voucher (works on all products)</option>}
+                            {(user?.is_admin ? myBusinesses : adminBusinesses).map(b => (
                                 <option key={b.id} value={b.id}>{b.name}</option>
                             ))}
                         </select>

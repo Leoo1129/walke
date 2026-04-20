@@ -16,6 +16,7 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Cart from './pages/Cart';
 import Dashboard from './pages/Dashboard';
+import AdminPanel from './pages/AdminPanel';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
@@ -23,6 +24,13 @@ import VerifyEmail from './pages/VerifyEmail';
 function PrivateRoute({ children }) {
     const { isLoggedIn } = useAuth();
     return isLoggedIn ? children : <Navigate to="/login" />;
+}
+
+function AdminRoute({ children }) {
+    const { user, isLoggedIn } = useAuth();
+    if (!isLoggedIn) return <Navigate to="/login" />;
+    if (!user?.is_admin) return <Navigate to="/" />;
+    return children;
 }
 
 function AppRoutes() {
@@ -46,6 +54,7 @@ function AppRoutes() {
                 <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
                 <Route path="/cart" element={<PrivateRoute><Cart /></PrivateRoute>} />
                 <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </>
