@@ -3,6 +3,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 
 const TEST_TOKEN = jwt.sign({ id: 1, name: 'testuser' }, 'dev-secret-change-in-production');
+const ADMIN_TOKEN = jwt.sign({ id: 1, name: 'testuser', is_admin: true, email_verified: true }, 'dev-secret-change-in-production');
 
 vi.mock('../../src/database/database.js', () => ({
     default: {
@@ -344,6 +345,7 @@ describe('Orders API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/orders/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
                 .send({ status: 'completed' });
 
             expect(res.status).toBe(200);
@@ -356,6 +358,7 @@ describe('Orders API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/orders/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
                 .send({ status: 'completed' });
 
             expect(res.status).toBe(500);
@@ -371,7 +374,9 @@ describe('Orders API (Black Box)', () => {
 
             pool.query.mockResolvedValue({ rows: [order] });
 
-            const res = await request(app).delete('/orders/1');
+            const res = await request(app)
+                .delete('/orders/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(order);
@@ -381,7 +386,9 @@ describe('Orders API (Black Box)', () => {
 
             pool.query.mockResolvedValue({ rows: [] });
 
-            const res = await request(app).delete('/orders/999');
+            const res = await request(app)
+                .delete('/orders/999')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
             expect(res.status).toBe(404);
         });
@@ -390,7 +397,9 @@ describe('Orders API (Black Box)', () => {
 
             pool.query.mockRejectedValue(new Error('db error'));
 
-            const res = await request(app).delete('/orders/1');
+            const res = await request(app)
+                .delete('/orders/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
             expect(res.status).toBe(500);
         });
