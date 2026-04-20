@@ -99,6 +99,7 @@ import {
 } from './controllers/XMLController.js';
 
 import { handleErrors } from './handler.js';
+import { sendXmlEmail } from './services/mailer.js';
 
 import {
     getOrCreateChat,
@@ -438,6 +439,44 @@ app.delete('/orders/:id', requireAdmin, async (req, res) => {
         const { id } = req.params;
         const result = await deleteOrder(id);
         return res.status(200).json(result);
+    });
+});
+
+app.post('/orders/:id/xml-email', requireAuth, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const { type, email } = req.body;
+
+        if (!email) {
+            const error = new Error('email is required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        let xml, subject, filename;
+        if (type === 'order') {
+            const { order, items, buyer, sellers } = await getOrderDetails(id);
+            xml = orderToXml(order, items, buyer, sellers);
+            subject = `Order #${id} — UBL/XML Document`;
+            filename = `order-${id}.xml`;
+        } else if (type === 'response') {
+            const { response, order, items, buyer, seller } = await getOrderResponseDetails(id);
+            xml = orderResponseToXml(response, order, items, buyer, seller);
+            subject = `Order #${id} Response — UBL/XML Document`;
+            filename = `order-${id}-response.xml`;
+        } else if (type === 'cancel') {
+            const { cancellation, order, buyer, sellers } = await getOrderCancellationDetails(id);
+            xml = orderCancellationToXml(cancellation, order, buyer, sellers);
+            subject = `Order #${id} Cancellation — UBL/XML Document`;
+            filename = `order-${id}-cancellation.xml`;
+        } else {
+            const error = new Error('type must be order, response, or cancel');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        await sendXmlEmail(email, xml, subject, filename);
+        return res.status(200).json({ message: `XML sent to ${email}` });
     });
 });
 

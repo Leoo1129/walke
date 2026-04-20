@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,10 @@ export default function OrderDetail() {
     const [chatMessages, setChatMessages] = useState([]);
     const [msgInput, setMsgInput] = useState('');
     const [xmlView, setXmlView] = useState(null);
+    const [emailingType, setEmailingType] = useState(null);
+    const [emailAddr, setEmailAddr] = useState('');
+    const [emailSending, setEmailSending] = useState(false);
+    const messagesEndRef = useRef(null);
     const { user } = useAuth();
     const { formatPrice } = useCurrency();
     const navigate = useNavigate();
@@ -36,6 +40,26 @@ export default function OrderDetail() {
         setActiveChat(seller_id);
         setChatMessages(r.data.messages || []);
     }
+
+    async function refreshMessages(seller_id) {
+        try {
+            const r = await api.get(`/orders/${id}/chat/${seller_id}`);
+            setChatMessages(r.data.messages || []);
+        } catch { /* ignore poll errors */ }
+    }
+
+    // Poll for new messages every 3 seconds while a chat is open
+    useEffect(() => {
+        if (!activeChat) return;
+        const interval = setInterval(() => refreshMessages(activeChat), 3000);
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeChat]);
+
+    // Auto-scroll to bottom when messages update
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatMessages]);
 
     async function sendMessage(seller_id) {
         if (!msgInput.trim()) return;
@@ -84,6 +108,22 @@ export default function OrderDetail() {
             setXmlView(xml);
         } catch {
             alert('Failed to fetch XML');
+        }
+    }
+
+    async function emailXml(e) {
+        e.preventDefault();
+        if (!emailAddr.trim()) return;
+        setEmailSending(true);
+        try {
+            await api.post(`/orders/${id}/xml-email`, { type: emailingType, email: emailAddr.trim() });
+            alert(`XML sent to ${emailAddr}`);
+            setEmailingType(null);
+            setEmailAddr('');
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to send email');
+        } finally {
+            setEmailSending(false);
         }
     }
 
@@ -222,20 +262,63 @@ export default function OrderDetail() {
             {/* XML Actions */}
             <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>Documents (UBL/XML)</h3>
-                <div style={styles.xmlBar}>
-                    <button onClick={() => viewXml('order')} style={styles.xmlBtn}>View Order XML</button>
-                    <button onClick={() => downloadXml('order')} style={styles.xmlBtn}>⬇ Order XML</button>
-                    {response && <>
-                        <button onClick={() => viewXml('response')} style={styles.xmlBtn}>View Response XML</button>
-                        <button onClick={() => downloadXml('response')} style={styles.xmlBtn}>⬇ Response XML</button>
-                    </>}
-                    {cancellation && <>
-                        <button onClick={() => viewXml('cancel')} style={styles.xmlBtn}>View Cancellation XML</button>
-                        <button onClick={() => downloadXml('cancel')} style={styles.xmlBtn}>⬇ Cancellation XML</button>
-                    </>}
+
+                {/* Order XML */}
+                <div style={styles.xmlGroup}>
+                    <span style={styles.xmlLabel}>Order</span>
+                    <div style={styles.xmlBar}>
+                        <button onClick={() => viewXml('order')} style={styles.xmlBtn}>View</button>
+                        <button onClick={() => downloadXml('order')} style={styles.xmlBtn}>⬇ Download</button>
+                        <button onClick={() => { setEmailingType('order'); setEmailAddr(''); }} style={styles.xmlBtnEmail}>✉ Email</button>
+                    </div>
                 </div>
+
+                {/* Response XML */}
+                {response && (
+                    <div style={styles.xmlGroup}>
+                        <span style={styles.xmlLabel}>Response</span>
+                        <div style={styles.xmlBar}>
+                            <button onClick={() => viewXml('response')} style={styles.xmlBtn}>View</button>
+                            <button onClick={() => downloadXml('response')} style={styles.xmlBtn}>⬇ Download</button>
+                            <button onClick={() => { setEmailingType('response'); setEmailAddr(''); }} style={styles.xmlBtnEmail}>✉ Email</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Cancellation XML */}
+                {cancellation && (
+                    <div style={styles.xmlGroup}>
+                        <span style={styles.xmlLabel}>Cancellation</span>
+                        <div style={styles.xmlBar}>
+                            <button onClick={() => viewXml('cancel')} style={styles.xmlBtn}>View</button>
+                            <button onClick={() => downloadXml('cancel')} style={styles.xmlBtn}>⬇ Download</button>
+                            <button onClick={() => { setEmailingType('cancel'); setEmailAddr(''); }} style={styles.xmlBtnEmail}>✉ Email</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Inline email form */}
+                {emailingType && (
+                    <form onSubmit={emailXml} style={styles.emailForm}>
+                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Send {emailingType} XML to:</span>
+                        <input
+                            type="email"
+                            placeholder="Email address"
+                            value={emailAddr}
+                            onChange={e => setEmailAddr(e.target.value)}
+                            style={styles.emailInput}
+                            required
+                            autoFocus
+                        />
+                        <button type="submit" disabled={emailSending} style={styles.xmlBtnEmail}>
+                            {emailSending ? 'Sending…' : 'Send'}
+                        </button>
+                        <button type="button" onClick={() => setEmailingType(null)} style={styles.closeBtn}>✕</button>
+                    </form>
+                )}
+
                 {xmlView && (
-                    <div style={styles.xmlBox}>
+                    <div style={{ ...styles.xmlBox, marginTop: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                             <strong style={{ color: '#d4d4d4' }}>XML</strong>
                             <button onClick={() => setXmlView(null)} style={styles.closeBtn}>✕ Close</button>
@@ -302,6 +385,7 @@ export default function OrderDetail() {
                                     {m.action && <span style={styles.msgAction}>Action: {m.action}</span>}
                                 </div>
                             ))}
+                            <div ref={messagesEndRef} />
                         </div>
                         <div style={styles.msgInputRow}>
                             <input value={msgInput} onChange={e => setMsgInput(e.target.value)} placeholder="Type a message..." style={styles.msgInputField} onKeyDown={e => e.key === 'Enter' && sendMessage(activeChat)} />
@@ -309,10 +393,9 @@ export default function OrderDetail() {
                         </div>
                         <div style={styles.finalizeRow}>
                             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Finalize:</span>
-                            <button onClick={() => finalizeChat(activeChat, 'accept')} style={styles.acceptBtn}>Accept</button>
-                            <button onClick={() => finalizeChat(activeChat, 'reject')} style={styles.rejectBtn}>Reject</button>
-                            <button onClick={() => finalizeChat(activeChat, 'confirm')} style={styles.infoBtn}>Confirm</button>
-                            <button onClick={() => finalizeChat(activeChat, 'cancel')} style={{ ...styles.rejectBtn, background: '#888' }}>Cancel</button>
+                            {isSeller && <button onClick={() => finalizeChat(activeChat, 'accept')} style={styles.acceptBtn}>Accept</button>}
+                            {isSeller && <button onClick={() => finalizeChat(activeChat, 'reject')} style={styles.rejectBtn}>Reject</button>}
+                            {isBuyer && <button onClick={() => finalizeChat(activeChat, 'cancel')} style={{ ...styles.rejectBtn, background: '#888' }}>Cancel Order</button>}
                         </div>
                     </div>
                 )}
@@ -349,8 +432,13 @@ const styles = {
     responseBadge: { color: '#fff', padding: '3px 10px', borderRadius: 12, fontSize: 13, fontWeight: 600 },
     responseCode: { color: 'var(--text-muted)', fontSize: 13 },
     responseNote: { margin: 0, fontSize: 14, color: 'var(--text-muted)' },
-    xmlBar: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
-    xmlBtn: { padding: '6px 12px', background: '#2980b9', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
+    xmlGroup: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' },
+    xmlLabel: { fontSize: 13, fontWeight: 600, minWidth: 80, color: 'var(--text-muted)' },
+    xmlBar: { display: 'flex', gap: 6, flexWrap: 'wrap' },
+    xmlBtn: { padding: '5px 11px', background: '#2980b9', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
+    xmlBtnEmail: { padding: '5px 11px', background: '#8e44ad', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 },
+    emailForm: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8, padding: '10px 12px', background: 'var(--surface-alt)', borderRadius: 6 },
+    emailInput: { padding: '6px 10px', fontSize: 13, border: '1px solid var(--border-input)', borderRadius: 4, flex: 1, minWidth: 200, background: 'var(--surface)', color: 'var(--text)' },
     xmlBox: { background: '#1e1e1e', borderRadius: 8, padding: 16 },
     xmlPre: { color: '#d4d4d4', fontSize: 12, overflow: 'auto', maxHeight: 400, whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 },
     closeBtn: { background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 14 },
