@@ -214,6 +214,11 @@ app.get('/users/:id', async (req, res) => {
 app.patch('/users/:id', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
+
+        if (!req.user.is_admin && req.user.id !== parseInt(id)) {
+            return res.status(403).json({ error: 'You can only update your own profile' });
+        }
+
         const { email, ...otherFields } = req.body;
 
         let result;
@@ -232,9 +237,14 @@ app.patch('/users/:id', requireAuth, async (req, res) => {
     });
 });
 
-app.delete('/users/:id', async (req, res) => {
+app.delete('/users/:id', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
+
+        if (!req.user.is_admin && req.user.id !== parseInt(id)) {
+            return res.status(403).json({ error: 'You can only delete your own account' });
+        }
+
         const result = await deleteUser(id);
         return res.status(200).json(result);
     });
@@ -268,7 +278,7 @@ app.get('/businesses/:id', async (req, res) => {
 app.patch('/businesses/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await updateBusiness(id, req.body, req.user.id);
+        const result = await updateBusiness(id, req.body, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
@@ -276,7 +286,7 @@ app.patch('/businesses/:id', requireVerified, async (req, res) => {
 app.delete('/businesses/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await deleteBusiness(id, req.user.id);
+        const result = await deleteBusiness(id, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
@@ -293,7 +303,7 @@ app.post('/businesses/:id/members', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { user_id, role } = req.body;
-        const result = await inviteMember(id, user_id, role, req.user.id);
+        const result = await inviteMember(id, user_id, role, req.user.id, req.user.is_admin);
         return res.status(201).json(result);
     });
 });
@@ -302,7 +312,7 @@ app.patch('/businesses/:id/members/:user_id', requireVerified, async (req, res) 
     return await handleErrors(res, async () => {
         const { id, user_id } = req.params;
         const { role } = req.body;
-        const result = await updateMemberRole(id, user_id, role, req.user.id);
+        const result = await updateMemberRole(id, user_id, role, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
@@ -310,7 +320,7 @@ app.patch('/businesses/:id/members/:user_id', requireVerified, async (req, res) 
 app.delete('/businesses/:id/members/:user_id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id, user_id } = req.params;
-        const result = await removeMember(id, user_id, req.user.id);
+        const result = await removeMember(id, user_id, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
@@ -326,7 +336,7 @@ app.get('/businesses/:id/storefront', async (req, res) => {
 app.patch('/businesses/:id/storefront', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await upsertStorefront(id, req.body, req.user.id);
+        const result = await upsertStorefront(id, req.body, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
@@ -415,7 +425,7 @@ app.get('/orders/:id', async (req, res) => {
     });
 });
 
-app.patch('/orders/:id', async (req, res) => {
+app.patch('/orders/:id', requireAdmin, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await updateOrder(id, req.body);
@@ -423,7 +433,7 @@ app.patch('/orders/:id', async (req, res) => {
     });
 });
 
-app.delete('/orders/:id', async (req, res) => {
+app.delete('/orders/:id', requireAdmin, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await deleteOrder(id);
@@ -524,7 +534,7 @@ app.get('/products/:id', async (req, res) => {
 app.patch('/products/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await updateProduct(id, req.body, req.user.id);
+        const result = await updateProduct(id, req.body, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
@@ -532,16 +542,16 @@ app.patch('/products/:id', requireVerified, async (req, res) => {
 app.delete('/products/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await deleteProduct(id, req.user.id);
+        const result = await deleteProduct(id, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
 
 // ---------------------------------- Voucher Controller ----------------------------------
-app.post('/vouchers', requireAdmin, async (req, res) => {
+app.post('/vouchers', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name, discount, expiry, max_uses, business_id } = req.body;
-        const result = await createVoucher(name, discount, expiry, max_uses, business_id);
+        const result = await createVoucher(name, discount, expiry, max_uses, business_id, req.user.id, req.user.is_admin);
         return res.status(201).json(result);
     });
 });
@@ -561,18 +571,18 @@ app.get('/vouchers/:id', async (req, res) => {
     });
 });
 
-app.patch('/vouchers/:id', async (req, res) => {
+app.patch('/vouchers/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await updateVoucher(id, req.body);
+        const result = await updateVoucher(id, req.body, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });
 
-app.delete('/vouchers/:id', async (req, res) => {
+app.delete('/vouchers/:id', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
-        const result = await deleteVoucher(id);
+        const result = await deleteVoucher(id, req.user.id, req.user.is_admin);
         return res.status(200).json(result);
     });
 });

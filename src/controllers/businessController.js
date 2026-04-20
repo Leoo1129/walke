@@ -92,9 +92,11 @@ export async function getBusiness(id) {
     return business;
 }
 
-export async function updateBusiness(id, fields, requesting_user_id) {
-    const role = await getMemberRole(id, requesting_user_id);
-    requireRole(role, 'admin');
+export async function updateBusiness(id, fields, requesting_user_id, isAdmin = false) {
+    if (!isAdmin) {
+        const role = await getMemberRole(id, requesting_user_id);
+        requireRole(role, 'admin');
+    }
 
     const allowed = ['name', 'bio', 'logo_url'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
@@ -123,9 +125,11 @@ export async function updateBusiness(id, fields, requesting_user_id) {
     return business;
 }
 
-export async function deleteBusiness(id, requesting_user_id) {
-    const role = await getMemberRole(id, requesting_user_id);
-    requireRole(role, 'owner');
+export async function deleteBusiness(id, requesting_user_id, isAdmin = false) {
+    if (!isAdmin) {
+        const role = await getMemberRole(id, requesting_user_id);
+        requireRole(role, 'owner');
+    }
 
     const { rows: [business] } = await pool.query(
         `UPDATE businesses SET is_active = FALSE, last_updated = CURRENT_TIMESTAMP
@@ -169,12 +173,14 @@ export async function getMembers(business_id) {
     return rows;
 }
 
-export async function inviteMember(business_id, user_id, role = 'viewer', requesting_user_id) {
+export async function inviteMember(business_id, user_id, role = 'viewer', requesting_user_id, isAdmin = false) {
     if (!ROLES.includes(role)) throw new InputError('Invalid role');
-    if (role === 'owner') throw new InputError('Cannot assign owner role via invite');
+    if (!isAdmin && role === 'owner') throw new InputError('Cannot assign owner role via invite');
 
-    const requesterRole = await getMemberRole(business_id, requesting_user_id);
-    requireRole(requesterRole, 'admin');
+    if (!isAdmin) {
+        const requesterRole = await getMemberRole(business_id, requesting_user_id);
+        requireRole(requesterRole, 'admin');
+    }
 
     const { rows: [user] } = await pool.query(
         'SELECT id FROM users WHERE id = $1 AND is_active = TRUE',
@@ -205,12 +211,14 @@ export async function inviteMember(business_id, user_id, role = 'viewer', reques
     return member;
 }
 
-export async function updateMemberRole(business_id, user_id, role, requesting_user_id) {
+export async function updateMemberRole(business_id, user_id, role, requesting_user_id, isAdmin = false) {
     if (!ROLES.includes(role)) throw new InputError('Invalid role');
-    if (role === 'owner') throw new InputError('Cannot assign owner role');
+    if (!isAdmin && role === 'owner') throw new InputError('Cannot assign owner role');
 
-    const requesterRole = await getMemberRole(business_id, requesting_user_id);
-    requireRole(requesterRole, 'admin');
+    if (!isAdmin) {
+        const requesterRole = await getMemberRole(business_id, requesting_user_id);
+        requireRole(requesterRole, 'admin');
+    }
 
     const { rows: [member] } = await pool.query(
         `UPDATE business_members SET role = $1
@@ -227,15 +235,17 @@ export async function updateMemberRole(business_id, user_id, role, requesting_us
     return member;
 }
 
-export async function removeMember(business_id, user_id, requesting_user_id) {
-    const requesterRole = await getMemberRole(business_id, requesting_user_id);
-    requireRole(requesterRole, 'admin');
+export async function removeMember(business_id, user_id, requesting_user_id, isAdmin = false) {
+    if (!isAdmin) {
+        const requesterRole = await getMemberRole(business_id, requesting_user_id);
+        requireRole(requesterRole, 'admin');
 
-    const targetRole = await getMemberRole(business_id, user_id);
-    if (targetRole === 'owner') {
-        const error = new Error('Cannot remove the business owner');
-        error.statusCode = 403;
-        throw error;
+        const targetRole = await getMemberRole(business_id, user_id);
+        if (targetRole === 'owner') {
+            const error = new Error('Cannot remove the business owner');
+            error.statusCode = 403;
+            throw error;
+        }
     }
 
     const { rows: [member] } = await pool.query(
@@ -279,9 +289,11 @@ export async function getStorefront(business_id) {
     return config;
 }
 
-export async function upsertStorefront(business_id, fields, requesting_user_id) {
-    const role = await getMemberRole(business_id, requesting_user_id);
-    requireRole(role, 'editor');
+export async function upsertStorefront(business_id, fields, requesting_user_id, isAdmin = false) {
+    if (!isAdmin) {
+        const role = await getMemberRole(business_id, requesting_user_id);
+        requireRole(role, 'editor');
+    }
 
     const allowed = ['primary_color', 'secondary_color', 'accent_color', 'font', 'banner_url', 'layout', 'headline'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));

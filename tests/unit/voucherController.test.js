@@ -124,12 +124,16 @@ describe('Vouchers API (Black Box)', () => {
 
         it('updates a voucher successfully', async () => {
 
-            const updated = { id: 1, name: 'Updated', discount: 20, expiry: null, max_uses: 50 };
+            const existing = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100, business_id: null };
+            const updated = { id: 1, name: 'Updated', discount: 20, expiry: null, max_uses: 50, business_id: null };
 
-            pool.query.mockResolvedValue({ rows: [updated] });
+            pool.query
+                .mockResolvedValueOnce({ rows: [existing] }) // SELECT existing voucher (auth check)
+                .mockResolvedValueOnce({ rows: [updated] }); // UPDATE
 
             const res = await request(app)
                 .patch('/vouchers/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
                 .send({ name: 'Updated' });
 
             expect(res.status).toBe(200);
@@ -142,6 +146,7 @@ describe('Vouchers API (Black Box)', () => {
 
             const res = await request(app)
                 .patch('/vouchers/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
                 .send({ name: 'x' });
 
             expect(res.status).toBe(500);
@@ -153,11 +158,15 @@ describe('Vouchers API (Black Box)', () => {
 
         it('deletes a voucher successfully', async () => {
 
-            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 };
+            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100, business_id: null };
 
-            pool.query.mockResolvedValue({ rows: [voucher] });
+            pool.query
+                .mockResolvedValueOnce({ rows: [voucher] }) // SELECT existing voucher (auth check)
+                .mockResolvedValueOnce({ rows: [voucher] }); // DELETE
 
-            const res = await request(app).delete('/vouchers/1');
+            const res = await request(app)
+                .delete('/vouchers/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(voucher);
@@ -165,9 +174,11 @@ describe('Vouchers API (Black Box)', () => {
 
         it('returns 404 if voucher does not exist', async () => {
 
-            pool.query.mockResolvedValue({ rows: [] });
+            pool.query.mockResolvedValueOnce({ rows: [] }); // SELECT returns nothing → 404
 
-            const res = await request(app).delete('/vouchers/999');
+            const res = await request(app)
+                .delete('/vouchers/999')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
             expect(res.status).toBe(404);
         });
@@ -176,7 +187,9 @@ describe('Vouchers API (Black Box)', () => {
 
             pool.query.mockRejectedValue(new Error('db error'));
 
-            const res = await request(app).delete('/vouchers/1');
+            const res = await request(app)
+                .delete('/vouchers/1')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
             expect(res.status).toBe(500);
         });

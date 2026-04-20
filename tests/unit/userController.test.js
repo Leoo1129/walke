@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 
+const USER1_TOKEN = jwt.sign({ id: 1, name: 'testuser', email_verified: true }, 'dev-secret-change-in-production');
+const ADMIN_TOKEN = jwt.sign({ id: 1, name: 'testuser', is_admin: true, email_verified: true }, 'dev-secret-change-in-production');
+
 vi.mock('../../src/database/database.js', () => ({
     default: {
         query: vi.fn(),
@@ -191,7 +194,9 @@ describe('Users API (Black Box)', () => {
             };
             pool.connect.mockResolvedValue(mockClient);
 
-            const res = await request(app).delete('/users/1');
+            const res = await request(app)
+                .delete('/users/1')
+                .set('Authorization', `Bearer ${USER1_TOKEN}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toMatchObject(user);
@@ -208,7 +213,9 @@ describe('Users API (Black Box)', () => {
             };
             pool.connect.mockResolvedValue(mockClient);
 
-            const res = await request(app).delete('/users/999');
+            const res = await request(app)
+                .delete('/users/999')
+                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
             expect(res.status).toBe(404);
         });
@@ -217,7 +224,9 @@ describe('Users API (Black Box)', () => {
 
             pool.connect.mockRejectedValue(new Error('db error'));
 
-            const res = await request(app).delete('/users/1');
+            const res = await request(app)
+                .delete('/users/1')
+                .set('Authorization', `Bearer ${USER1_TOKEN}`);
 
             expect(res.status).toBe(500);
         });

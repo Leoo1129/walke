@@ -83,6 +83,7 @@ export default function Navbar() {
                     </Link>
                 )}
                 {isLoggedIn && <Link to="/dashboard" style={linkStyle}>Dashboard</Link>}
+                {user?.is_admin && <Link to="/admin" style={{ ...linkStyle, color: '#8e44ad', fontWeight: 600 }}>Admin</Link>}
                 {isLoggedIn ? (
                     <>
                         <Link to={`/profile/${user?.id}`} style={linkStyle}>{user?.name}</Link>

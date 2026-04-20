@@ -2,9 +2,33 @@ import pool from '../database/database.js';
 
 class InputError extends Error {}
 
-export async function createVoucher(name, discount, expiry, max_uses, business_id = null) {
+const RANK = { owner: 4, admin: 3, editor: 2, viewer: 1 };
+
+async function getBusinessRole(business_id, user_id) {
+    const { rows: [member] } = await pool.query(
+        'SELECT role FROM business_members WHERE business_id = $1 AND user_id = $2',
+        [business_id, user_id]
+    );
+    return member ? member.role : null;
+}
+
+export async function createVoucher(name, discount, expiry, max_uses, business_id = null, requesting_user_id, isAdmin) {
     if (!name || discount == null)
         throw new InputError('name and discount are required');
+
+    if (!isAdmin) {
+        if (!business_id) {
+            const error = new Error('Only admins can create global vouchers');
+            error.statusCode = 403;
+            throw error;
+        }
+        const role = await getBusinessRole(business_id, requesting_user_id);
+        if ((RANK[role] || 0) < RANK['admin']) {
+            const error = new Error('You must be an admin or owner of this business to create vouchers');
+            error.statusCode = 403;
+            throw error;
+        }
+    }
 
     const { rows: [existing] } = await pool.query(
         'SELECT id FROM vouchers WHERE LOWER(name) = LOWER($1)',
@@ -57,12 +81,33 @@ export async function getVoucher(id) {
     return voucher;
 }
 
-export async function updateVoucher(id, fields) {
+export async function updateVoucher(id, fields, requesting_user_id, isAdmin) {
+    const { rows: [voucher] } = await pool.query('SELECT * FROM vouchers WHERE id = $1', [id]);
+    if (!voucher) {
+        const error = new Error('Voucher not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (!isAdmin) {
+        if (!voucher.business_id) {
+            const error = new Error('Only admins can edit global vouchers');
+            error.statusCode = 403;
+            throw error;
+        }
+        const role = await getBusinessRole(voucher.business_id, requesting_user_id);
+        if ((RANK[role] || 0) < RANK['admin']) {
+            const error = new Error('You must be an admin or owner of this business to edit vouchers');
+            error.statusCode = 403;
+            throw error;
+        }
+    }
+
     const allowed = ['name', 'discount', 'expiry', 'max_uses'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
-        const error = new Error('Voucher not found or no valid fields to update');
+        const error = new Error('No valid fields to update');
         error.statusCode = 400;
         throw error;
     }
@@ -70,31 +115,46 @@ export async function updateVoucher(id, fields) {
     const setClauses = updates.map(([k], i) => `${k} = $${i + 1}`).join(', ');
     const values = updates.map(([, v]) => v);
 
-    const { rows: [voucher] } = await pool.query(
+    const { rows: [updated] } = await pool.query(
         `UPDATE vouchers SET ${setClauses} WHERE id = $${values.length + 1} RETURNING *`,
         [...values, id]
     );
 
-    if (!voucher) {
+    if (!updated) {
         const error = new Error('Voucher not found or no valid fields to update');
         error.statusCode = 400;
         throw error;
     }
 
-    return voucher;
+    return updated;
 }
 
-export async function deleteVoucher(id) {
-    const { rows: [voucher] } = await pool.query(
-        'DELETE FROM vouchers WHERE id = $1 RETURNING *',
-        [id]
-    );
-
+export async function deleteVoucher(id, requesting_user_id, isAdmin) {
+    const { rows: [voucher] } = await pool.query('SELECT * FROM vouchers WHERE id = $1', [id]);
     if (!voucher) {
         const error = new Error('Voucher not found');
         error.statusCode = 404;
         throw error;
     }
 
-    return voucher;
+    if (!isAdmin) {
+        if (!voucher.business_id) {
+            const error = new Error('Only admins can delete global vouchers');
+            error.statusCode = 403;
+            throw error;
+        }
+        const role = await getBusinessRole(voucher.business_id, requesting_user_id);
+        if ((RANK[role] || 0) < RANK['admin']) {
+            const error = new Error('You must be an admin or owner of this business to delete vouchers');
+            error.statusCode = 403;
+            throw error;
+        }
+    }
+
+    const { rows: [deleted] } = await pool.query(
+        'DELETE FROM vouchers WHERE id = $1 RETURNING *',
+        [id]
+    );
+
+    return deleted;
 }
