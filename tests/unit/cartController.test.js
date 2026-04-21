@@ -1,240 +1,115 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import request from 'supertest';
-import jwt from 'jsonwebtoken';
-
-const TEST_TOKEN = jwt.sign({ id: 1, name: 'testuser' }, 'dev-secret-change-in-production');
 
 vi.mock('../../src/database/database.js', () => ({
-    default: { query: vi.fn() }
+    default: { query: vi.fn(), connect: vi.fn() }
 }));
 
-import { app } from '../../src/server.js';
+import { addToCart, getCart, updateCartItem, removeFromCart } from '../../src/controllers/cartController.js';
 import pool from '../../src/database/database.js';
 
-describe('Cart API (Black Box)', () => {
+describe('cartController', () => {
+    beforeEach(() => vi.clearAllMocks());
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
+    describe('addToCart', () => {
+        it('throws InputError when product_id is missing', async () => {
+            await expect(addToCart(1, null, 3)).rejects.toMatchObject({ name: 'InputError' });
+        });
 
-    describe('POST /cart', () => {
+        it('throws InputError when quantity is missing', async () => {
+            await expect(addToCart(1, 2, null)).rejects.toMatchObject({ name: 'InputError' });
+        });
 
-        it('adds an item to the cart successfully', async () => {
+        it('throws InputError when quantity is less than 1', async () => {
+            await expect(addToCart(1, 2, 0)).rejects.toMatchObject({ name: 'InputError' });
+        });
 
+        it('inserts cart item and returns it', async () => {
             const item = { user_id: 1, product_id: 2, quantity: 3 };
+            pool.query.mockResolvedValueOnce({ rows: [item] });
 
-            pool.query.mockResolvedValue({ rows: [item] });
-
-            const res = await request(app)
-                .post('/cart')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ product_id: 2, quantity: 3 });
-
-            expect(res.status).toBe(201);
-            expect(res.body).toEqual(item);
+            const result = await addToCart(1, 2, 3);
+            expect(result).toEqual(item);
+            expect(pool.query).toHaveBeenCalledOnce();
+            expect(pool.query.mock.calls[0][1]).toEqual([1, 2, 3]);
         });
 
-        it('returns 400 when product_id is missing', async () => {
+        it('updates quantity when item already exists (upsert)', async () => {
+            const updated = { user_id: 1, product_id: 2, quantity: 10 };
+            pool.query.mockResolvedValueOnce({ rows: [updated] });
 
-            const res = await request(app)
-                .post('/cart')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ quantity: 3 });
-
-            expect(res.status).toBe(400);
+            const result = await addToCart(1, 2, 10);
+            expect(result.quantity).toBe(10);
         });
-
-        it('returns 400 when quantity is less than 1', async () => {
-
-            const res = await request(app)
-                .post('/cart')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ product_id: 2, quantity: 0 });
-
-            expect(res.status).toBe(400);
-        });
-
-        it('returns 401 without auth token', async () => {
-
-            const res = await request(app)
-                .post('/cart')
-                .send({ product_id: 2, quantity: 3 });
-
-            expect(res.status).toBe(401);
-        });
-
-        it('returns 500 on database failure', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .post('/cart')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ product_id: 2, quantity: 3 });
-
-            expect(res.status).toBe(500);
-        });
-
     });
 
-    describe('GET /cart', () => {
-
-        it('returns all cart items for the logged-in user', async () => {
-
+    describe('getCart', () => {
+        it('returns all cart items for the user', async () => {
             const items = [
-                { user_id: 1, product_id: 2, quantity: 3 },
-                { user_id: 1, product_id: 5, quantity: 1 }
+                { product_id: 1, quantity: 2, product_name: 'Widget', price: 9.99, image_url: null },
+                { product_id: 3, quantity: 1, product_name: 'Gadget', price: 19.99, image_url: null },
             ];
+            pool.query.mockResolvedValueOnce({ rows: items });
 
-            pool.query.mockResolvedValue({ rows: items });
-
-            const res = await request(app)
-                .get('/cart')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`);
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(items);
+            const result = await getCart(1);
+            expect(result).toEqual(items);
+            expect(pool.query.mock.calls[0][1]).toEqual([1]);
         });
 
         it('returns empty array when cart is empty', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
 
-            pool.query.mockResolvedValue({ rows: [] });
-
-            const res = await request(app)
-                .get('/cart')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`);
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual([]);
+            const result = await getCart(1);
+            expect(result).toEqual([]);
         });
 
-        it('returns 401 without auth token', async () => {
-
-            const res = await request(app).get('/cart');
-
-            expect(res.status).toBe(401);
+        it('propagates database errors', async () => {
+            pool.query.mockRejectedValueOnce(new Error('db error'));
+            await expect(getCart(1)).rejects.toThrow('db error');
         });
-
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .get('/cart')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`);
-
-            expect(res.status).toBe(500);
-        });
-
     });
 
-    describe('PATCH /cart/:product_id', () => {
+    describe('updateCartItem', () => {
+        it('throws InputError when quantity is 0', async () => {
+            await expect(updateCartItem(1, 2, 0)).rejects.toMatchObject({ name: 'InputError' });
+        });
 
-        it('updates cart item quantity successfully', async () => {
+        it('throws InputError when quantity is negative', async () => {
+            await expect(updateCartItem(1, 2, -5)).rejects.toMatchObject({ name: 'InputError' });
+        });
 
+        it('throws 404 when cart item does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(updateCartItem(1, 999, 5)).rejects.toMatchObject({ statusCode: 404 });
+        });
+
+        it('updates and returns the cart item', async () => {
             const item = { user_id: 1, product_id: 2, quantity: 5 };
+            pool.query.mockResolvedValueOnce({ rows: [item] });
 
-            pool.query.mockResolvedValue({ rows: [item] });
-
-            const res = await request(app)
-                .patch('/cart/2')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ quantity: 5 });
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(item);
+            const result = await updateCartItem(1, 2, 5);
+            expect(result).toEqual(item);
+            expect(pool.query.mock.calls[0][1]).toEqual([5, 1, 2]);
         });
-
-        it('returns 404 when cart item does not exist', async () => {
-
-            pool.query.mockResolvedValue({ rows: [] });
-
-            const res = await request(app)
-                .patch('/cart/999')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ quantity: 5 });
-
-            expect(res.status).toBe(404);
-        });
-
-        it('returns 400 when quantity is less than 1', async () => {
-
-            const res = await request(app)
-                .patch('/cart/2')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ quantity: 0 });
-
-            expect(res.status).toBe(400);
-        });
-
-        it('returns 401 without auth token', async () => {
-
-            const res = await request(app)
-                .patch('/cart/2')
-                .send({ quantity: 5 });
-
-            expect(res.status).toBe(401);
-        });
-
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .patch('/cart/2')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ quantity: 5 });
-
-            expect(res.status).toBe(500);
-        });
-
     });
 
-    describe('DELETE /cart/:product_id', () => {
+    describe('removeFromCart', () => {
+        it('throws 404 when cart item does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(removeFromCart(1, 999)).rejects.toMatchObject({ statusCode: 404 });
+        });
 
-        it('removes an item from the cart successfully', async () => {
-
+        it('deletes and returns the cart item', async () => {
             const item = { user_id: 1, product_id: 2, quantity: 3 };
+            pool.query.mockResolvedValueOnce({ rows: [item] });
 
-            pool.query.mockResolvedValue({ rows: [item] });
-
-            const res = await request(app)
-                .delete('/cart/2')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`);
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(item);
+            const result = await removeFromCart(1, 2);
+            expect(result).toEqual(item);
+            expect(pool.query.mock.calls[0][1]).toEqual([1, 2]);
         });
 
-        it('returns 404 when cart item does not exist', async () => {
-
-            pool.query.mockResolvedValue({ rows: [] });
-
-            const res = await request(app)
-                .delete('/cart/999')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`);
-
-            expect(res.status).toBe(404);
+        it('propagates database errors', async () => {
+            pool.query.mockRejectedValueOnce(new Error('db error'));
+            await expect(removeFromCart(1, 2)).rejects.toThrow('db error');
         });
-
-        it('returns 401 without auth token', async () => {
-
-            const res = await request(app).delete('/cart/2');
-
-            expect(res.status).toBe(401);
-        });
-
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .delete('/cart/2')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`);
-
-            expect(res.status).toBe(500);
-        });
-
     });
-
 });

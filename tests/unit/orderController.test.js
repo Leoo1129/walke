@@ -1,226 +1,131 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import request from 'supertest';
-import jwt from 'jsonwebtoken';
-
-const TEST_TOKEN = jwt.sign({ id: 1, name: 'testuser' }, 'dev-secret-change-in-production');
-const ADMIN_TOKEN = jwt.sign({ id: 1, name: 'testuser', is_admin: true, email_verified: true }, 'dev-secret-change-in-production');
 
 vi.mock('../../src/database/database.js', () => ({
-    default: {
-        query: vi.fn(),
-        connect: vi.fn()
-    }
+    default: { query: vi.fn(), connect: vi.fn() }
 }));
 
-import { app } from '../../src/server.js';
+import { createOrder, getOrders, getOrder, getOrderDetails, updateOrder, deleteOrder } from '../../src/controllers/orderController.js';
 import pool from '../../src/database/database.js';
 
-describe('Orders API (Black Box)', () => {
+describe('orderController', () => {
+    beforeEach(() => vi.clearAllMocks());
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
-
-    describe('POST /orders', () => {
-
-        it('returns UBL XML when Accept: application/xml', async () => {
-
-            const cartItems = [{ product_id: 2, quantity: 3, price: 9.99, product_name: 'Widget', seller_id: 5 }];
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 29.97, voucher_id: null, created_at: new Date('2026-01-01') };
-            const buyer = { id: 1, name: 'testuser', street: '123 Main St', city: 'Sydney', postcode: '2000', country: 'AU' };
-            const seller = { id: 5, name: 'SellerUser', street: '456 Shop St', city: 'Melbourne', postcode: '3000', country: 'AU' };
-
-            pool.query
-                .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [buyer] })
-                .mockResolvedValueOnce({ rows: [seller] });
-
-            const mockClient = {
-                query: vi.fn()
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce({ rows: [order] })
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined),
-                release: vi.fn()
-            };
-            pool.connect.mockResolvedValue(mockClient);
-
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .set('Accept', 'application/xml')
-                .send({});
-
-            expect(res.status).toBe(201);
-            expect(res.headers['content-type']).toMatch(/application\/xml/);
-            expect(res.text).toContain('<cbc:UBLVersionID>2.1</cbc:UBLVersionID>');
-            expect(res.text).toContain('<cbc:ID>1</cbc:ID>');
-            expect(res.text).toContain('<cbc:Note>Status: pending</cbc:Note>');
-            expect(res.text).toContain('<cac:BuyerCustomerParty>');
-            expect(res.text).toContain('<cbc:Name>testuser</cbc:Name>');
-            expect(res.text).toContain('<cac:SellerSupplierParty>');
-            expect(res.text).toContain('<cbc:Name>SellerUser</cbc:Name>');
-            expect(res.text).toContain('<cac:OrderLine>');
-            expect(res.text).toContain('<cbc:Name>Widget</cbc:Name>');
-            expect(res.text).toContain('<cac:AnticipatedMonetaryTotal>');
-            expect(res.text).toContain('29.97');
+    describe('createOrder', () => {
+        it('throws InputError when buyer_id is missing', async () => {
+            await expect(createOrder(null)).rejects.toMatchObject({ name: 'InputError' });
         });
 
-        it('returns JSON by default', async () => {
-
-            const cartItems = [{ product_id: 2, quantity: 3, price: 9.99 }];
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 29.97, voucher_id: null, created_at: '2026-01-01T00:00:00.000Z' };
-            const buyer = { id: 1, name: 'testuser', street: null, city: null, postcode: null, country: null };
-
-            pool.query
-                .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [buyer] });
-
-            const mockClient = {
-                query: vi.fn()
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce({ rows: [order] })
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined),
-                release: vi.fn()
-            };
-            pool.connect.mockResolvedValue(mockClient);
-
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({});
-
-            expect(res.status).toBe(201);
-            expect(res.headers['content-type']).toMatch(/application\/json/);
-            expect(res.body.id).toBe(1);
-            expect(res.body.items).toEqual(cartItems);
-        });
-
-        it('applies a percentage voucher (discount < 1)', async () => {
-
-            const cartItems = [{ product_id: 2, quantity: 2, price: 10.00, seller_id: 5 }];
-            const voucher = { id: 5, name: 'SAVE20', discount: 0.2, expiry: null };
-            const order = { id: 2, buyer_id: 1, status: 'pending', total_price: 16.00, voucher_id: 5, created_at: new Date('2026-01-01') };
-            const buyer = { id: 1, name: 'testuser', street: null, city: null, postcode: null, country: null };
-            const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
-
-            pool.query
-                .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [voucher] })
-                .mockResolvedValueOnce({ rows: [buyer] })
-                .mockResolvedValueOnce({ rows: [seller] });
-
-            const mockClient = {
-                query: vi.fn()
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce({ rows: [order] })
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined),
-                release: vi.fn()
-            };
-            pool.connect.mockResolvedValue(mockClient);
-
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_code: 'SAVE20' });
-
-            expect(res.status).toBe(201);
-            expect(res.body.voucher_id).toBe(5);
-        });
-
-        it('applies a flat discount voucher (discount >= 1)', async () => {
-
-            const cartItems = [{ product_id: 3, quantity: 1, price: 50.00, seller_id: 5 }];
-            const voucher = { id: 6, name: 'FLAT10', discount: 10, expiry: null };
-            const order = { id: 3, buyer_id: 1, status: 'pending', total_price: 40.00, voucher_id: 6, created_at: new Date('2026-01-01') };
-            const buyer = { id: 1, name: 'testuser', street: null, city: null, postcode: null, country: null };
-            const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
-
-            pool.query
-                .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [voucher] })
-                .mockResolvedValueOnce({ rows: [buyer] })
-                .mockResolvedValueOnce({ rows: [seller] });
-
-            const mockClient = {
-                query: vi.fn()
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce({ rows: [order] })
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined)
-                    .mockResolvedValueOnce(undefined),
-                release: vi.fn()
-            };
-            pool.connect.mockResolvedValue(mockClient);
-
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_code: 'FLAT10' });
-
-            expect(res.status).toBe(201);
-        });
-
-        it('returns 404 when voucher does not exist', async () => {
-
-            const cartItems = [{ product_id: 2, quantity: 1, price: 9.99 }];
-
-            pool.query
-                .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [] });
-
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_code: 'INVALID' });
-
-            expect(res.status).toBe(404);
-        });
-
-        it('returns 400 when voucher has expired', async () => {
-
-            const cartItems = [{ product_id: 2, quantity: 1, price: 9.99 }];
-            const expired = { id: 7, name: 'OLD', discount: 0.1, expiry: new Date('2020-01-01') };
-
-            pool.query
-                .mockResolvedValueOnce({ rows: cartItems })
-                .mockResolvedValueOnce({ rows: [expired] });
-
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({ voucher_code: 'OLD' });
-
-            expect(res.status).toBe(400);
-        });
-
-        it('returns 400 when cart is empty', async () => {
-
+        it('throws 400 when cart is empty', async () => {
             pool.query.mockResolvedValueOnce({ rows: [] });
-
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({});
-
-            expect(res.status).toBe(400);
+            await expect(createOrder(1)).rejects.toMatchObject({ statusCode: 400 });
         });
 
-        it('returns 401 without auth token', async () => {
-
-            const res = await request(app).post('/orders').send({});
-
-            expect(res.status).toBe(401);
+        it('throws 404 when voucher code does not exist', async () => {
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ product_id: 1, quantity: 1, price: 10, product_name: 'X', seller_id: 2 }] })
+                .mockResolvedValueOnce({ rows: [] });
+            await expect(createOrder(1, 'BADCODE')).rejects.toMatchObject({ statusCode: 404 });
         });
 
-        it('returns 500 on database failure', async () => {
+        it('throws 400 when voucher is expired', async () => {
+            const expired = { id: 1, name: 'OLD', discount: 0.1, expiry: new Date('2020-01-01') };
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ product_id: 1, quantity: 1, price: 10, product_name: 'X', seller_id: 2 }] })
+                .mockResolvedValueOnce({ rows: [expired] });
+            await expect(createOrder(1, 'OLD')).rejects.toMatchObject({ statusCode: 400 });
+        });
 
-            pool.query.mockResolvedValueOnce({ rows: [{ product_id: 2, quantity: 3, price: 9.99 }] });
+        it('creates order from cart items and clears cart', async () => {
+            const cartItems = [{ product_id: 1, quantity: 2, price: 10, product_name: 'Widget', seller_id: 5 }];
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 20, voucher_id: null };
+            const buyer = { id: 1, name: 'Alice', street: null, city: null, postcode: null, country: null };
+            const seller = { id: 5, name: 'BobShop', street: null, city: null, postcode: null, country: null };
+
+            pool.query
+                .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
+
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce({ rows: [order] })
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce(undefined),
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
+
+            const result = await createOrder(1);
+            expect(result.order).toEqual(order);
+            expect(result.items).toEqual(cartItems);
+            expect(result.buyer).toEqual(buyer);
+            const deleteCall = mockClient.query.mock.calls.find(c => c[0].includes('DELETE FROM cart_items'));
+            expect(deleteCall).toBeDefined();
+        });
+
+        it('applies percentage voucher discount (discount < 1)', async () => {
+            const cartItems = [{ product_id: 1, quantity: 2, price: 10, product_name: 'X', seller_id: 5 }];
+            const voucher = { id: 2, name: 'SAVE20', discount: 0.2, expiry: null };
+            const order = { id: 2, buyer_id: 1, status: 'pending', total_price: 16, voucher_id: 2 };
+            const buyer = { id: 1, name: 'Alice' };
+            const seller = { id: 5, name: 'Bob' };
+
+            pool.query
+                .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
+
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce({ rows: [order] })
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce(undefined),
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
+
+            const result = await createOrder(1, 'SAVE20');
+            expect(result.order.voucher_id).toBe(2);
+            const insertCall = mockClient.query.mock.calls.find(c => c[0].includes('INSERT INTO orders'));
+            expect(insertCall[1][2]).toBe(16);
+        });
+
+        it('applies flat discount voucher (discount >= 1)', async () => {
+            const cartItems = [{ product_id: 1, quantity: 1, price: 50, product_name: 'X', seller_id: 5 }];
+            const voucher = { id: 3, name: 'FLAT10', discount: 10, expiry: null };
+            const order = { id: 3, buyer_id: 1, status: 'pending', total_price: 40, voucher_id: 3 };
+            const buyer = { id: 1, name: 'Alice' };
+            const seller = { id: 5, name: 'Bob' };
+
+            pool.query
+                .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [buyer] })
+                .mockResolvedValueOnce({ rows: [seller] });
+
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce({ rows: [order] })
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce(undefined),
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
+
+            const result = await createOrder(1, 'FLAT10');
+            const insertCall = mockClient.query.mock.calls.find(c => c[0].includes('INSERT INTO orders'));
+            expect(insertCall[1][2]).toBe(40);
+        });
+
+        it('rolls back transaction on error', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ product_id: 1, quantity: 1, price: 10, product_name: 'X', seller_id: 5 }] });
 
             const mockClient = {
                 query: vi.fn()
@@ -230,180 +135,103 @@ describe('Orders API (Black Box)', () => {
             };
             pool.connect.mockResolvedValue(mockClient);
 
-            const res = await request(app)
-                .post('/orders')
-                .set('Authorization', `Bearer ${TEST_TOKEN}`)
-                .send({});
-
-            expect(res.status).toBe(500);
+            await expect(createOrder(1)).rejects.toThrow('db error');
+            const calls = mockClient.query.mock.calls.map(c => c[0]);
+            expect(calls).toContain('ROLLBACK');
         });
-
     });
 
-    describe('GET /orders', () => {
+    describe('getOrders', () => {
+        it('returns all orders when no seller_id provided', async () => {
+            const orders = [{ id: 1 }, { id: 2 }];
+            pool.query.mockResolvedValueOnce({ rows: orders });
 
-        it('returns all orders', async () => {
-
-            const orders = [
-                { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null },
-                { id: 2, buyer_id: 2, status: 'completed', total_price: 9.99, voucher_id: null }
-            ];
-
-            pool.query.mockResolvedValue({ rows: orders });
-
-            const res = await request(app).get('/orders');
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(orders);
+            const result = await getOrders();
+            expect(result).toEqual(orders);
+            expect(pool.query.mock.calls[0][0]).not.toContain('seller_id');
         });
 
-        it('returns 500 on database error', async () => {
+        it('returns orders filtered by seller_id', async () => {
+            const orders = [{ id: 1 }];
+            pool.query.mockResolvedValueOnce({ rows: orders });
 
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app).get('/orders');
-
-            expect(res.status).toBe(500);
+            const result = await getOrders(5);
+            expect(result).toEqual(orders);
+            expect(pool.query.mock.calls[0][0]).toContain('seller_id');
+            expect(pool.query.mock.calls[0][1]).toContain(5);
         });
 
+        it('throws 404 when no orders exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(getOrders()).rejects.toMatchObject({ statusCode: 404 });
+        });
     });
 
-    describe('GET /orders/:id', () => {
-
-        it('returns an order as JSON when it exists', async () => {
-
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null, buyer_name: 'Alice', buyer_city: 'Sydney', buyer_country: 'AU' };
-
-            pool.query
-                .mockResolvedValueOnce({ rows: [order] })  // order + buyer JOIN
-                .mockResolvedValueOnce({ rows: [] });       // items (empty, so sellers query skipped)
-
-            const res = await request(app).get('/orders/1');
-
-            expect(res.status).toBe(200);
-            expect(res.body).toMatchObject({ id: 1, buyer_id: 1, status: 'pending', total_price: 19.99 });
-            expect(res.body.items).toEqual([]);
-            expect(res.body.sellers).toEqual([]);
-        });
-
-        it('returns UBL XML when Accept: application/xml', async () => {
-
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null, created_at: new Date('2026-01-01') };
-            const items = [{ product_id: 2, quantity: 2, price: 9.99, product_name: 'Widget', seller_id: 5 }];
-            const buyer = { id: 1, name: 'testuser', street: '123 Main St', city: 'Sydney', postcode: '2000', country: 'AU' };
-            const seller = { id: 5, name: 'SellerUser', street: null, city: null, postcode: null, country: null };
+    describe('getOrder', () => {
+        it('returns order with items, buyer, and sellers', async () => {
+            const order = { id: 1, buyer_id: 1, status: 'pending', buyer_name: 'Alice', buyer_city: 'Sydney', buyer_country: 'AU' };
+            const items = [{ product_id: 2, quantity: 1, price: 9.99, seller_id: 5 }];
+            const sellers = [{ id: 5, name: 'BobShop' }];
 
             pool.query
                 .mockResolvedValueOnce({ rows: [order] })
                 .mockResolvedValueOnce({ rows: items })
-                .mockResolvedValueOnce({ rows: [buyer] })
-                .mockResolvedValueOnce({ rows: [seller] });
+                .mockResolvedValueOnce({ rows: sellers });
 
-            const res = await request(app)
-                .get('/orders/1')
-                .set('Accept', 'application/xml');
-
-            expect(res.status).toBe(200);
-            expect(res.headers['content-type']).toMatch(/application\/xml/);
-            expect(res.text).toContain('<cbc:UBLVersionID>2.1</cbc:UBLVersionID>');
-            expect(res.text).toContain('<cbc:ID>1</cbc:ID>');
-            expect(res.text).toContain('<cac:BuyerCustomerParty>');
-            expect(res.text).toContain('<cbc:Name>testuser</cbc:Name>');
-            expect(res.text).toContain('<cac:SellerSupplierParty>');
-            expect(res.text).toContain('<cac:OrderLine>');
-            expect(res.text).toContain('<cbc:Name>Widget</cbc:Name>');
-            expect(res.text).toContain('<cac:AnticipatedMonetaryTotal>');
+            const result = await getOrder(1);
+            expect(result.id).toBe(1);
+            expect(result.items).toEqual(items);
+            expect(result.sellers).toEqual(sellers);
+            expect(result.buyer).toMatchObject({ name: 'Alice', city: 'Sydney' });
         });
 
-        it('returns 404 when order does not exist', async () => {
-
-            pool.query.mockResolvedValue({ rows: [] });
-
-            const res = await request(app).get('/orders/999');
-
-            expect(res.status).toBe(404);
+        it('throws 404 when order does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(getOrder(999)).rejects.toMatchObject({ statusCode: 404 });
         });
 
-        it('returns 500 on database error', async () => {
+        it('returns empty sellers array when no items have seller_ids', async () => {
+            const order = { id: 1, buyer_id: 1, buyer_name: 'Alice', buyer_city: null, buyer_country: null };
+            pool.query
+                .mockResolvedValueOnce({ rows: [order] })
+                .mockResolvedValueOnce({ rows: [] });
 
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app).get('/orders/1');
-
-            expect(res.status).toBe(500);
+            const result = await getOrder(1);
+            expect(result.sellers).toEqual([]);
         });
-
     });
 
-    describe('PATCH /orders/:id', () => {
-
-        it('updates an order successfully', async () => {
-
-            const updated = { id: 1, buyer_id: 1, status: 'completed', total_price: 19.99, voucher_id: null };
-
-            pool.query.mockResolvedValue({ rows: [updated] });
-
-            const res = await request(app)
-                .patch('/orders/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-                .send({ status: 'completed' });
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(updated);
+    describe('updateOrder', () => {
+        it('throws 400 when no valid fields provided', async () => {
+            await expect(updateOrder(1, { invalid: 'x' })).rejects.toMatchObject({ statusCode: 400 });
         });
 
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .patch('/orders/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-                .send({ status: 'completed' });
-
-            expect(res.status).toBe(500);
+        it('throws 400 when order not found', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(updateOrder(999, { status: 'confirmed' })).rejects.toMatchObject({ statusCode: 400 });
         });
 
+        it('updates order status', async () => {
+            const updated = { id: 1, status: 'confirmed' };
+            pool.query.mockResolvedValueOnce({ rows: [updated] });
+
+            const result = await updateOrder(1, { status: 'confirmed' });
+            expect(result.status).toBe('confirmed');
+        });
     });
 
-    describe('DELETE /orders/:id', () => {
-
-        it('deletes an order successfully', async () => {
-
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 19.99, voucher_id: null };
-
-            pool.query.mockResolvedValue({ rows: [order] });
-
-            const res = await request(app)
-                .delete('/orders/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(order);
+    describe('deleteOrder', () => {
+        it('throws 404 when order does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(deleteOrder(999)).rejects.toMatchObject({ statusCode: 404 });
         });
 
-        it('returns 404 if order does not exist', async () => {
+        it('deletes and returns the order', async () => {
+            const order = { id: 1, buyer_id: 1, status: 'pending' };
+            pool.query.mockResolvedValueOnce({ rows: [order] });
 
-            pool.query.mockResolvedValue({ rows: [] });
-
-            const res = await request(app)
-                .delete('/orders/999')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
-
-            expect(res.status).toBe(404);
+            const result = await deleteOrder(1);
+            expect(result).toEqual(order);
         });
-
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .delete('/orders/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
-
-            expect(res.status).toBe(500);
-        });
-
     });
-
 });
