@@ -297,7 +297,7 @@ export async function upsertStorefront(business_id, fields, requesting_user_id, 
         requireRole(role, 'editor');
     }
 
-    const allowed = ['primary_color', 'secondary_color', 'accent_color', 'font', 'banner_url', 'layout', 'headline'];
+    const allowed = ['primary_color', 'secondary_color', 'accent_color', 'text_color', 'font', 'banner_url', 'layout', 'headline'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
