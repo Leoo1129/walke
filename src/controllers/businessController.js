@@ -297,7 +297,14 @@ export async function upsertStorefront(business_id, fields, requesting_user_id, 
         requireRole(role, 'editor');
     }
 
-    const allowed = ['primary_color', 'secondary_color', 'accent_color', 'text_color', 'font', 'banner_url', 'layout', 'headline'];
+    const allowed = [
+        'primary_color', 'secondary_color', 'accent_color', 'text_color',
+        'font', 'banner_url', 'layout', 'headline', 'subheadline',
+        'hero_align', 'hero_height', 'overlay_opacity',
+        'button_style', 'card_style', 'product_columns',
+        'announcement', 'announcement_bg', 'show_bio',
+        'social_instagram', 'social_twitter', 'social_website',
+    ];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
