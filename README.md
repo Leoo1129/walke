@@ -43,7 +43,7 @@ Walke is a full-stack marketplace and B2B procurement platform. Users can list p
 - Light / dark mode with CSS custom properties
 
 **Testing & Tooling**
-- Vitest + Supertest (98 tests)
+- Vitest + Supertest (283 tests — unit + system)
 - ESLint
 
 ---
@@ -82,7 +82,8 @@ walke/
 │   ├── public/                 # Static assets (logo, favicon)
 │   └── vite.config.js          # Proxies /api and /uploads → backend
 ├── tests/
-│   └── unit/                   # Backend unit + integration tests
+│   ├── unit/                   # Unit tests (controller functions directly)
+│   └── system/                 # System tests (HTTP via Supertest)
 ├── public/
 │   └── uploads/                # Uploaded images served statically
 ├── swagger.yaml                # Full OpenAPI 3.0 spec
@@ -135,17 +136,27 @@ psql -U postgres -d procurement -f src/database/database_schema.sql
 Create a `.env` file in the **project root**:
 
 ```env
+# Required
 DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/procurement
 JWT_SECRET=your_secret_key_here
+
+# Optional — email features (verification + password reset)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+SMTP_FROM=noreply@example.com
+APP_URL=http://localhost:3000
+
+# Optional — override default port (3000)
+PORT=3000
 ```
 
 > `JWT_SECRET` can be any string. Use something long and random in production.
+>
+> SMTP variables are only required if you want email verification and password reset to work. If omitted, user registration still succeeds but verification emails are not sent.
 
-The server port defaults to `3000` (set in `src/config.json`). You can override it:
-
-```env
-PORT=3000
-```
+The frontend sends requests to `/api/*` which Vite proxies to the backend in dev mode. In production, the backend serves the built frontend from `client/dist/`.
 
 ---
 
@@ -233,6 +244,11 @@ Full interactive docs at `http://localhost:3000/docs`.
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/login` | — | Login, returns JWT token |
+| POST | `/auth/request-verification` | Required | Send a verification email to your address |
+| POST | `/auth/verify-email` | — | Verify email with token from email link (`?token=`) |
+| POST | `/auth/forgot-password` | — | Send a password reset email (`{ email }`) |
+| GET | `/auth/validate-reset-token` | — | Check if a reset token is still valid (`?token=`) |
+| POST | `/auth/reset-password` | — | Reset password with token (`{ token, password }`) |
 
 ### Users
 | Method | Endpoint | Auth | Description |
@@ -357,13 +373,22 @@ XML documents can also be viewed or downloaded directly from the Order Detail pa
 
 ## Testing
 
-Tests cover all backend controllers via black-box HTTP testing (Supertest + Vitest). The database is mocked so no live database connection is required to run tests.
+The test suite uses Vitest and covers all backend controllers. The database pool is mocked so no live database connection is needed.
 
 ```bash
 npm test
 ```
 
-98 tests, all passing.
+283 tests, all passing.
+
+**Test layout:**
+
+| Folder | What it tests | How |
+|--------|--------------|-----|
+| `tests/unit/` | Controller functions directly | Imports functions, calls them with mocked `pool.query` |
+| `tests/system/` | HTTP routes end-to-end | Supertest against the full Express app |
+
+Unit tests are faster and test business logic in isolation. System tests verify routing, auth middleware, request parsing, and response formatting.
 
 ---
 

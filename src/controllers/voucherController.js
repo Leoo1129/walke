@@ -1,6 +1,8 @@
 import pool from '../database/database.js';
 
-class InputError extends Error {}
+class InputError extends Error {
+    constructor(message) { super(message); this.name = 'InputError'; }
+}
 
 const RANK = { owner: 4, admin: 3, editor: 2, viewer: 1 };
 

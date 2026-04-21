@@ -2,7 +2,9 @@ import pool from '../database/database.js';
 
 const ROLES = ['owner', 'admin', 'editor', 'viewer'];
 
-class InputError extends Error {}
+class InputError extends Error {
+    constructor(message) { super(message); this.name = 'InputError'; }
+}
 
 function requireRole(userRole, minRole) {
     const rank = { owner: 4, admin: 3, editor: 2, viewer: 1 };

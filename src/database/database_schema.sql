@@ -11,7 +11,10 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT TRUE,
     is_admin BOOLEAN DEFAULT FALSE,
     logo_url TEXT,
-    bio TEXT
+    bio TEXT,
+    email VARCHAR(255),
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT users_email_unique UNIQUE (email)
 );
 
 CREATE TABLE businesses (
@@ -130,6 +133,16 @@ CREATE TABLE wishlist (
     PRIMARY KEY (user_id, product_id),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE email_tokens (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token      VARCHAR(64) UNIQUE NOT NULL,
+    email      VARCHAR(255) NOT NULL,
+    type       VARCHAR(10) NOT NULL CHECK (type IN ('verify', 'reset')),
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE order_chats (

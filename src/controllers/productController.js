@@ -1,6 +1,8 @@
 import pool from '../database/database.js';
 
-class InputError extends Error {}
+class InputError extends Error {
+    constructor(message) { super(message); this.name = 'InputError'; }
+}
 
 export async function createProduct(name, price, seller_id, tags = [], image_url = null, business_id = null) {
     if (!name || price == null || !seller_id)

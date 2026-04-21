@@ -4,7 +4,9 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
-class InputError extends Error {}
+class InputError extends Error {
+    constructor(message) { super(message); this.name = 'InputError'; }
+}
 
 export async function login(name, password) {
     if (!name || !password) {

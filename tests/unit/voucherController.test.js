@@ -1,199 +1,179 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import request from 'supertest';
-import jwt from 'jsonwebtoken';
-
-const ADMIN_TOKEN = jwt.sign({ id: 1, name: 'testuser', is_admin: true }, 'dev-secret-change-in-production');
 
 vi.mock('../../src/database/database.js', () => ({
-    default: { query: vi.fn() }
+    default: { query: vi.fn(), connect: vi.fn() }
 }));
 
-import { app } from '../../src/server.js';
+import { createVoucher, getVouchers, getVoucher, updateVoucher, deleteVoucher } from '../../src/controllers/voucherController.js';
 import pool from '../../src/database/database.js';
 
-describe('Vouchers API (Black Box)', () => {
+describe('voucherController', () => {
+    beforeEach(() => vi.clearAllMocks());
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
+    describe('createVoucher', () => {
+        it('throws InputError when name is missing', async () => {
+            await expect(createVoucher(null, 10, null, null, null, 1, true))
+                .rejects.toMatchObject({ name: 'InputError' });
+        });
 
-    describe('POST /vouchers', () => {
+        it('throws InputError when discount is missing', async () => {
+            await expect(createVoucher('SALE', null, null, null, null, 1, true))
+                .rejects.toMatchObject({ name: 'InputError' });
+        });
 
-        it('creates a voucher successfully', async () => {
+        it('throws 403 when non-admin tries to create global voucher (no business_id)', async () => {
+            await expect(createVoucher('SALE', 10, null, null, null, 1, false))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
 
-            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 };
+        it('throws 403 when non-admin has insufficient business role', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ role: 'viewer' }] });
+            await expect(createVoucher('SALE', 10, null, null, 5, 1, false))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
 
+        it('throws 409 when voucher name already exists', async () => {
             pool.query
-                .mockResolvedValueOnce({ rows: [] })      // duplicate-name check: no existing voucher
-                .mockResolvedValueOnce({ rows: [voucher] }); // INSERT
-
-            const res = await request(app)
-                .post('/vouchers')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-                .send({
-                    name: 'Summer Sale',
-                    discount: 10,
-                    expiry: null,
-                    max_uses: 100
-                });
-
-            expect(res.status).toBe(201);
-            expect(res.body).toEqual(voucher);
+                .mockResolvedValueOnce({ rows: [{ role: 'admin' }] })
+                .mockResolvedValueOnce({ rows: [{ id: 99 }] });
+            await expect(createVoucher('SALE', 10, null, null, 5, 1, false))
+                .rejects.toMatchObject({ statusCode: 409 });
         });
 
-        it('returns 500 on database failure', async () => {
+        it('allows admin to create global voucher', async () => {
+            const voucher = { id: 1, name: 'GLOBAL', discount: 0.2, business_id: null };
+            pool.query
+                .mockResolvedValueOnce({ rows: [] })
+                .mockResolvedValueOnce({ rows: [voucher] });
 
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .post('/vouchers')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-                .send({
-                    name: 'Summer Sale',
-                    discount: 10
-                });
-
-            expect(res.status).toBe(500);
+            const result = await createVoucher('GLOBAL', 0.2, null, null, null, 1, true);
+            expect(result).toEqual(voucher);
         });
 
+        it('creates business voucher when user has admin role in business', async () => {
+            const voucher = { id: 2, name: 'BIZ20', discount: 0.2, business_id: 5 };
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ role: 'admin' }] })
+                .mockResolvedValueOnce({ rows: [] })
+                .mockResolvedValueOnce({ rows: [voucher] });
+
+            const result = await createVoucher('BIZ20', 0.2, null, null, 5, 1, false);
+            expect(result).toEqual(voucher);
+        });
+
+        it('creates business voucher when user is owner of business', async () => {
+            const voucher = { id: 3, name: 'OWNVOUCHER', discount: 10, business_id: 5 };
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ role: 'owner' }] })
+                .mockResolvedValueOnce({ rows: [] })
+                .mockResolvedValueOnce({ rows: [voucher] });
+
+            const result = await createVoucher('OWNVOUCHER', 10, null, null, 5, 1, false);
+            expect(result).toEqual(voucher);
+        });
     });
 
-    describe('GET /vouchers', () => {
-
+    describe('getVouchers', () => {
         it('returns all vouchers', async () => {
+            const vouchers = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }];
+            pool.query.mockResolvedValueOnce({ rows: vouchers });
 
-            const vouchers = [
-                { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 },
-                { id: 2, name: 'Half Off', discount: 50, expiry: null, max_uses: 50 }
-            ];
-
-            pool.query.mockResolvedValue({ rows: vouchers });
-
-            const res = await request(app).get('/vouchers');
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(vouchers);
+            const result = await getVouchers();
+            expect(result).toEqual(vouchers);
         });
 
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app).get('/vouchers');
-
-            expect(res.status).toBe(500);
+        it('throws 404 when no vouchers exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(getVouchers()).rejects.toMatchObject({ statusCode: 404 });
         });
-
     });
 
-    describe('GET /vouchers/:id', () => {
+    describe('getVoucher', () => {
+        it('returns the voucher when found', async () => {
+            const voucher = { id: 1, name: 'SALE', discount: 10 };
+            pool.query.mockResolvedValueOnce({ rows: [voucher] });
 
-        it('returns a voucher when it exists', async () => {
-
-            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100 };
-
-            pool.query.mockResolvedValue({ rows: [voucher] });
-
-            const res = await request(app).get('/vouchers/1');
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(voucher);
+            const result = await getVoucher(1);
+            expect(result).toEqual(voucher);
         });
 
-        it('returns 404 when voucher does not exist', async () => {
-
-            pool.query.mockResolvedValue({ rows: [] });
-
-            const res = await request(app).get('/vouchers/999');
-
-            expect(res.status).toBe(404);
+        it('throws 404 when voucher does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(getVoucher(999)).rejects.toMatchObject({ statusCode: 404 });
         });
-
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app).get('/vouchers/1');
-
-            expect(res.status).toBe(500);
-        });
-
     });
 
-    describe('PATCH /vouchers/:id', () => {
+    describe('updateVoucher', () => {
+        it('throws 404 when voucher does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(updateVoucher(999, { name: 'NEW' }, 1, true)).rejects.toMatchObject({ statusCode: 404 });
+        });
 
-        it('updates a voucher successfully', async () => {
+        it('throws 403 when non-admin tries to edit global voucher', async () => {
+            const voucher = { id: 1, name: 'GLOBAL', discount: 10, business_id: null };
+            pool.query.mockResolvedValueOnce({ rows: [voucher] });
+            await expect(updateVoucher(1, { name: 'NEW' }, 1, false)).rejects.toMatchObject({ statusCode: 403 });
+        });
 
-            const existing = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100, business_id: null };
-            const updated = { id: 1, name: 'Updated', discount: 20, expiry: null, max_uses: 50, business_id: null };
-
+        it('throws 400 when no valid fields provided', async () => {
+            const voucher = { id: 1, name: 'BIZ', discount: 10, business_id: 5 };
             pool.query
-                .mockResolvedValueOnce({ rows: [existing] }) // SELECT existing voucher (auth check)
-                .mockResolvedValueOnce({ rows: [updated] }); // UPDATE
-
-            const res = await request(app)
-                .patch('/vouchers/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-                .send({ name: 'Updated' });
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(updated);
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [{ role: 'admin' }] });
+            await expect(updateVoucher(1, { invalid: 'x' }, 1, false)).rejects.toMatchObject({ statusCode: 400 });
         });
 
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .patch('/vouchers/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-                .send({ name: 'x' });
-
-            expect(res.status).toBe(500);
-        });
-
-    });
-
-    describe('DELETE /vouchers/:id', () => {
-
-        it('deletes a voucher successfully', async () => {
-
-            const voucher = { id: 1, name: 'Summer Sale', discount: 10, expiry: null, max_uses: 100, business_id: null };
-
+        it('updates voucher fields for admin', async () => {
+            const existing = { id: 1, name: 'SALE', discount: 10, business_id: null };
+            const updated = { id: 1, name: 'NEW', discount: 20, business_id: null };
             pool.query
-                .mockResolvedValueOnce({ rows: [voucher] }) // SELECT existing voucher (auth check)
-                .mockResolvedValueOnce({ rows: [voucher] }); // DELETE
+                .mockResolvedValueOnce({ rows: [existing] })
+                .mockResolvedValueOnce({ rows: [updated] });
 
-            const res = await request(app)
-                .delete('/vouchers/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
-
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual(voucher);
+            const result = await updateVoucher(1, { name: 'NEW', discount: 20 }, 1, true);
+            expect(result.name).toBe('NEW');
         });
-
-        it('returns 404 if voucher does not exist', async () => {
-
-            pool.query.mockResolvedValueOnce({ rows: [] }); // SELECT returns nothing → 404
-
-            const res = await request(app)
-                .delete('/vouchers/999')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
-
-            expect(res.status).toBe(404);
-        });
-
-        it('returns 500 on database error', async () => {
-
-            pool.query.mockRejectedValue(new Error('db error'));
-
-            const res = await request(app)
-                .delete('/vouchers/1')
-                .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
-
-            expect(res.status).toBe(500);
-        });
-
     });
 
+    describe('deleteVoucher', () => {
+        it('throws 404 when voucher does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(deleteVoucher(999, 1, true)).rejects.toMatchObject({ statusCode: 404 });
+        });
+
+        it('throws 403 when non-admin tries to delete global voucher', async () => {
+            const voucher = { id: 1, name: 'GLOBAL', business_id: null };
+            pool.query.mockResolvedValueOnce({ rows: [voucher] });
+            await expect(deleteVoucher(1, 1, false)).rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        it('throws 403 when non-admin has insufficient business role', async () => {
+            const voucher = { id: 1, name: 'BIZ', business_id: 5 };
+            pool.query
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [{ role: 'editor' }] });
+            await expect(deleteVoucher(1, 1, false)).rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        it('deletes and returns voucher for admin', async () => {
+            const voucher = { id: 1, name: 'SALE', discount: 10, business_id: null };
+            pool.query
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [voucher] });
+
+            const result = await deleteVoucher(1, 1, true);
+            expect(result).toEqual(voucher);
+        });
+
+        it('deletes business voucher when user is owner', async () => {
+            const voucher = { id: 2, name: 'BIZ', discount: 5, business_id: 5 };
+            pool.query
+                .mockResolvedValueOnce({ rows: [voucher] })
+                .mockResolvedValueOnce({ rows: [{ role: 'owner' }] })
+                .mockResolvedValueOnce({ rows: [voucher] });
+
+            const result = await deleteVoucher(2, 1, false);
+            expect(result).toEqual(voucher);
+        });
+    });
 });
