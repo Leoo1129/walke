@@ -40,12 +40,13 @@ export default function BusinessStorefront() {
 
     const bgColor = storefront?.primary_color || '#111';
     const accentColor = storefront?.accent_color || '#0066cc';
+    const textColor = storefront?.text_color || '#ffffff';
     const fontFamily = storefront?.font || 'sans-serif';
 
     return (
         <div style={{ fontFamily }}>
             {/* Hero banner */}
-            <div style={{ ...styles.hero, background: bgColor, backgroundImage: storefront?.banner_url ? `url(${storefront.banner_url})` : undefined }}>
+            <div style={{ ...styles.hero, background: bgColor, color: textColor, backgroundImage: storefront?.banner_url ? `url(${storefront.banner_url})` : undefined }}>
                 {business.logo_url && <img src={business.logo_url} alt={business.name} style={styles.heroLogo} />}
                 <h1 style={styles.heroTitle}>{storefront?.headline || business.name}</h1>
                 {business.bio && <p style={styles.heroBio}>{business.bio}</p>}
@@ -101,7 +102,7 @@ export default function BusinessStorefront() {
 }
 
 const styles = {
-    hero: { padding: '60px 24px', textAlign: 'center', color: '#fff', backgroundSize: 'cover', backgroundPosition: 'center', minHeight: 200 },
+    hero: { padding: '60px 24px', textAlign: 'center', backgroundSize: 'cover', backgroundPosition: 'center', minHeight: 200 },
     heroLogo: { width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', marginBottom: 12, border: '3px solid rgba(255,255,255,0.3)' },
     heroTitle: { fontSize: 36, fontWeight: 700, marginBottom: 8 },
     heroBio: { opacity: 0.8, maxWidth: 500, margin: '0 auto 16px' },

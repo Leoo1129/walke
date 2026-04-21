@@ -12,6 +12,7 @@ export default function StorefrontBuilder() {
         primary_color: '#1a1a1a',
         secondary_color: '#ffffff',
         accent_color: '#0066cc',
+        text_color: '#ffffff',
         font: 'sans-serif',
         banner_url: '',
         layout: 'grid',
@@ -88,6 +89,12 @@ export default function StorefrontBuilder() {
                         <input name="accent_color" value={form.accent_color} onChange={handleChange} style={{ ...styles.input, flex: 1 }} />
                     </div>
 
+                    <label style={styles.label}>Text colour (hero)</label>
+                    <div style={styles.colorRow}>
+                        <input type="color" name="text_color" value={form.text_color} onChange={handleChange} style={styles.colorPicker} />
+                        <input name="text_color" value={form.text_color} onChange={handleChange} style={{ ...styles.input, flex: 1 }} />
+                    </div>
+
                     <label style={styles.label}>Font</label>
                     <select name="font" value={form.font} onChange={handleChange} style={styles.input}>
                         {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
@@ -120,8 +127,8 @@ export default function StorefrontBuilder() {
                 <div style={styles.preview}>
                     <p style={styles.previewLabel}>Preview</p>
                     <div style={{ ...styles.previewHero, background: form.primary_color, fontFamily: form.font }}>
-                        <p style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>{form.headline || 'Your Store Name'}</p>
-                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 4 }}>Your tagline here</p>
+                        <p style={{ color: form.text_color, fontSize: 22, fontWeight: 700 }}>{form.headline || 'Your Store Name'}</p>
+                        <p style={{ color: form.text_color, fontSize: 14, marginTop: 4, opacity: 0.75 }}>Your tagline here</p>
                     </div>
                     <div style={{ padding: 12, background: form.secondary_color }}>
                         <div style={form.layout === 'grid' ? styles.previewGrid : styles.previewList}>

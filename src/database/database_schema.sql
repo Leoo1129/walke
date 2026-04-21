@@ -44,6 +44,7 @@ CREATE TABLE storefront_config (
     primary_color TEXT DEFAULT '#1a1a1a',
     secondary_color TEXT DEFAULT '#ffffff',
     accent_color TEXT DEFAULT '#0066cc',
+    text_color TEXT DEFAULT '#ffffff',
     font TEXT DEFAULT 'sans-serif',
     banner_url TEXT,
     layout TEXT DEFAULT 'grid',
