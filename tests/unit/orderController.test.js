@@ -4,7 +4,7 @@ vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn(), connect: vi.fn() }
 }));
 
-import { createOrder, getOrders, getOrder, getOrderDetails, updateOrder, deleteOrder } from '../../src/controllers/orderController.js';
+import { createOrder, getOrders, getOrder, updateOrder, deleteOrder } from '../../src/controllers/orderController.js';
 import pool from '../../src/database/database.js';
 
 describe('orderController', () => {
@@ -119,7 +119,7 @@ describe('orderController', () => {
             };
             pool.connect.mockResolvedValue(mockClient);
 
-            const result = await createOrder(1, 'FLAT10');
+            await createOrder(1, 'FLAT10');
             const insertCall = mockClient.query.mock.calls.find(c => c[0].includes('INSERT INTO orders'));
             expect(insertCall[1][2]).toBe(40);
         });

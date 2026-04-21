@@ -87,7 +87,7 @@ describe('authController', () => {
                 .mockResolvedValueOnce({ rows: [] });
 
             await requestPasswordReset('alice@example.com');
-            const deleteCall = pool.query.mock.calls.find(c => c[0].includes("DELETE FROM email_tokens") && c[0].includes("'reset'"));
+            const deleteCall = pool.query.mock.calls.find(c => c[0].includes('DELETE FROM email_tokens') && c[0].includes('\'reset\''));
             expect(deleteCall).toBeDefined();
         });
     });

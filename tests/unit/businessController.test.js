@@ -42,7 +42,7 @@ describe('businessController', () => {
             expect(result).toEqual(business);
             const memberInsert = mockClient.query.mock.calls.find(c => c[0].includes('business_members'));
             expect(memberInsert).toBeDefined();
-            expect(memberInsert[0]).toContain("'owner'");
+            expect(memberInsert[0]).toContain('\'owner\'');
         });
 
         it('rolls back on error', async () => {
