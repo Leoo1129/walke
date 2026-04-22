@@ -3,13 +3,6 @@ info:
   title: Walke API
   version: 1.0.0
 
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
 paths:
 # ---------------- Auth ----------------
   /login:
@@ -2440,7 +2433,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
   schemas:
     Product:
       type: object
