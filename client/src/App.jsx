@@ -20,6 +20,7 @@ import AdminPanel from './pages/AdminPanel';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
+import Checkout from './pages/Checkout';
 
 function PrivateRoute({ children }) {
     const { isLoggedIn } = useAuth();
@@ -52,6 +53,7 @@ function AppRoutes() {
                 <Route path="/businesses/:id/manage" element={<PrivateRoute><ManageMembers /></PrivateRoute>} />
                 <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
                 <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+                <Route path="/checkout/:id" element={<PrivateRoute><Checkout /></PrivateRoute>} />
                 <Route path="/cart" element={<PrivateRoute><Cart /></PrivateRoute>} />
                 <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
                 <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />

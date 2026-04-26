@@ -1,7 +1,17 @@
+import Stripe from 'stripe';
 import pool from '../database/database.js';
 
 class InputError extends Error {
     constructor(message) { super(message); this.name = 'InputError'; }
+}
+
+function getStripe() {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        const error = new Error('Stripe is not configured (STRIPE_SECRET_KEY missing)');
+        error.statusCode = 503;
+        throw error;
+    }
+    return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
 export async function createOrder(buyer_id, voucher_code = null) {
@@ -63,8 +73,9 @@ export async function createOrder(buyer_id, voucher_code = null) {
         await client.query('BEGIN');
 
         const { rows: [createdOrder] } = await client.query(
-            'INSERT INTO orders (buyer_id, status, total_price, voucher_id) VALUES ($1, $2, $3, $4) RETURNING *',
-            [buyer_id, 'pending', total_price, voucher_id]
+            `INSERT INTO orders (buyer_id, status, total_price, voucher_id, payment_status)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [buyer_id, 'pending', total_price, voucher_id, 'awaiting_payment']
         );
         order = createdOrder;
 
@@ -85,6 +96,21 @@ export async function createOrder(buyer_id, voucher_code = null) {
         client.release();
     }
 
+    // Create a Stripe PaymentIntent for the order amount (in cents)
+    const stripe = getStripe();
+    const amountCents = Math.round(total_price * 100);
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountCents,
+        currency: 'aud',
+        metadata: { order_id: String(order.id), buyer_id: String(buyer_id) },
+    });
+
+    const { rows: [updatedOrder] } = await pool.query(
+        'UPDATE orders SET stripe_payment_intent_id = $1 WHERE id = $2 RETURNING *',
+        [paymentIntent.id, order.id]
+    );
+    order = updatedOrder;
+
     const { rows: [buyer] } = await pool.query(
         'SELECT id, name, street, city, postcode, country FROM users WHERE id = $1',
         [buyer_id]
@@ -100,7 +126,50 @@ export async function createOrder(buyer_id, voucher_code = null) {
         sellers = rows;
     }
 
-    return { order, items, buyer, sellers };
+    return { order, items, buyer, sellers, client_secret: paymentIntent.client_secret };
+}
+
+export async function confirmPayment(order_id, user_id) {
+    const { rows: [order] } = await pool.query(
+        'SELECT * FROM orders WHERE id = $1',
+        [order_id]
+    );
+
+    if (!order) {
+        const error = new Error('Order not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (order.buyer_id !== Number(user_id)) {
+        const error = new Error('Forbidden');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    if (order.payment_status === 'paid') return order;
+
+    if (!order.stripe_payment_intent_id) {
+        const error = new Error('No payment intent associated with this order');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const stripe = getStripe();
+    const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id);
+
+    if (paymentIntent.status !== 'succeeded') {
+        const error = new Error(`Payment not completed (status: ${paymentIntent.status})`);
+        error.statusCode = 402;
+        throw error;
+    }
+
+    const { rows: [updatedOrder] } = await pool.query(
+        'UPDATE orders SET payment_status = \'paid\' WHERE id = $1 RETURNING *',
+        [order_id]
+    );
+
+    return updatedOrder;
 }
 
 export async function getOrders(seller_id = null) {

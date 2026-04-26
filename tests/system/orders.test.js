@@ -9,20 +9,34 @@ vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn(), connect: vi.fn() }
 }));
 
+const { mockPaymentIntents: sysPaymentIntents, MockStripe: SysMockStripe } = vi.hoisted(() => {
+    const mockPaymentIntents = { create: vi.fn(), retrieve: vi.fn() };
+    function MockStripe() { return { paymentIntents: mockPaymentIntents }; }
+    return { mockPaymentIntents, MockStripe };
+});
+
+vi.mock('stripe', () => ({ default: SysMockStripe }));
+
+process.env.STRIPE_SECRET_KEY = 'sk_test_dummy';
+
 import { app } from '../../src/server.js';
 import pool from '../../src/database/database.js';
 
 describe('Orders API (system)', () => {
-    beforeEach(() => vi.clearAllMocks());
+    beforeEach(() => {
+        vi.resetAllMocks();
+        sysPaymentIntents.create.mockResolvedValue({ id: 'pi_sys_test', client_secret: 'cs_sys_secret' });
+    });
 
     describe('POST /orders', () => {
         it('creates order and returns JSON by default', async () => {
             const cartItems = [{ product_id: 1, quantity: 1, price: 10, seller_id: 5 }];
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 10, created_at: new Date() };
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 10, created_at: new Date(), stripe_payment_intent_id: 'pi_sys_test' };
             const buyer = { id: 1, name: 'alice' };
 
             pool.query
                 .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [order] })   // UPDATE stripe_payment_intent_id
                 .mockResolvedValueOnce({ rows: [buyer] })
                 .mockResolvedValueOnce({ rows: [] });
 
@@ -48,12 +62,13 @@ describe('Orders API (system)', () => {
 
         it('returns UBL XML when Accept: application/xml', async () => {
             const cartItems = [{ product_id: 2, quantity: 1, price: 9.99, product_name: 'Widget', seller_id: 5 }];
-            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 9.99, created_at: new Date('2026-01-01') };
+            const order = { id: 1, buyer_id: 1, status: 'pending', total_price: 9.99, created_at: new Date('2026-01-01'), stripe_payment_intent_id: 'pi_sys_test' };
             const buyer = { id: 1, name: 'alice', street: null, city: null, postcode: null, country: null };
             const seller = { id: 5, name: 'BobShop', street: null, city: null, postcode: null, country: null };
 
             pool.query
                 .mockResolvedValueOnce({ rows: cartItems })
+                .mockResolvedValueOnce({ rows: [order] })   // UPDATE stripe_payment_intent_id
                 .mockResolvedValueOnce({ rows: [buyer] })
                 .mockResolvedValueOnce({ rows: [seller] });
 

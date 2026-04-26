@@ -19,7 +19,8 @@ import {
     getOrderDetails,
     getOrders,
     updateOrder,
-    deleteOrder
+    deleteOrder,
+    confirmPayment
 } from './controllers/orderController.js';
 
 import {
@@ -392,7 +393,7 @@ app.delete('/cart/:product_id', requireAuth, async (req, res) => {
 app.post('/orders', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
         const { voucher_code } = req.body;
-        const { order, items, buyer, sellers } = await createOrder(req.user.id, voucher_code);
+        const { order, items, buyer, sellers, client_secret } = await createOrder(req.user.id, voucher_code);
 
         if (wantsXml(req)) {
             return res.status(201)
@@ -400,7 +401,7 @@ app.post('/orders', requireVerified, async (req, res) => {
                 .send(orderToXml(order, items, buyer, sellers));
         }
 
-        return res.status(201).json({ ...order, items });
+        return res.status(201).json({ ...order, items, client_secret });
     });
 });
 
@@ -674,6 +675,14 @@ app.get('/orders/:id/responses', async (req, res) => {
         const { id } = req.params;
         const responses = await getAllSellerResponses(id);
         return res.status(200).json(responses);
+    });
+});
+
+app.post('/orders/:id/pay', requireVerified, async (req, res) => {
+    return await handleErrors(res, async () => {
+        const { id } = req.params;
+        const order = await confirmPayment(id, req.user.id);
+        return res.status(200).json(order);
     });
 });
 

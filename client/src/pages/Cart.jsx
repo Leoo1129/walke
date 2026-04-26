@@ -39,9 +39,10 @@ export default function Cart() {
     async function placeOrder() {
         try {
             const body = voucher ? { voucher_code: voucher } : {};
-            await api.post('/orders', body);
-            alert('Order placed!');
-            navigate('/orders');
+            const { data } = await api.post('/orders', body);
+            navigate(`/checkout/${data.id}`, {
+                state: { client_secret: data.client_secret, total: data.total_price },
+            });
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to place order');
         }

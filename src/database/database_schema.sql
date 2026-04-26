@@ -98,6 +98,8 @@ CREATE TABLE orders (
     status TEXT,
     total_price DOUBLE PRECISION,
     voucher_id INTEGER,
+    payment_status TEXT DEFAULT 'awaiting_payment',
+    stripe_payment_intent_id TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (buyer_id) REFERENCES users(id),
     FOREIGN KEY (voucher_id) REFERENCES vouchers(id)
