@@ -152,6 +152,7 @@ export default function OrderDetail() {
     const isSeller = order.items?.some(i => i.seller_id === user?.id);
     const isBuyer = order.buyer_id === user?.id;
     const statusColor = { pending: '#f39c12', confirmed: '#27ae60', rejected: '#e74c3c', cancelled: '#95a5a6' };
+    const paymentColor = { awaiting_payment: '#e67e22', paid: '#27ae60' };
 
     // Map seller_id → seller name for chat tabs
     const sellerMap = {};
@@ -165,6 +166,9 @@ export default function OrderDetail() {
             <div style={styles.header}>
                 <h2 style={{ margin: 0 }}>Order #{order.id}</h2>
                 <span style={{ ...styles.badge, background: statusColor[order.status] || '#999' }}>{order.status}</span>
+                <span style={{ ...styles.badge, background: paymentColor[order.payment_status] || '#999' }}>
+                    {order.payment_status === 'paid' ? 'paid' : 'awaiting payment'}
+                </span>
             </div>
 
             {/* Summary row */}
@@ -340,11 +344,18 @@ export default function OrderDetail() {
                 </div>
             )}
 
-            {/* Buyer cancel */}
+            {/* Buyer actions */}
             {isBuyer && order.status === 'pending' && (
                 <div style={styles.section}>
                     <h3 style={styles.sectionTitle}>Actions</h3>
-                    <button onClick={cancelOrder} style={styles.rejectBtn}>Cancel Order</button>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        {order.payment_status !== 'paid' && (
+                            <button onClick={() => navigate(`/checkout/${order.id}`)} style={styles.confirmBtn}>
+                                Complete Payment
+                            </button>
+                        )}
+                        <button onClick={cancelOrder} style={styles.rejectBtn}>Cancel Order</button>
+                    </div>
                 </div>
             )}
 
@@ -443,6 +454,7 @@ const styles = {
     xmlPre: { color: '#d4d4d4', fontSize: 12, overflow: 'auto', maxHeight: 400, whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 },
     closeBtn: { background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 14 },
     actions: { display: 'flex', gap: 10, flexWrap: 'wrap' },
+    confirmBtn: { padding: '8px 16px', background: '#111', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
     acceptBtn: { padding: '8px 16px', background: '#27ae60', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
     rejectBtn: { padding: '8px 16px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
     infoBtn: { padding: '8px 16px', background: '#2980b9', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
