@@ -7,7 +7,7 @@ export default function Businesses() {
     const [businesses, setBusinesses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
-    const [form, setForm] = useState({ name: '', bio: '' });
+    const [form, setForm] = useState({ name: '', bio: '', abn: '' });
     const { isLoggedIn } = useAuth();
     const navigate = useNavigate();
 
@@ -23,7 +23,7 @@ export default function Businesses() {
         try {
             await api.post('/businesses', form);
             setShowCreate(false);
-            setForm({ name: '', bio: '' });
+            setForm({ name: '', bio: '', abn: '' });
             const r = await api.get('/businesses');
             setBusinesses(r.data);
         } catch (err) {
@@ -48,6 +48,7 @@ export default function Businesses() {
                 <form onSubmit={createBusiness} style={styles.form}>
                     <input placeholder="Business name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={styles.input} required />
                     <textarea placeholder="Bio (optional)" value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} style={styles.input} rows={3} />
+                    <input placeholder="ABN (optional, e.g. 53 004 085 616)" value={form.abn} onChange={e => setForm(f => ({ ...f, abn: e.target.value }))} style={styles.input} />
                     <button type="submit" style={styles.btn}>Create</button>
                 </form>
             )}

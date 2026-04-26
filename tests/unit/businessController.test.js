@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn(), connect: vi.fn() }
@@ -7,12 +7,79 @@ vi.mock('../../src/database/database.js', () => ({
 import {
     createBusiness, getBusiness, getBusinesses, updateBusiness, deleteBusiness,
     getMembers, inviteMember, updateMemberRole, removeMember,
-    getStorefront, upsertStorefront
+    getStorefront, upsertStorefront, lookupABN
 } from '../../src/controllers/businessController.js';
 import pool from '../../src/database/database.js';
 
+// 53 004 085 616 — passes the ABN checksum algorithm
+const VALID_ABN = '53004085616';
+
 describe('businessController', () => {
     beforeEach(() => vi.clearAllMocks());
+    afterEach(() => vi.unstubAllGlobals());
+
+    describe('lookupABN', () => {
+        it('throws InputError for non-numeric / wrong length', async () => {
+            await expect(lookupABN('123')).rejects.toMatchObject({ name: 'InputError' });
+            await expect(lookupABN('abcdefghijk')).rejects.toMatchObject({ name: 'InputError' });
+        });
+
+        it('throws InputError for invalid checksum', async () => {
+            await expect(lookupABN('12345678901')).rejects.toMatchObject({ name: 'InputError' });
+        });
+
+        it('strips spaces and hyphens before validating', async () => {
+            delete process.env.ABN_LOOKUP_GUID;
+            const result = await lookupABN('53 004 085 616');
+            expect(result.abn).toBe(VALID_ABN);
+        });
+
+        it('returns unverified when ABN_LOOKUP_GUID is not set', async () => {
+            delete process.env.ABN_LOOKUP_GUID;
+            const result = await lookupABN(VALID_ABN);
+            expect(result).toEqual({ abn: VALID_ABN, entity_name: null, abn_status: 'unverified' });
+        });
+
+        it('returns active entity when API confirms ABN', async () => {
+            process.env.ABN_LOOKUP_GUID = 'test-guid';
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                text: async () => `cb({"Abn":"${VALID_ABN}","AbnStatus":"Active","EntityName":"Test Corp","Message":""})`
+            });
+            vi.stubGlobal('fetch', mockFetch);
+
+            const result = await lookupABN(VALID_ABN);
+            expect(result).toEqual({ abn: VALID_ABN, entity_name: 'Test Corp', abn_status: 'active' });
+            delete process.env.ABN_LOOKUP_GUID;
+        });
+
+        it('throws InputError when API returns inactive ABN', async () => {
+            process.env.ABN_LOOKUP_GUID = 'test-guid';
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+                ok: true,
+                text: async () => `cb({"Abn":"${VALID_ABN}","AbnStatus":"Cancelled","EntityName":"Old Corp","Message":""})`
+            }));
+
+            await expect(lookupABN(VALID_ABN)).rejects.toMatchObject({ name: 'InputError' });
+            delete process.env.ABN_LOOKUP_GUID;
+        });
+
+        it('throws when fetch fails', async () => {
+            process.env.ABN_LOOKUP_GUID = 'test-guid';
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
+
+            await expect(lookupABN(VALID_ABN)).rejects.toThrow('ABN Lookup service unavailable');
+            delete process.env.ABN_LOOKUP_GUID;
+        });
+
+        it('throws when API returns non-ok response', async () => {
+            process.env.ABN_LOOKUP_GUID = 'test-guid';
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+
+            await expect(lookupABN(VALID_ABN)).rejects.toThrow('ABN Lookup service unavailable');
+            delete process.env.ABN_LOOKUP_GUID;
+        });
+    });
 
     describe('createBusiness', () => {
         it('throws InputError when name is missing', async () => {
@@ -25,7 +92,7 @@ describe('businessController', () => {
         });
 
         it('creates business and assigns creator as owner', async () => {
-            const business = { id: 1, name: 'MyBiz', bio: null, logo_url: null };
+            const business = { id: 1, name: 'MyBiz', bio: null, logo_url: null, abn: null };
             pool.query.mockResolvedValueOnce({ rows: [] });
 
             const mockClient = {
@@ -39,10 +106,36 @@ describe('businessController', () => {
             pool.connect.mockResolvedValue(mockClient);
 
             const result = await createBusiness('MyBiz', null, null, 1);
-            expect(result).toEqual(business);
+            expect(result).toMatchObject({ name: 'MyBiz' });
             const memberInsert = mockClient.query.mock.calls.find(c => c[0].includes('business_members'));
             expect(memberInsert).toBeDefined();
             expect(memberInsert[0]).toContain('\'owner\'');
+        });
+
+        it('rejects creation when ABN has invalid checksum', async () => {
+            await expect(createBusiness('BadABN', null, null, 1, '12345678901'))
+                .rejects.toMatchObject({ name: 'InputError' });
+        });
+
+        it('stores cleaned ABN when valid ABN provided (no GUID)', async () => {
+            delete process.env.ABN_LOOKUP_GUID;
+            const business = { id: 1, name: 'ValidBiz', bio: null, logo_url: null, abn: VALID_ABN };
+            pool.query.mockResolvedValueOnce({ rows: [] });
+
+            const mockClient = {
+                query: vi.fn()
+                    .mockResolvedValueOnce(undefined)
+                    .mockResolvedValueOnce({ rows: [business] })
+                    .mockResolvedValueOnce({ rows: [] })
+                    .mockResolvedValueOnce(undefined),
+                release: vi.fn()
+            };
+            pool.connect.mockResolvedValue(mockClient);
+
+            const result = await createBusiness('ValidBiz', null, null, 1, VALID_ABN);
+            expect(result.abn).toBe(VALID_ABN);
+            const insertCall = mockClient.query.mock.calls.find(c => c[0].includes('INSERT INTO businesses'));
+            expect(insertCall[1]).toContain(VALID_ABN);
         });
 
         it('rolls back on error', async () => {

@@ -254,8 +254,8 @@ app.delete('/users/:id', requireAuth, async (req, res) => {
 // ── Business Controller ──
 app.post('/businesses', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
-        const { name, bio, logo_url } = req.body;
-        const result = await createBusiness(name, bio, logo_url, req.user.id);
+        const { name, bio, logo_url, abn } = req.body;
+        const result = await createBusiness(name, bio, logo_url, req.user.id, abn);
         return res.status(201).json(result);
     });
 });
