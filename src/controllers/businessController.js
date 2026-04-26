@@ -6,6 +6,42 @@ class InputError extends Error {
     constructor(message) { super(message); this.name = 'InputError'; }
 }
 
+// ABN checksum weights per the Australian Business Register specification
+const ABN_WEIGHTS = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+
+function isValidABNChecksum(abn) {
+    const digits = abn.split('').map(Number);
+    digits[0] -= 1;
+    return digits.reduce((sum, d, i) => sum + d * ABN_WEIGHTS[i], 0) % 89 === 0;
+}
+
+export async function lookupABN(abn) {
+    const cleaned = abn.replace(/[\s-]/g, '');
+    if (!/^\d{11}$/.test(cleaned)) throw new InputError('ABN must be 11 digits');
+    if (!isValidABNChecksum(cleaned)) throw new InputError('Invalid ABN');
+
+    const guid = process.env.ABN_LOOKUP_GUID;
+    if (!guid) return { abn: cleaned, entity_name: null, abn_status: 'unverified' };
+
+    let res;
+    try {
+        res = await fetch(
+            `https://abr.business.gov.au/json/AbnDetails.aspx?abn=${cleaned}&callback=cb&guid=${guid}`
+        );
+    } catch {
+        throw new Error('ABN Lookup service unavailable');
+    }
+    if (!res.ok) throw new Error('ABN Lookup service unavailable');
+
+    const text = await res.text();
+    const data = JSON.parse(text.replace(/^cb\(/, '').replace(/\)$/, ''));
+
+    if (data.Message) throw new InputError(`ABN lookup failed: ${data.Message}`);
+    if (data.AbnStatus !== 'Active') throw new InputError(`ABN is not active (status: ${data.AbnStatus})`);
+
+    return { abn: cleaned, entity_name: data.EntityName, abn_status: 'active' };
+}
+
 function requireRole(userRole, minRole) {
     const rank = { owner: 4, admin: 3, editor: 2, viewer: 1 };
     if ((rank[userRole] || 0) < rank[minRole]) {
@@ -23,8 +59,11 @@ async function getMemberRole(business_id, user_id) {
     return member ? member.role : null;
 }
 
-export async function createBusiness(name, bio = null, logo_url = null, requesting_user_id) {
+export async function createBusiness(name, bio = null, logo_url = null, requesting_user_id, abn = null) {
     if (!name) throw new InputError('name is required');
+
+    let abnInfo = null;
+    if (abn) abnInfo = await lookupABN(abn);
 
     const { rows: [existing] } = await pool.query(
         'SELECT id FROM businesses WHERE LOWER(name) = LOWER($1) AND is_active = TRUE',
@@ -41,8 +80,8 @@ export async function createBusiness(name, bio = null, logo_url = null, requesti
         await client.query('BEGIN');
 
         const { rows: [business] } = await client.query(
-            'INSERT INTO businesses (name, bio, logo_url) VALUES ($1, $2, $3) RETURNING *',
-            [name, bio, logo_url]
+            'INSERT INTO businesses (name, bio, logo_url, abn) VALUES ($1, $2, $3, $4) RETURNING *',
+            [name, bio, logo_url, abnInfo ? abnInfo.abn : null]
         );
 
         await client.query(
@@ -51,7 +90,7 @@ export async function createBusiness(name, bio = null, logo_url = null, requesti
         );
 
         await client.query('COMMIT');
-        return business;
+        return { ...business, ...(abnInfo ? { abn_entity_name: abnInfo.entity_name, abn_status: abnInfo.abn_status } : {}) };
     } catch (e) {
         await client.query('ROLLBACK');
         throw e;
@@ -100,7 +139,12 @@ export async function updateBusiness(id, fields, requesting_user_id, isAdmin = f
         requireRole(role, 'admin');
     }
 
-    const allowed = ['name', 'bio', 'logo_url'];
+    if (fields.abn) {
+        const abnInfo = await lookupABN(fields.abn);
+        fields = { ...fields, abn: abnInfo.abn };
+    }
+
+    const allowed = ['name', 'bio', 'logo_url', 'abn'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {

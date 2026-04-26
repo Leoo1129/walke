@@ -22,6 +22,7 @@ CREATE TABLE businesses (
     name TEXT NOT NULL,
     bio TEXT,
     logo_url TEXT,
+    abn VARCHAR(11),
     is_active BOOLEAN DEFAULT TRUE,
     subscription_status TEXT DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
