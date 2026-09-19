@@ -1,0 +1,11 @@
+node_modules
+client/node_modules
+client/dist
+.git
+.env
+client/.env
+public/uploads/*
+!public/uploads/.gitkeep
+coverage
+*.log
+.DS_Store
