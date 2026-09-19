@@ -1,13 +1,22 @@
 # Walke
 
-Walke is a full-stack marketplace and B2B procurement platform. Users can list products, build branded business storefronts, manage teams, place orders, negotiate with sellers via chat, and generate standards-compliant UBL 2.1 XML procurement documents — all in one place.
+[![CI](https://github.com/Leoo1129/walke/actions/workflows/ci.yml/badge.svg)](https://github.com/Leoo1129/walke/actions/workflows/ci.yml)
+![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/react-19-61DAFB?logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/postgres-16-4169E1?logo=postgresql&logoColor=white)
+
+Walke is a full-stack marketplace and B2B procurement platform. Users can list products, build branded business storefronts, manage teams, place orders, negotiate with sellers via chat, pay with Stripe, and generate standards-compliant UBL 2.1 XML procurement documents — all in one place.
+
+![Walke marketplace](docs/screenshots/marketplace.png)
 
 ---
 
 ## Table of Contents
 
+- [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- [Quick Start (Docker)](#quick-start-docker)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [1. Clone and Install](#1-clone-and-install)
@@ -16,10 +25,35 @@ Walke is a full-stack marketplace and B2B procurement platform. Users can list p
   - [4. Run the Backend](#4-run-the-backend)
   - [5. Run the Frontend](#5-run-the-frontend)
 - [Features](#features)
+- [Security](#security)
 - [API Reference](#api-reference)
 - [XML / UBL 2.1](#xml--ubl-21)
 - [Testing](#testing)
 - [Linting](#linting)
+- [Team](#team)
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser["React SPA<br/>(Vite, React Router)"] -->|"/api/* JSON or UBL XML"| MW
+
+    subgraph API["Express 5 API"]
+        MW["Middleware<br/>helmet · CORS · rate limits<br/>JWT auth · zod validation"] --> Routes["Routers<br/>auth · users · products · cart<br/>orders · vouchers · businesses"]
+        Routes --> Controllers["Controllers<br/>business rules · UBL 2.1 XML"]
+        Controllers -.->|HttpError| EH["Central error handler"]
+    end
+
+    Controllers --> DB[("PostgreSQL")]
+    Controllers --> Stripe["Stripe<br/>PaymentIntents"]
+    Controllers --> SMTP["SMTP<br/>verification · reset · XML"]
+    Controllers --> ABR["ABN Lookup API"]
+    Browser -->|"card details"| StripeJS["Stripe.js"]
+```
+
+In production the API also serves the built React app, so the whole platform runs as a single container next to PostgreSQL.
 
 ---
 
@@ -34,6 +68,8 @@ Walke is a full-stack marketplace and B2B procurement platform. Users can list p
 - File uploads via `multer`
 - Email via `nodemailer` (verification + password reset + XML delivery)
 - Stripe payments via `stripe`
+- Request validation via `zod`
+- Security headers via `helmet`, rate limiting via `express-rate-limit`
 - API docs via Swagger UI + OpenAPI 3.0
 
 **Frontend**
@@ -41,12 +77,15 @@ Walke is a full-stack marketplace and B2B procurement platform. Users can list p
 - React Router v6
 - Axios
 - Stripe.js (`@stripe/stripe-js`)
-- React Context (auth + theme + currency)
+- React Context (auth, cart, toasts, theme, currency)
+- Route-level code splitting with `React.lazy`
 - Light / dark mode with CSS custom properties
 
 **Testing & Tooling**
-- Vitest + Supertest (283 tests — unit + system)
+- Vitest + Supertest (348 tests, ~81% line coverage)
 - ESLint
+- Docker + Docker Compose
+- GitHub Actions (lint, test, build, Docker image)
 
 ---
 
@@ -55,45 +94,63 @@ Walke is a full-stack marketplace and B2B procurement platform. Users can list p
 ```
 walke/
 ├── src/                        # Backend source
-│   ├── server.js               # Express app + all route definitions
+│   ├── app.js                  # Express app: middleware, routers, error handling
+│   ├── server.js               # Starts the HTTP server, graceful shutdown
 │   ├── config.json             # Server config (default port: 3000)
-│   ├── handler.js              # Centralised error handler
+│   ├── routes/                 # One Express router per resource
+│   │   ├── auth.js  users.js  products.js  cart.js
+│   │   └── orders.js  vouchers.js  businesses.js  images.js
 │   ├── controllers/            # Business logic per resource
-│   │   ├── userController.js
-│   │   ├── productController.js
-│   │   ├── orderController.js
-│   │   ├── orderResponseController.js
-│   │   ├── orderCancellationController.js
-│   │   ├── cartController.js
-│   │   ├── voucherController.js
-│   │   ├── businessController.js
-│   │   ├── chatController.js
-│   │   ├── imageController.js
-│   │   └── XMLController.js
+│   │   ├── userController.js  productController.js  orderController.js
+│   │   ├── orderResponseController.js  orderCancellationController.js
+│   │   ├── cartController.js  voucherController.js  businessController.js
+│   │   └── chatController.js  imageController.js  XMLController.js
 │   ├── middleware/
-│   │   └── auth.js             # requireAuth / requireAdmin / requireVerified middleware
+│   │   ├── auth.js             # requireAuth / requireAdmin / requireVerified / optionalAuth
+│   │   ├── orderAccess.js      # Restricts order resources to buyer, sellers and admins
+│   │   ├── security.js         # helmet, CORS allowlist, request logging
+│   │   ├── rateLimit.js        # Login / registration / email endpoint limits
+│   │   └── errorHandler.js     # Central error handler + JSON 404
+│   ├── validation/             # zod schemas + validateBody / validateIdParam
+│   ├── utils/                  # HttpError classes, environment helpers
 │   ├── services/
-│   │   └── mailer.js           # Nodemailer (email verification, password reset, XML delivery)
+│   │   └── mailer.js           # Nodemailer (verification, password reset, XML delivery)
 │   └── database/
 │       ├── database.js         # pg connection pool
 │       └── database_schema.sql # Full schema (run this to set up the DB)
 ├── client/                     # Frontend (React + Vite)
 │   ├── src/
-│   │   ├── pages/              # Route-level page components
-│   │   ├── components/         # Shared components (Navbar)
-│   │   ├── context/            # AuthContext, ThemeContext, CurrencyContext
-│   │   └── api.js              # Axios instance (auto-injects Bearer token)
+│   │   ├── pages/              # Route-level page components (lazy-loaded)
+│   │   ├── components/         # Navbar, PageLoader, SessionWatcher
+│   │   ├── context/            # Auth, Cart, Toast, Theme, Currency contexts
+│   │   └── api.js              # Axios instance (Bearer token, session expiry)
 │   ├── .env.example            # Frontend environment variable template (VITE_*)
-│   ├── public/                 # Static assets (logo, favicon)
 │   └── vite.config.js          # Proxies /api and /uploads → backend
 ├── tests/
 │   ├── unit/                   # Unit tests (controller functions directly)
 │   └── system/                 # System tests (HTTP via Supertest)
-├── public/
-│   └── uploads/                # Uploaded images served statically
-├── swagger.yaml                # Full OpenAPI 3.0 spec
-└── package.json
+├── public/uploads/             # Uploaded images served statically
+├── Dockerfile                  # Multi-stage build (client + API, non-root)
+├── docker-compose.yml          # PostgreSQL + API in one command
+├── .github/workflows/ci.yml    # GitHub Actions pipeline
+└── swagger.yaml                # Full OpenAPI 3.0 spec
 ```
+
+---
+
+## Quick Start (Docker)
+
+The fastest way to run everything — PostgreSQL, the API and the built frontend:
+
+```bash
+cp .env.example .env    # set JWT_SECRET; Stripe and SMTP keys are optional
+docker compose up --build
+```
+
+Open `http://localhost:3000` (set `HOST_PORT` in `.env` if port 3000 is taken). The database schema is applied automatically on first start.
+
+> Without SMTP credentials, new accounts cannot receive their verification email. To verify an account locally, run
+> `docker compose exec db psql -U walke -d procurement -c "UPDATE users SET email_verified = TRUE;"`
 
 ---
 
@@ -101,7 +158,7 @@ walke/
 
 ### Prerequisites
 
-- **Node.js** 18+
+- **Node.js** 20+
 - **PostgreSQL** 14+
 - npm
 
@@ -173,7 +230,9 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 > `JWT_SECRET` can be any string in development. When `NODE_ENV=production` the server refuses to start without it, so a well-known fallback secret is never used to sign real tokens.
 >
-> SMTP variables are only required if you want email verification, password reset, and XML email delivery to work. If omitted, user registration still succeeds but verification emails are not sent.
+> SMTP variables are only required if you want email verification, password reset, and XML email delivery to work. If omitted, registration still succeeds; in development the verification / reset link is printed to the server console so you can open it directly.
+>
+> Behind a reverse proxy, set `TRUST_PROXY=1` so rate limiting sees the real client IP.
 >
 > `ABN_LOOKUP_GUID` is optional — if omitted, ABN validation is skipped during business creation.
 
@@ -186,7 +245,7 @@ The frontend sends requests to `/api/*` which Vite proxies to the backend in dev
 From the project root:
 
 ```bash
-npm start
+npm start        # or: npm run dev (restarts on file changes)
 ```
 
 The API will be available at `http://localhost:3000`.  
@@ -232,9 +291,31 @@ Vite automatically proxies requests:
 
 ---
 
+## Security
+
+- **Authentication** — bcrypt-hashed passwords and 24-hour JWTs. The server refuses to start in production without `JWT_SECRET`, and the client signs users out cleanly when a token expires.
+- **Authorization** — orders, responses, cancellations, negotiation chats and XML emails are restricted to the order's buyer, sellers with items in it, and admins. Sellers only see their own chat on multi-seller orders. Products are always listed under the caller, and business listings require the editor role.
+- **Privacy** — public profiles never include email or street address; the full user list is admin-only.
+- **Input validation** — registration, login, password reset, products, cart, orders, chat messages, vouchers and business creation validate their bodies with zod and return field-level errors; non-numeric ids are rejected with 400 before reaching the database.
+- **Abuse protection** — rate limits on login (10 / 15 min), registration (5 / hour) and email-sending endpoints (5 / 15 min).
+- **Headers & CORS** — helmet with a Content Security Policy scoped to Stripe, Google Fonts and the exchange-rate API; CORS restricted to `CORS_ORIGINS`.
+- **Error handling** — unexpected errors return a generic 500 without database or stack details.
+- **Payments** — card details go directly to Stripe; orders are only marked paid after the server confirms the PaymentIntent succeeded.
+
+---
+
 ## API Reference
 
 Full interactive docs at `http://localhost:3000/docs`.
+
+![Swagger API docs](docs/screenshots/api-docs.png)
+
+Validation errors use a consistent shape:
+
+```json
+{ "error": "email: must be a valid email address",
+  "details": [{ "field": "email", "message": "must be a valid email address" }] }
+```
 
 ### Auth
 | Method | Endpoint | Auth | Description |
@@ -249,15 +330,15 @@ Full interactive docs at `http://localhost:3000/docs`.
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/users` | — | Register a new user (triggers verification email) |
-| GET | `/users` | — | List all users (or search with `?name=`) |
-| GET | `/users/:id` | — | Get user profile |
+| GET | `/users` | Required | Search with `?name=`; listing all users is admin only |
+| GET | `/users/:id` | Optional | Public profile; email and address only for the user themselves or an admin |
 | PATCH | `/users/:id` | Required | Update user (name, address, bio, logo_url) |
 | DELETE | `/users/:id` | Required | Soft-delete user |
 
 ### Products
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/products` | Required (verified) | Create a product |
+| POST | `/products` | Required (verified) | Create a product (listed under the caller; editor role needed for `business_id`) |
 | GET | `/products` | — | List products (filter with `?seller_id=` or `?business_id=`) |
 | GET | `/products/:id` | — | Get a product |
 | PATCH | `/products/:id` | Required (owner only) | Update product |
@@ -275,24 +356,26 @@ Full interactive docs at `http://localhost:3000/docs`.
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/orders` | Required (verified) | Place order from cart (optionally pass `voucher_code`), returns Stripe `client_secret` |
-| GET | `/orders` | — | List orders (filter with `?seller_id=`) |
-| GET | `/orders/:id` | — | Get order details (JSON or UBL XML) |
+| GET | `/orders` | Required | Your orders as buyer; `?seller_id=<your id>` for orders of your products; admins see all |
+| GET | `/orders/:id` | Order party | Get order details (JSON or UBL XML) |
 | PATCH | `/orders/:id` | Admin only | Update order |
 | DELETE | `/orders/:id` | Admin only | Delete order |
 | POST | `/orders/:id/pay` | Required (verified) | Confirm Stripe payment for an order |
 | POST | `/orders/:id/response` | Required (verified) | Seller submits response (`AB` / `RE` / `IP`) |
-| GET | `/orders/:id/response` | — | Get order response (JSON or UBL XML) |
-| GET | `/orders/:id/responses` | — | Get all seller responses for an order |
+| GET | `/orders/:id/response` | Order party | Get order response (JSON or UBL XML) |
+| GET | `/orders/:id/responses` | Order party | Get all seller responses for an order |
 | POST | `/orders/:id/cancel` | Required (verified) | Buyer cancels order |
-| GET | `/orders/:id/cancel` | — | Get cancellation details (JSON or UBL XML) |
-| POST | `/orders/:id/xml-email` | Required | Email the order XML document to a specified address |
+| GET | `/orders/:id/cancel` | Order party | Get cancellation details (JSON or UBL XML) |
+| POST | `/orders/:id/xml-email` | Order party | Email the order XML document to a specified address |
+
+> **Order party** = the buyer, a seller with items in the order, or an admin.
 
 ### Order Chat
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/orders/:id/chat/:seller_id` | Required (verified) | Open (or get) chat with a seller |
-| GET | `/orders/:id/chats` | Required | Get all chats for an order |
-| GET | `/orders/:id/chat/:seller_id` | Required | Get chat messages |
+| GET | `/orders/:id/chats` | Order party | Get chats for an order (sellers see only their own) |
+| GET | `/orders/:id/chat/:seller_id` | Chat participant | Get chat messages |
 | POST | `/orders/:id/chat/:seller_id/message` | Required (verified) | Send a message (turn-based) |
 | POST | `/orders/:id/chat/:seller_id/finalize` | Required (verified) | Finalize chat (`accept` / `reject` / `confirm` / `cancel`) |
 
@@ -370,13 +453,14 @@ curl -X GET http://localhost:3000/orders/1 \
 
 ## Testing
 
-The test suite uses Vitest and covers all backend controllers. The database pool is mocked so no live database connection is needed.
+The test suite uses Vitest and covers all backend controllers, routes, middleware and validation. The database pool is mocked so no live database connection is needed.
 
 ```bash
-npm test
+npm test                # run the suite
+npm run test:coverage   # with a v8 coverage report
 ```
 
-283 tests, all passing.
+348 tests, ~81% line coverage. GitHub Actions runs lint, tests with coverage, the frontend build and a Docker image build on every push and pull request.
 
 **Test layout:**
 
@@ -398,3 +482,11 @@ npm run lint
 # Frontend
 cd client && npm run lint
 ```
+
+---
+
+## Team
+
+Walke was originally built as a team project by a team of four developers, including **Leo Dong**.
+
+Since then, Leo has continued developing the project: fixing broken access control on orders and user data, adding rate limiting, security headers and zod validation, restructuring the backend into routers, containerising it with Docker, setting up GitHub Actions CI, and improving the frontend with code splitting, toast notifications, session-expiry handling and a responsive navbar.
