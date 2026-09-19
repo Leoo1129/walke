@@ -158,6 +158,9 @@ APP_URL=http://localhost:5173
 # Optional — ABN validation via Australian Business Register API
 ABN_LOOKUP_GUID=your_abr_guid
 
+# Optional — cross-origin allowlist (comma-separated; any origin in dev, same-origin in production)
+CORS_ORIGINS=http://localhost:5173
+
 # Optional — override default port (3000)
 PORT=3000
 ```

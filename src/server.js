@@ -1,7 +1,6 @@
 // npm imports
 import 'dotenv/config';
 import express, { json } from 'express';
-import cors from 'cors';
 import YAML from 'yaml';
 import sui from 'swagger-ui-express';
 import fs from 'fs';
@@ -100,6 +99,7 @@ import {
 } from './controllers/XMLController.js';
 
 import { handleErrors } from './handler.js';
+import { securityHeaders, corsPolicy, requestLogger } from './middleware/security.js';
 import { sendXmlEmail } from './services/mailer.js';
 
 import {
@@ -110,13 +110,13 @@ import {
     finalizeChat
 } from './controllers/chatController.js';
 
-// Set up the web application and parse JSON request bodies
+// Set up the web application
 const app = express();
-app.use(json());
-app.use(express.json());
-
-// Use middleware for allowing access form different domain: for frontend
-app.use(cors());
+app.disable('x-powered-by');
+app.use(requestLogger);
+app.use(securityHeaders);
+app.use(corsPolicy());
+app.use(json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const file = fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8');
@@ -687,12 +687,6 @@ app.post('/orders/:id/pay', requireVerified, async (req, res) => {
 
 
 // ---------------------------------- Other ----------------------------------
-app.use(function(req, res, next)
-{
-    console.log(req.method + ' ' + req.url);
-    next();
-});
-
 app.get('/health', function(req, res)
 {
     res.status(200).json({
