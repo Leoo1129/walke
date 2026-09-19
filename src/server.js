@@ -100,6 +100,7 @@ import {
 
 import { handleErrors } from './handler.js';
 import { securityHeaders, corsPolicy, requestLogger } from './middleware/security.js';
+import { loginLimiter, registerLimiter, emailLimiter } from './middleware/rateLimit.js';
 import { sendXmlEmail } from './services/mailer.js';
 
 import {
@@ -113,6 +114,8 @@ import {
 // Set up the web application
 const app = express();
 app.disable('x-powered-by');
+// Behind a reverse proxy (e.g. Render, Nginx) set TRUST_PROXY=1 so rate limits see the real client IP
+if (process.env.TRUST_PROXY) app.set('trust proxy', parseInt(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 app.use(requestLogger);
 app.use(securityHeaders);
 app.use(corsPolicy());
@@ -143,7 +146,7 @@ const upload = multer({
 // ------------------------------------------------------------------------------------------------------
 
 // ---------------------------------- Auth ----------------------------------
-app.post('/login', async (req, res) => {
+app.post('/login', loginLimiter, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name, password } = req.body;
         const result = await login(name, password);
@@ -151,7 +154,7 @@ app.post('/login', async (req, res) => {
     });
 });
 
-app.post('/auth/verify-email', async (req, res) => {
+app.post('/auth/verify-email', emailLimiter(), async (req, res) => {
     return await handleErrors(res, async () => {
         const { token } = req.body;
         const result = await verifyEmail(token);
@@ -159,7 +162,7 @@ app.post('/auth/verify-email', async (req, res) => {
     });
 });
 
-app.post('/auth/forgot-password', async (req, res) => {
+app.post('/auth/forgot-password', emailLimiter(), async (req, res) => {
     return await handleErrors(res, async () => {
         const { email } = req.body;
         await requestPasswordReset(email);
@@ -174,7 +177,7 @@ app.get('/auth/reset-password/:token', async (req, res) => {
     });
 });
 
-app.post('/auth/reset-password', async (req, res) => {
+app.post('/auth/reset-password', emailLimiter(), async (req, res) => {
     return await handleErrors(res, async () => {
         const { token, password } = req.body;
         const result = await resetPassword(token, password);
@@ -183,7 +186,7 @@ app.post('/auth/reset-password', async (req, res) => {
 });
 
 // ---------------------------------- User Controller ----------------------------------
-app.post('/users', async (req, res) => {
+app.post('/users', registerLimiter, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name, password, street, city, postcode, country, bio, email } = req.body;
         const user = await createUser(name, password, street, city, postcode, country, bio, email);
