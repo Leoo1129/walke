@@ -1,19 +1,16 @@
 import pool from '../database/database.js';
+import { HttpError } from '../utils/errors.js';
 
 const VALID_CODES = ['AB', 'RE', 'IP'];
 
 export async function createOrderResponse(order_id, seller_id, response_code, note = null) {
     const { rows: [order] } = await pool.query('SELECT * FROM orders WHERE id = $1', [order_id]);
     if (!order) {
-        const error = new Error('Order not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Order not found');
     }
 
     if (!response_code || !VALID_CODES.includes(response_code)) {
-        const error = new Error('response_code must be AB (accepted), RE (rejected), or IP (request detail)');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'response_code must be AB (accepted), RE (rejected), or IP (request detail)');
     }
 
     const { rows: sellerItems } = await pool.query(
@@ -23,9 +20,7 @@ export async function createOrderResponse(order_id, seller_id, response_code, no
         [order_id, seller_id]
     );
     if (sellerItems.length === 0) {
-        const error = new Error('Seller has no items in this order');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'Seller has no items in this order');
     }
 
     const client = await pool.connect();
@@ -132,9 +127,7 @@ export async function getOrderResponseDetails(order_id) {
     );
 
     if (!response) {
-        const error = new Error('No response found for this order');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'No response found for this order');
     }
 
     const { rows: [order] } = await pool.query('SELECT * FROM orders WHERE id = $1', [order_id]);

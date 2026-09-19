@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '../utils/env.js';
 import pool from '../database/database.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/mailer.js';
+import { HttpError } from '../utils/errors.js';
 
 const JWT_SECRET = getJwtSecret();
 
@@ -17,9 +18,7 @@ export async function requestEmailVerification(userId, email) {
         [email, userId]
     );
     if (existing.length > 0) {
-        const err = new Error('Email address is already in use');
-        err.statusCode = 409;
-        throw err;
+        throw new HttpError(409, 'Email address is already in use');
     }
 
     await pool.query(
@@ -45,9 +44,7 @@ export async function verifyEmail(token) {
     );
 
     if (!row) {
-        const err = new Error('Invalid or expired verification link');
-        err.statusCode = 400;
-        throw err;
+        throw new HttpError(400, 'Invalid or expired verification link');
     }
 
     const { rows: [user] } = await pool.query(
@@ -97,9 +94,7 @@ export async function validateResetToken(token) {
     );
 
     if (!row) {
-        const err = new Error('Invalid or expired reset link');
-        err.statusCode = 400;
-        throw err;
+        throw new HttpError(400, 'Invalid or expired reset link');
     }
 
     return { valid: true };
@@ -107,9 +102,7 @@ export async function validateResetToken(token) {
 
 export async function resetPassword(token, password) {
     if (!password || password.length < 6) {
-        const err = new Error('Password must be at least 6 characters');
-        err.statusCode = 400;
-        throw err;
+        throw new HttpError(400, 'Password must be at least 6 characters');
     }
 
     const { rows: [row] } = await pool.query(
@@ -118,9 +111,7 @@ export async function resetPassword(token, password) {
     );
 
     if (!row) {
-        const err = new Error('Invalid or expired reset link');
-        err.statusCode = 400;
-        throw err;
+        throw new HttpError(400, 'Invalid or expired reset link');
     }
 
     const password_hash = await bcrypt.hash(password, 10);

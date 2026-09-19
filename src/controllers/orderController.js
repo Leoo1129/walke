@@ -1,15 +1,10 @@
 import Stripe from 'stripe';
 import pool from '../database/database.js';
-
-class InputError extends Error {
-    constructor(message) { super(message); this.name = 'InputError'; }
-}
+import { HttpError, InputError } from '../utils/errors.js';
 
 function getStripe() {
     if (!process.env.STRIPE_SECRET_KEY) {
-        const error = new Error('Stripe is not configured (STRIPE_SECRET_KEY missing)');
-        error.statusCode = 503;
-        throw error;
+        throw new HttpError(503, 'Stripe is not configured (STRIPE_SECRET_KEY missing)');
     }
     return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
@@ -28,9 +23,7 @@ export async function createOrder(buyer_id, voucher_code = null) {
     );
 
     if (items.length === 0) {
-        const error = new Error('Cart is empty');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'Cart is empty');
     }
 
     // Calculate subtotal from cart
@@ -45,15 +38,11 @@ export async function createOrder(buyer_id, voucher_code = null) {
         );
 
         if (!voucher) {
-            const error = new Error('Voucher not found');
-            error.statusCode = 404;
-            throw error;
+            throw new HttpError(404, 'Voucher not found');
         }
 
         if (voucher.expiry && new Date(voucher.expiry) < new Date()) {
-            const error = new Error('Voucher has expired');
-            error.statusCode = 400;
-            throw error;
+            throw new HttpError(400, 'Voucher has expired');
         }
 
         voucher_id = voucher.id;
@@ -136,32 +125,24 @@ export async function confirmPayment(order_id, user_id) {
     );
 
     if (!order) {
-        const error = new Error('Order not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Order not found');
     }
 
     if (order.buyer_id !== Number(user_id)) {
-        const error = new Error('Forbidden');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'Forbidden');
     }
 
     if (order.payment_status === 'paid') return order;
 
     if (!order.stripe_payment_intent_id) {
-        const error = new Error('No payment intent associated with this order');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'No payment intent associated with this order');
     }
 
     const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id);
 
     if (paymentIntent.status !== 'succeeded') {
-        const error = new Error(`Payment not completed (status: ${paymentIntent.status})`);
-        error.statusCode = 402;
-        throw error;
+        throw new HttpError(402, `Payment not completed (status: ${paymentIntent.status})`);
     }
 
     const { rows: [updatedOrder] } = await pool.query(
@@ -187,9 +168,7 @@ export async function getOrderAccess(order_id, user) {
     );
 
     if (!row) {
-        const error = new Error('Order not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Order not found');
     }
 
     const access = {
@@ -199,9 +178,7 @@ export async function getOrderAccess(order_id, user) {
     };
 
     if (!access.isAdmin && !access.isBuyer && !access.isSeller) {
-        const error = new Error('You do not have access to this order');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'You do not have access to this order');
     }
 
     return access;
@@ -240,9 +217,7 @@ export async function getOrders(seller_id = null, buyer_id = null) {
     }
 
     if (!rows || rows.length === 0) {
-        const error = new Error('No orders found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'No orders found');
     }
 
     return rows;
@@ -255,9 +230,7 @@ export async function getOrderDetails(id) {
     );
 
     if (!order) {
-        const error = new Error('Order not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Order not found');
     }
 
     const { rows: items } = await pool.query(
@@ -296,9 +269,7 @@ export async function getOrder(id) {
     );
 
     if (!order) {
-        const error = new Error('Order not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Order not found');
     }
 
     const { rows: items } = await pool.query(
@@ -336,9 +307,7 @@ export async function updateOrder(id, fields) {
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
-        const error = new Error('Order not found or no valid fields to update');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'Order not found or no valid fields to update');
     }
 
     const setClauses = updates.map(([k], i) => `${k} = $${i + 1}`).join(', ');
@@ -350,9 +319,7 @@ export async function updateOrder(id, fields) {
     );
 
     if (!order) {
-        const error = new Error('Order not found or no valid fields to update');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'Order not found or no valid fields to update');
     }
 
     return order;
@@ -365,9 +332,7 @@ export async function deleteOrder(id) {
     );
 
     if (!order) {
-        const error = new Error('Order not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Order not found');
     }
 
     return order;

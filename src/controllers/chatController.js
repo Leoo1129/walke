@@ -1,4 +1,5 @@
 import pool from '../database/database.js';
+import { HttpError } from '../utils/errors.js';
 
 export async function getOrCreateChat(order_id, seller_id) {
     const { rows: sellerItems } = await pool.query(
@@ -7,9 +8,7 @@ export async function getOrCreateChat(order_id, seller_id) {
         [order_id, seller_id]
     );
     if (!sellerItems.length) {
-        const error = new Error('Seller has no items in this order');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'Seller has no items in this order');
     }
 
     const { rows: [chat] } = await pool.query(
@@ -28,9 +27,7 @@ export async function getChat(order_id, seller_id) {
         [order_id, seller_id]
     );
     if (!chat) {
-        const error = new Error('Chat not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Chat not found');
     }
 
     const { rows: messages } = await pool.query(
@@ -55,22 +52,20 @@ export async function getOrderChats(order_id) {
 
 export async function sendMessage(order_id, seller_id, sender_id, message) {
     if (!message || !message.trim()) {
-        const error = new Error('Message cannot be empty');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'Message cannot be empty');
     }
 
     const { rows: [chat] } = await pool.query(
         'SELECT * FROM order_chats WHERE order_id = $1 AND seller_id = $2',
         [order_id, seller_id]
     );
-    if (!chat) { const e = new Error('Chat not found'); e.statusCode = 404; throw e; }
-    if (chat.status !== 'open') { const e = new Error('Chat is closed'); e.statusCode = 400; throw e; }
+    if (!chat) { throw new HttpError(404, 'Chat not found'); }
+    if (chat.status !== 'open') { throw new HttpError(400, 'Chat is closed'); }
 
     const { rows: [order] } = await pool.query('SELECT buyer_id FROM orders WHERE id = $1', [order_id]);
     const isBuyer = order.buyer_id === sender_id;
     const isSeller = parseInt(seller_id) === sender_id;
-    if (!isBuyer && !isSeller) { const e = new Error('Not a participant'); e.statusCode = 403; throw e; }
+    if (!isBuyer && !isSeller) { throw new HttpError(403, 'Not a participant'); }
 
     const senderRole = isBuyer ? 'buyer' : 'seller';
 
@@ -87,13 +82,13 @@ export async function finalizeChat(order_id, seller_id, sender_id, action) {
         'SELECT * FROM order_chats WHERE order_id = $1 AND seller_id = $2',
         [order_id, seller_id]
     );
-    if (!chat) { const e = new Error('Chat not found'); e.statusCode = 404; throw e; }
-    if (chat.status !== 'open') { const e = new Error('Chat is already closed'); e.statusCode = 400; throw e; }
+    if (!chat) { throw new HttpError(404, 'Chat not found'); }
+    if (chat.status !== 'open') { throw new HttpError(400, 'Chat is already closed'); }
 
     const { rows: [order] } = await pool.query('SELECT buyer_id FROM orders WHERE id = $1', [order_id]);
     const isBuyer = order.buyer_id === sender_id;
     const isSeller = parseInt(seller_id) === sender_id;
-    if (!isBuyer && !isSeller) { const e = new Error('Not a participant'); e.statusCode = 403; throw e; }
+    if (!isBuyer && !isSeller) { throw new HttpError(403, 'Not a participant'); }
 
     const senderRole = isBuyer ? 'buyer' : 'seller';
 
@@ -149,9 +144,7 @@ export async function finalizeChat(order_id, seller_id, sender_id, action) {
             );
             await client.query('UPDATE orders SET status = \'cancelled\' WHERE id = $1', [order_id]);
         } else {
-            const e = new Error('Invalid action for your role');
-            e.statusCode = 400;
-            throw e;
+            throw new HttpError(400, 'Invalid action for your role');
         }
 
         await client.query(

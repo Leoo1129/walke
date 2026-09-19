@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
+import { HttpError } from '../utils/errors.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, '../../public/uploads');
@@ -11,9 +12,7 @@ export async function processAndSaveImage(fileBuffer, originalName) {
     const allowedTypes = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 
     if (!allowedTypes.includes(ext)) {
-        const error = new Error('Unsupported image type. Use jpg, png, webp, or gif');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'Unsupported image type. Use jpg, png, webp, or gif');
     }
 
     const filename = `${randomUUID()}.webp`;

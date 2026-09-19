@@ -113,6 +113,7 @@ import {
     sendMessage,
     finalizeChat
 } from './controllers/chatController.js';
+import { HttpError } from './utils/errors.js';
 
 // Set up the web application
 const app = express();
@@ -142,7 +143,6 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }
 });
-
 
 // ------------------------------------------------------------------------------------------------------
 // ------------------------------ Sever functionalities and API below here ------------------------------
@@ -358,9 +358,7 @@ app.patch('/businesses/:id/storefront', requireAuth, async (req, res) => {
 app.post('/images', requireVerified, upload.single('image'), async (req, res) => {
     return await handleErrors(res, async () => {
         if (!req.file) {
-            const error = new Error('No image file provided');
-            error.statusCode = 400;
-            throw error;
+            throw new HttpError(400, 'No image file provided');
         }
         const url = await processAndSaveImage(req.file.buffer, req.file.originalname);
         return res.status(201).json({ url });
@@ -471,9 +469,7 @@ app.post('/orders/:id/xml-email', requireAuth, requireOrderAccess, async (req, r
         const { type, email } = req.body;
 
         if (!email) {
-            const error = new Error('email is required');
-            error.statusCode = 400;
-            throw error;
+            throw new HttpError(400, 'email is required');
         }
 
         let xml, subject, filename;
@@ -493,9 +489,7 @@ app.post('/orders/:id/xml-email', requireAuth, requireOrderAccess, async (req, r
             subject = `Order #${id} Cancellation — UBL/XML Document`;
             filename = `order-${id}-cancellation.xml`;
         } else {
-            const error = new Error('type must be order, response, or cancel');
-            error.statusCode = 400;
-            throw error;
+            throw new HttpError(400, 'type must be order, response, or cancel');
         }
 
         await sendXmlEmail(email, xml, subject, filename);
@@ -659,9 +653,7 @@ app.delete('/vouchers/:id', requireVerified, async (req, res) => {
 function assertChatParticipant(req) {
     const { isAdmin, isBuyer } = req.orderAccess;
     if (!isAdmin && !isBuyer && parseInt(req.params.seller_id) !== req.user.id) {
-        const error = new Error('You are not a participant in this chat');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'You are not a participant in this chat');
     }
 }
 
@@ -727,7 +719,6 @@ app.post('/orders/:id/pay', requireVerified, async (req, res) => {
         return res.status(200).json(order);
     });
 });
-
 
 // ---------------------------------- Other ----------------------------------
 app.get('/health', function(req, res)

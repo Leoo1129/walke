@@ -1,10 +1,7 @@
 import pool from '../database/database.js';
+import { HttpError, InputError } from '../utils/errors.js';
 
 const ROLES = ['owner', 'admin', 'editor', 'viewer'];
-
-class InputError extends Error {
-    constructor(message) { super(message); this.name = 'InputError'; }
-}
 
 // ABN checksum weights per the Australian Business Register specification
 const ABN_WEIGHTS = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
@@ -45,9 +42,7 @@ export async function lookupABN(abn) {
 function requireRole(userRole, minRole) {
     const rank = { owner: 4, admin: 3, editor: 2, viewer: 1 };
     if ((rank[userRole] || 0) < rank[minRole]) {
-        const error = new Error('Insufficient permissions');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'Insufficient permissions');
     }
 }
 
@@ -75,9 +70,7 @@ export async function createBusiness(name, bio = null, logo_url = null, requesti
         [name]
     );
     if (existing) {
-        const error = new Error('A business with that name already exists');
-        error.statusCode = 409;
-        throw error;
+        throw new HttpError(409, 'A business with that name already exists');
     }
 
     const client = await pool.connect();
@@ -130,9 +123,7 @@ export async function getBusiness(id) {
     );
 
     if (!business) {
-        const error = new Error('Business not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Business not found');
     }
 
     return business;
@@ -153,9 +144,7 @@ export async function updateBusiness(id, fields, requesting_user_id, isAdmin = f
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
-        const error = new Error('No valid fields to update');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'No valid fields to update');
     }
 
     const setClauses = updates.map(([k], i) => `${k} = $${i + 1}`).join(', ');
@@ -168,9 +157,7 @@ export async function updateBusiness(id, fields, requesting_user_id, isAdmin = f
     );
 
     if (!business) {
-        const error = new Error('Business not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Business not found');
     }
 
     return business;
@@ -189,9 +176,7 @@ export async function deleteBusiness(id, requesting_user_id, isAdmin = false) {
     );
 
     if (!business) {
-        const error = new Error('Business not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Business not found');
     }
 
     await pool.query('UPDATE products SET is_active = FALSE WHERE business_id = $1', [id]);
@@ -207,9 +192,7 @@ export async function getMembers(business_id) {
         [business_id]
     );
     if (!biz) {
-        const error = new Error('Business not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Business not found');
     }
 
     const { rows } = await pool.query(
@@ -238,9 +221,7 @@ export async function inviteMember(business_id, user_id, role = 'viewer', reques
         [user_id]
     );
     if (!user) {
-        const error = new Error('User not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'User not found');
     }
 
     const { rows: [existing] } = await pool.query(
@@ -248,9 +229,7 @@ export async function inviteMember(business_id, user_id, role = 'viewer', reques
         [business_id, user_id]
     );
     if (existing) {
-        const error = new Error('User is already a member');
-        error.statusCode = 409;
-        throw error;
+        throw new HttpError(409, 'User is already a member');
     }
 
     const { rows: [member] } = await pool.query(
@@ -278,9 +257,7 @@ export async function updateMemberRole(business_id, user_id, role, requesting_us
     );
 
     if (!member) {
-        const error = new Error('Member not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Member not found');
     }
 
     return member;
@@ -293,9 +270,7 @@ export async function removeMember(business_id, user_id, requesting_user_id, isA
 
         const targetRole = await getMemberRole(business_id, user_id);
         if (targetRole === 'owner') {
-            const error = new Error('Cannot remove the business owner');
-            error.statusCode = 403;
-            throw error;
+            throw new HttpError(403, 'Cannot remove the business owner');
         }
     }
 
@@ -305,9 +280,7 @@ export async function removeMember(business_id, user_id, requesting_user_id, isA
     );
 
     if (!member) {
-        const error = new Error('Member not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Member not found');
     }
 
     return member;
@@ -321,9 +294,7 @@ export async function getStorefront(business_id) {
         [business_id]
     );
     if (!biz) {
-        const error = new Error('Business not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Business not found');
     }
 
     const { rows: [config] } = await pool.query(
@@ -332,9 +303,7 @@ export async function getStorefront(business_id) {
     );
 
     if (!config) {
-        const error = new Error('Storefront not configured');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Storefront not configured');
     }
 
     return config;
@@ -357,9 +326,7 @@ export async function upsertStorefront(business_id, fields, requesting_user_id, 
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
-        const error = new Error('No valid fields to update');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'No valid fields to update');
     }
 
     const { rows: [existing] } = await pool.query(

@@ -1,8 +1,5 @@
 import pool from '../database/database.js';
-
-class InputError extends Error {
-    constructor(message) { super(message); this.name = 'InputError'; }
-}
+import { HttpError, InputError } from '../utils/errors.js';
 
 export async function createProduct(name, price, seller_id, tags = [], image_url = null, business_id = null) {
     if (!name || price == null || !seller_id)
@@ -14,9 +11,7 @@ export async function createProduct(name, price, seller_id, tags = [], image_url
     );
 
     if (!product) {
-        const error = new Error('No products found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'No products found');
     }
 
     return product;
@@ -49,9 +44,7 @@ export async function getProduct(id) {
     );
 
     if (!product) {
-        const error = new Error('Poduct not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Poduct not found');
     }
 
     return product;
@@ -64,24 +57,18 @@ export async function updateProduct(id, fields, requesterId, isAdmin = false) {
     );
 
     if (!existing) {
-        const error = new Error('Product not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Product not found');
     }
 
     if (!isAdmin && existing.seller_id !== requesterId) {
-        const error = new Error('You do not own this product');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'You do not own this product');
     }
 
     const allowed = ['name', 'price', 'tags', 'image_url'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
-        const error = new Error('No valid fields to update');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'No valid fields to update');
     }
 
     const setClauses = updates.map(([k], i) => `${k} = $${i + 1}`).join(', ');
@@ -102,15 +89,11 @@ export async function deleteProduct(id, requesterId, isAdmin = false) {
     );
 
     if (!existing) {
-        const error = new Error('Product not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Product not found');
     }
 
     if (!isAdmin && existing.seller_id !== requesterId) {
-        const error = new Error('You do not own this product');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'You do not own this product');
     }
 
     const { rows: [product] } = await pool.query(

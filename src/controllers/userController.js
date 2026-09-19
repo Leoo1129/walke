@@ -2,18 +2,13 @@ import pool from '../database/database.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '../utils/env.js';
+import { HttpError, InputError } from '../utils/errors.js';
 
 const JWT_SECRET = getJwtSecret();
 
-class InputError extends Error {
-    constructor(message) { super(message); this.name = 'InputError'; }
-}
-
 export async function login(name, password) {
     if (!name || !password) {
-        const error = new Error('name and password are required');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'name and password are required');
     }
 
     const { rows: [user] } = await pool.query(
@@ -22,9 +17,7 @@ export async function login(name, password) {
     );
 
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-        const error = new Error('Invalid credentials');
-        error.statusCode = 401;
-        throw error;
+        throw new HttpError(401, 'Invalid credentials');
     }
 
     const token = jwt.sign(
@@ -43,9 +36,7 @@ export async function createUser(name, password, street, city, postcode, country
 
     const { rows: taken } = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (taken.length > 0) {
-        const err = new Error('Email address is already in use');
-        err.statusCode = 409;
-        throw err;
+        throw new HttpError(409, 'Email address is already in use');
     }
 
     const password_hash = await bcrypt.hash(password, 10);
@@ -58,9 +49,7 @@ export async function createUser(name, password, street, city, postcode, country
     );
 
     if (!user) {
-        const error = new Error('Failed to create user');
-        error.statusCode = 500;
-        throw error;
+        throw new HttpError(500, 'Failed to create user');
     }
 
     return user;
@@ -82,9 +71,7 @@ export async function getUsers() {
     );
 
     if (!rows || rows.length === 0) {
-        const error = new Error('No users found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'No users found');
     }
 
     return rows;
@@ -104,9 +91,7 @@ export async function getUser(id) {
     );
 
     if (!user) {
-        const error = new Error('User not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'User not found');
     }
 
     return user;
@@ -118,9 +103,7 @@ export async function updateUser(id, fields) {
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
 
     if (updates.length === 0) {
-        const error = new Error('User not found or no valid fields to update');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'User not found or no valid fields to update');
     }
 
     const setClauses = updates.map(([k], i) => `${k} = $${i + 1}`).join(', ');
@@ -132,9 +115,7 @@ export async function updateUser(id, fields) {
     );
 
     if (!user) {
-        const error = new Error('User not found or no valid fields to update');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'User not found or no valid fields to update');
     }
 
     return user;
@@ -150,9 +131,7 @@ export async function deleteUser(id) {
             [id]
         );
         if (!user) {
-            const error = new Error('User not found');
-            error.statusCode = 404;
-            throw error;
+            throw new HttpError(404, 'User not found');
         }
 
         // Soft-delete user

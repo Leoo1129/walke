@@ -1,4 +1,5 @@
 import pool from '../database/database.js';
+import { HttpError } from '../utils/errors.js';
 
 export async function createOrderCancellation(order_id, buyer_id, reason = null) {
     const { rows: [order] } = await pool.query(
@@ -7,21 +8,15 @@ export async function createOrderCancellation(order_id, buyer_id, reason = null)
     );
 
     if (!order) {
-        const error = new Error('Order not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Order not found');
     }
 
     if (order.buyer_id !== buyer_id) {
-        const error = new Error('Only the buyer can cancel this order');
-        error.statusCode = 403;
-        throw error;
+        throw new HttpError(403, 'Only the buyer can cancel this order');
     }
 
     if (order.status === 'cancelled') {
-        const error = new Error('Order is already cancelled');
-        error.statusCode = 400;
-        throw error;
+        throw new HttpError(400, 'Order is already cancelled');
     }
 
     const { rows: [cancellation] } = await pool.query(
@@ -41,9 +36,7 @@ export async function getOrderCancellationDetails(order_id) {
     );
 
     if (!cancellation) {
-        const error = new Error('No cancellation found for this order');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'No cancellation found for this order');
     }
 
     const { rows: [order] } = await pool.query(

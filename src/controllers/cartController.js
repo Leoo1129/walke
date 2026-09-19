@@ -1,11 +1,5 @@
 import pool from '../database/database.js';
-
-class InputError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = 'InputError';
-    }
-}
+import { HttpError, InputError } from '../utils/errors.js';
 
 export async function addToCart(user_id, product_id, quantity) {
     if (!product_id || !quantity)
@@ -46,9 +40,7 @@ export async function updateCartItem(user_id, product_id, quantity) {
     );
 
     if (!item) {
-        const error = new Error('Cart item not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Cart item not found');
     }
 
     return item;
@@ -61,9 +53,7 @@ export async function removeFromCart(user_id, product_id) {
     );
 
     if (!item) {
-        const error = new Error('Cart item not found');
-        error.statusCode = 404;
-        throw error;
+        throw new HttpError(404, 'Cart item not found');
     }
 
     return item;
