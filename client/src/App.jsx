@@ -6,6 +6,7 @@ import { CurrencyProvider } from './context/CurrencyContext';
 import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import PageLoader from './components/PageLoader';
+import SessionWatcher from './components/SessionWatcher';
 // The landing page ships in the main bundle; every other page is fetched on first visit
 import Marketplace from './pages/Marketplace';
 
@@ -43,6 +44,7 @@ function AppRoutes() {
     return (
         <>
             <Navbar />
+            <SessionWatcher />
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     <Route path="/" element={<Marketplace />} />
