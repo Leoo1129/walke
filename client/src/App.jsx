@@ -1,26 +1,30 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import Navbar from './components/Navbar';
+import PageLoader from './components/PageLoader';
+// The landing page ships in the main bundle; every other page is fetched on first visit
 import Marketplace from './pages/Marketplace';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ProductDetail from './pages/ProductDetail';
-import SellerProfile from './pages/SellerProfile';
-import Businesses from './pages/Businesses';
-import BusinessStorefront from './pages/BusinessStorefront';
-import StorefrontBuilder from './pages/StorefrontBuilder';
-import ManageMembers from './pages/ManageMembers';
-import Orders from './pages/Orders';
-import OrderDetail from './pages/OrderDetail';
-import Cart from './pages/Cart';
-import Dashboard from './pages/Dashboard';
-import AdminPanel from './pages/AdminPanel';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import VerifyEmail from './pages/VerifyEmail';
-import Checkout from './pages/Checkout';
+
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const SellerProfile = lazy(() => import('./pages/SellerProfile'));
+const Businesses = lazy(() => import('./pages/Businesses'));
+const BusinessStorefront = lazy(() => import('./pages/BusinessStorefront'));
+const StorefrontBuilder = lazy(() => import('./pages/StorefrontBuilder'));
+const ManageMembers = lazy(() => import('./pages/ManageMembers'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const Checkout = lazy(() => import('./pages/Checkout'));
 
 function PrivateRoute({ children }) {
     const { isLoggedIn } = useAuth();
@@ -38,27 +42,29 @@ function AppRoutes() {
     return (
         <>
             <Navbar />
-            <Routes>
-                <Route path="/" element={<Marketplace />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/products/:id" element={<ProductDetail />} />
-                <Route path="/profile/:id" element={<SellerProfile />} />
-                <Route path="/businesses" element={<Businesses />} />
-                <Route path="/businesses/:id" element={<BusinessStorefront />} />
-                <Route path="/businesses/:id/builder" element={<PrivateRoute><StorefrontBuilder /></PrivateRoute>} />
-                <Route path="/businesses/:id/manage" element={<PrivateRoute><ManageMembers /></PrivateRoute>} />
-                <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
-                <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-                <Route path="/checkout/:id" element={<PrivateRoute><Checkout /></PrivateRoute>} />
-                <Route path="/cart" element={<PrivateRoute><Cart /></PrivateRoute>} />
-                <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-                <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
-                <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+                <Routes>
+                    <Route path="/" element={<Marketplace />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/verify-email" element={<VerifyEmail />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/profile/:id" element={<SellerProfile />} />
+                    <Route path="/businesses" element={<Businesses />} />
+                    <Route path="/businesses/:id" element={<BusinessStorefront />} />
+                    <Route path="/businesses/:id/builder" element={<PrivateRoute><StorefrontBuilder /></PrivateRoute>} />
+                    <Route path="/businesses/:id/manage" element={<PrivateRoute><ManageMembers /></PrivateRoute>} />
+                    <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
+                    <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+                    <Route path="/checkout/:id" element={<PrivateRoute><Checkout /></PrivateRoute>} />
+                    <Route path="/cart" element={<PrivateRoute><Cart /></PrivateRoute>} />
+                    <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                    <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+                    <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+            </Suspense>
         </>
     );
 }
