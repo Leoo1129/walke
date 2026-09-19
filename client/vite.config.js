@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import process from 'node:process'
 
 // Backend the dev server proxies to (override when the API runs elsewhere, e.g. in Docker)
 const API_TARGET = process.env.VITE_PROXY_TARGET || 'http://localhost:3000'
