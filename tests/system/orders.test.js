@@ -21,7 +21,7 @@ vi.mock('stripe', () => ({ default: SysMockStripe }));
 
 process.env.STRIPE_SECRET_KEY = 'sk_test_dummy';
 
-import { app } from '../../src/server.js';
+import { app } from '../../src/app.js';
 import pool from '../../src/database/database.js';
 
 describe('Orders API (system)', () => {

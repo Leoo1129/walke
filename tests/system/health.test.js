@@ -5,7 +5,7 @@ vi.mock('../../database/database.js', () => ({
     default: { query: vi.fn() }
 }));
 
-import { app } from '../../src/server.js';
+import { app } from '../../src/app.js';
 
 describe('GET /health', () => {
     it('returns 200 with status ok', async () => {

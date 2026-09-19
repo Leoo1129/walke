@@ -14,7 +14,7 @@ vi.mock('../../src/services/mailer.js', () => ({
     sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { app } from '../../src/server.js';
+import { app } from '../../src/app.js';
 import pool from '../../src/database/database.js';
 
 describe('Users API (system)', () => {

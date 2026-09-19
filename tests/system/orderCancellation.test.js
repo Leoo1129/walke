@@ -9,7 +9,7 @@ vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn(), connect: vi.fn() }
 }));
 
-import { app } from '../../src/server.js';
+import { app } from '../../src/app.js';
 import pool from '../../src/database/database.js';
 
 describe('Order Cancellation API (system)', () => {
