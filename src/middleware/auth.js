@@ -19,6 +19,19 @@ export function requireAuth(req, res, next) {
     }
 }
 
+// Attach req.user when a valid token is sent, but let anonymous requests through.
+export function optionalAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            req.user = jwt.verify(authHeader.slice(7), JWT_SECRET);
+        } catch {
+            // An invalid token is treated the same as no token
+        }
+    }
+    next();
+}
+
 export function requireAdmin(req, res, next) {
     requireAuth(req, res, () => {
         if (!req.user.is_admin) {

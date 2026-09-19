@@ -28,6 +28,44 @@ describe('Products API (system)', () => {
             expect(res.body).toEqual(product);
         });
 
+        it('ignores a spoofed seller_id and lists the product under the caller', async () => {
+            pool.query.mockResolvedValue({ rows: [{ id: 1, name: 'Widget', price: 9.99, seller_id: 1 }] });
+
+            const res = await request(app)
+                .post('/products')
+                .set('Authorization', `Bearer ${VERIFIED_TOKEN}`)
+                .send({ name: 'Widget', price: 9.99, seller_id: 42 });
+
+            expect(res.status).toBe(201);
+            const [, params] = pool.query.mock.calls[0];
+            expect(params[2]).toBe(1);
+        });
+
+        it('returns 403 when adding to a business the user cannot edit', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ role: 'viewer' }] });
+
+            const res = await request(app)
+                .post('/products')
+                .set('Authorization', `Bearer ${VERIFIED_TOKEN}`)
+                .send({ name: 'Widget', price: 9.99, business_id: 3 });
+
+            expect(res.status).toBe(403);
+            expect(pool.query).toHaveBeenCalledTimes(1);
+        });
+
+        it('allows business editors to add products to the business', async () => {
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ role: 'editor' }] })
+                .mockResolvedValueOnce({ rows: [{ id: 1, name: 'Widget', business_id: 3 }] });
+
+            const res = await request(app)
+                .post('/products')
+                .set('Authorization', `Bearer ${VERIFIED_TOKEN}`)
+                .send({ name: 'Widget', price: 9.99, business_id: 3 });
+
+            expect(res.status).toBe(201);
+        });
+
         it('returns 400 when required fields are missing', async () => {
             const res = await request(app)
                 .post('/products')

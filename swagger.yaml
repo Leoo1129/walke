@@ -230,7 +230,7 @@ paths:
 
     get:
       summary: Get all users
-      description: Retrieve a list of users. Optionally filter by name.
+      description: Search users by name (any signed-in user), or list every user including addresses (admin only).
       tags:
         - users
       parameters:
@@ -240,6 +240,8 @@ paths:
           schema:
             type: string
           description: Filter users by name (partial match)
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: List of users
@@ -278,6 +280,10 @@ paths:
                     bio:
                       type: string
                       nullable: true
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Listing all users requires admin access
         "404":
           description: No users found
         "500":
@@ -286,7 +292,7 @@ paths:
   /users/{id}:
     get:
       summary: Get a user by ID
-      description: Retrieve a single user
+      description: Retrieve a single user. Email and street address are only included for the user themselves or an admin.
       tags:
         - users
       parameters:
@@ -639,7 +645,6 @@ paths:
               required:
                 - name
                 - price
-                - seller_id
               properties:
                 name:
                   type: string
@@ -649,6 +654,7 @@ paths:
                   example: 99.99
                 seller_id:
                   type: integer
+                  description: Ignored for regular users (the product is listed under the caller). Admins may set it to list on someone's behalf.
                   example: 1
                 tags:
                   type: array

@@ -50,39 +50,68 @@ describe('Users API (system)', () => {
     });
 
     describe('GET /users', () => {
-        it('returns all users', async () => {
+        it('returns all users to an admin', async () => {
             const users = [{ id: 1, name: 'alice' }, { id: 2, name: 'bob' }];
             pool.query.mockResolvedValue({ rows: users });
 
-            const res = await request(app).get('/users');
+            const res = await request(app).get('/users').set('Authorization', `Bearer ${ADMIN_TOKEN}`);
             expect(res.status).toBe(200);
             expect(res.body).toEqual(users);
+        });
+
+        it('returns 403 when a non-admin requests the full user list', async () => {
+            const res = await request(app).get('/users').set('Authorization', `Bearer ${USER1_TOKEN}`);
+            expect(res.status).toBe(403);
+            expect(pool.query).not.toHaveBeenCalled();
+        });
+
+        it('returns 401 without auth', async () => {
+            const res = await request(app).get('/users');
+            expect(res.status).toBe(401);
         });
 
         it('searches users by name query param', async () => {
             const users = [{ id: 1, name: 'alice' }];
             pool.query.mockResolvedValue({ rows: users });
 
-            const res = await request(app).get('/users?name=alic');
+            const res = await request(app).get('/users?name=alic').set('Authorization', `Bearer ${USER1_TOKEN}`);
             expect(res.status).toBe(200);
             expect(res.body).toEqual(users);
         });
 
         it('returns 500 on database error', async () => {
             pool.query.mockRejectedValue(new Error('db error'));
-            const res = await request(app).get('/users');
+            const res = await request(app).get('/users').set('Authorization', `Bearer ${ADMIN_TOKEN}`);
             expect(res.status).toBe(500);
         });
     });
 
     describe('GET /users/:id', () => {
-        it('returns user by id', async () => {
-            const user = { id: 1, name: 'alice', email: 'a@b.com' };
+        const user = { id: 1, name: 'alice', email: 'a@b.com', street: '1 Main St', postcode: '2000', city: 'Sydney', bio: 'hi' };
+
+        it('returns the full profile to the user themselves', async () => {
+            pool.query.mockResolvedValue({ rows: [user] });
+
+            const res = await request(app).get('/users/1').set('Authorization', `Bearer ${USER1_TOKEN}`);
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(user);
+        });
+
+        it('hides email and address from anonymous visitors', async () => {
             pool.query.mockResolvedValue({ rows: [user] });
 
             const res = await request(app).get('/users/1');
             expect(res.status).toBe(200);
-            expect(res.body).toEqual(user);
+            expect(res.body).toEqual({ id: 1, name: 'alice', city: 'Sydney', bio: 'hi' });
+        });
+
+        it('hides email and address from other users', async () => {
+            pool.query.mockResolvedValue({ rows: [{ ...user, id: 2 }] });
+
+            const res = await request(app).get('/users/2').set('Authorization', `Bearer ${USER1_TOKEN}`);
+            expect(res.status).toBe(200);
+            expect(res.body.email).toBeUndefined();
+            expect(res.body.street).toBeUndefined();
         });
 
         it('returns 404 when user not found', async () => {

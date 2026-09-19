@@ -37,10 +37,11 @@ import {
     getUsers,
     searchUsers,
     updateUser,
-    deleteUser
+    deleteUser,
+    toPublicProfile
 } from './controllers/userController.js';
 
-import { requireAuth, requireAdmin, requireVerified } from './middleware/auth.js';
+import { requireAuth, requireAdmin, requireVerified, optionalAuth } from './middleware/auth.js';
 import { requireOrderAccess } from './middleware/orderAccess.js';
 import {
     requestEmailVerification,
@@ -87,7 +88,8 @@ import {
     updateMemberRole,
     removeMember,
     getStorefront,
-    upsertStorefront
+    upsertStorefront,
+    assertBusinessRole
 } from './controllers/businessController.js';
 
 import { processAndSaveImage } from './controllers/imageController.js';
@@ -196,23 +198,29 @@ app.post('/users', registerLimiter, async (req, res) => {
     });
 });
 
-app.get('/users', async (req, res) => {
+// Searching by name is available to any signed-in user (e.g. inviting business members);
+// the full user list, which includes addresses, is admin-only.
+app.get('/users', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { name } = req.query;
         if (name) {
             const result = await searchUsers(name);
             return res.status(200).json(result);
         }
+        if (!req.user.is_admin) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
         const result = await getUsers();
         return res.status(200).json(result);
     });
 });
 
-app.get('/users/:id', async (req, res) => {
+app.get('/users/:id', optionalAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const result = await getUser(id);
-        return res.status(200).json(result);
+        const canSeePrivate = req.user && (req.user.is_admin || req.user.id === parseInt(id));
+        return res.status(200).json(canSeePrivate ? result : toPublicProfile(result));
     });
 });
 
@@ -563,7 +571,12 @@ app.get('/orders/:id/cancel', requireAuth, requireOrderAccess, async (req, res) 
 // ---------------------------------- Product Controller ----------------------------------
 app.post('/products', requireVerified, async (req, res) => {
     return await handleErrors(res, async () => {
-        const { name, price, seller_id, tags, image_url, business_id } = req.body;
+        const { name, price, tags, image_url, business_id } = req.body;
+        // Products are always listed under the caller; only admins may list on behalf of someone else
+        const seller_id = req.user.is_admin && req.body.seller_id ? req.body.seller_id : req.user.id;
+        if (business_id && !req.user.is_admin) {
+            await assertBusinessRole(business_id, req.user.id, 'editor');
+        }
         const result = await createProduct(name, price, seller_id, tags, image_url, business_id);
         return res.status(201).json(result);
     });

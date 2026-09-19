@@ -90,6 +90,13 @@ export async function getUsers() {
     return rows;
 }
 
+// Fields anyone may see on a user's profile; address and email stay private.
+const PUBLIC_PROFILE_FIELDS = ['id', 'name', 'city', 'country', 'logo_url', 'bio', 'created_at'];
+
+export function toPublicProfile(user) {
+    return Object.fromEntries(PUBLIC_PROFILE_FIELDS.filter(f => f in user).map(f => [f, user[f]]));
+}
+
 export async function getUser(id) {
     const { rows: [user] } = await pool.query(
         'SELECT id, name, street, city, postcode, country, created_at, last_updated, logo_url, bio, email, email_verified FROM users WHERE id = $1',

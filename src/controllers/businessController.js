@@ -59,6 +59,11 @@ async function getMemberRole(business_id, user_id) {
     return member ? member.role : null;
 }
 
+// Throws 403 unless the user holds at least minRole in the business.
+export async function assertBusinessRole(business_id, user_id, minRole) {
+    requireRole(await getMemberRole(business_id, user_id), minRole);
+}
+
 export async function createBusiness(name, bio = null, logo_url = null, requesting_user_id, abn = null) {
     if (!name) throw new InputError('name is required');
 
