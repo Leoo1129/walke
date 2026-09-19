@@ -1,22 +1,41 @@
 import nodemailer from 'nodemailer';
+import { HttpError } from '../utils/errors.js';
+import { isProduction } from '../utils/env.js';
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+export const isMailConfigured = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+
+const transporter = isMailConfigured
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+        },
+    })
+    : null;
 
 const FROM = process.env.SMTP_FROM || `"Walke" <${process.env.SMTP_USER}>`;
 const APP_URL = process.env.APP_URL || 'http://localhost:5173';
 
+// Send an account email (verification / password reset). Without SMTP credentials the
+// account flow still succeeds; in development the link is logged so it can be opened directly.
+async function sendAccountEmail(message, link) {
+    if (!isMailConfigured) {
+        if (isProduction) {
+            console.warn(`[mail] SMTP not configured; "${message.subject}" was not sent`);
+        } else {
+            console.log(`[mail] SMTP not configured; "${message.subject}" for ${message.to}: ${link}`);
+        }
+        return;
+    }
+    await transporter.sendMail({ from: FROM, ...message });
+}
+
 export async function sendVerificationEmail(email, token) {
     const link = `${APP_URL}/verify-email?token=${token}`;
-    await transporter.sendMail({
-        from: FROM,
+    await sendAccountEmail({
         to: email,
         subject: 'Verify your Walke email address',
         html: `
@@ -28,10 +47,13 @@ export async function sendVerificationEmail(email, token) {
                 <p style="color:#888;font-size:13px">If you did not create a Walke account, you can ignore this email.</p>
             </div>
         `,
-    });
+    }, link);
 }
 
 export async function sendXmlEmail(to, xml, subject, filename) {
+    if (!isMailConfigured) {
+        throw new HttpError(503, 'Email delivery is not configured on this server');
+    }
     await transporter.sendMail({
         from: FROM,
         to,
@@ -49,8 +71,7 @@ export async function sendXmlEmail(to, xml, subject, filename) {
 
 export async function sendPasswordResetEmail(email, token) {
     const link = `${APP_URL}/reset-password?token=${token}`;
-    await transporter.sendMail({
-        from: FROM,
+    await sendAccountEmail({
         to: email,
         subject: 'Reset your Walke password',
         html: `
@@ -62,5 +83,5 @@ export async function sendPasswordResetEmail(email, token) {
                 <p style="color:#888;font-size:13px">If you did not request a password reset, you can safely ignore this email.</p>
             </div>
         `,
-    });
+    }, link);
 }

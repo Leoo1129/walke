@@ -9,9 +9,11 @@ export function errorHandler(err, req, res, next) {
         status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
     }
 
-    if (status >= 500) {
-        console.error(err);
-        // Never leak database or stack details to clients
+    if (status >= 500) console.error(err);
+
+    // Unexpected errors may carry database or stack details, so never send those to clients.
+    // Deliberate HttpErrors (e.g. 503 "Stripe is not configured") keep their message.
+    if (status === 500) {
         return res.status(status).json({ error: 'Internal Server Error' });
     }
 
