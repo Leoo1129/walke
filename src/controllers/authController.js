@@ -1,10 +1,11 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '../utils/env.js';
 import pool from '../database/database.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/mailer.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_SECRET = getJwtSecret();
 
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');

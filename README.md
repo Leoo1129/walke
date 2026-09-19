@@ -168,7 +168,7 @@ Copy `client/.env.example` to `client/.env`:
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
-> `JWT_SECRET` can be any string. Use something long and random in production.
+> `JWT_SECRET` can be any string in development. When `NODE_ENV=production` the server refuses to start without it, so a well-known fallback secret is never used to sign real tokens.
 >
 > SMTP variables are only required if you want email verification, password reset, and XML email delivery to work. If omitted, user registration still succeeds but verification emails are not sent.
 >
