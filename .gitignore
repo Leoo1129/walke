@@ -10,3 +10,6 @@ public/uploads/*
 
 # OS / editor
 .DS_Store
+
+# Test coverage
+coverage/
