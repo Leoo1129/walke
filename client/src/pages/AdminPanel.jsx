@@ -32,11 +32,6 @@ export default function AdminPanel() {
     const [editingVoucher, setEditingVoucher] = useState(null);
     const [voucherEditForm, setVoucherEditForm] = useState({});
 
-    useEffect(() => {
-        if (!user?.is_admin) { navigate('/'); return; }
-        loadAll();
-    }, [user]);
-
     function loadAll() {
         loadUsers();
         loadOrders();
@@ -63,6 +58,12 @@ export default function AdminPanel() {
             if (err.response?.status === 404) setVouchers([]);
         });
     }
+
+    // Declared after the loaders it calls; admins only
+    useEffect(() => {
+        if (!user?.is_admin) { navigate('/'); return; }
+        loadAll();
+    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // -- User actions --
     function startEditUser(u) {
