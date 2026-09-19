@@ -82,7 +82,7 @@ export default function ResetPassword() {
                     onChange={e => setPassword(e.target.value)}
                     style={styles.input}
                     required
-                    minLength={6}
+                    minLength={8}
                 />
                 <input
                     type="password"

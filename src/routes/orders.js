@@ -27,10 +27,14 @@ import {
 import { createOrderResponse, getAllSellerResponses, getOrderResponseDetails } from '../controllers/orderResponseController.js';
 import { sendXmlEmail } from '../services/mailer.js';
 import { HttpError } from '../utils/errors.js';
+import { validateBody, validateIdParam } from '../validation/validate.js';
+import { chatMessageSchema, createOrderSchema, xmlEmailSchema } from '../validation/schemas.js';
 
 const router = Router();
+router.param('id', validateIdParam);
+router.param('seller_id', validateIdParam);
 
-router.post('/', requireVerified, async (req, res) => {
+router.post('/', requireVerified, validateBody(createOrderSchema), async (req, res) => {
     const { voucher_code } = req.body;
     const { order, items, buyer, sellers, client_secret } = await createOrder(req.user.id, voucher_code);
 
@@ -84,7 +88,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     return res.status(200).json(result);
 });
 
-router.post('/:id/xml-email', requireAuth, requireOrderAccess, async (req, res) => {
+router.post('/:id/xml-email', requireAuth, requireOrderAccess, validateBody(xmlEmailSchema), async (req, res) => {
     const { id } = req.params;
     const { type, email } = req.body;
 
@@ -204,7 +208,7 @@ router.get('/:id/chat/:seller_id', requireAuth, requireOrderAccess, async (req, 
     return res.status(200).json(chat);
 });
 
-router.post('/:id/chat/:seller_id/message', requireVerified, async (req, res) => {
+router.post('/:id/chat/:seller_id/message', requireVerified, validateBody(chatMessageSchema), async (req, res) => {
     const { id, seller_id } = req.params;
     const { message } = req.body;
     const msg = await sendMessage(id, parseInt(seller_id), req.user.id, message);

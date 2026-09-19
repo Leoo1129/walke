@@ -7,10 +7,13 @@ import {
     getVouchers,
     updateVoucher
 } from '../controllers/voucherController.js';
+import { validateBody, validateIdParam } from '../validation/validate.js';
+import { createVoucherSchema } from '../validation/schemas.js';
 
 const router = Router();
+router.param('id', validateIdParam);
 
-router.post('/', requireVerified, async (req, res) => {
+router.post('/', requireVerified, validateBody(createVoucherSchema), async (req, res) => {
     const { name, discount, expiry, max_uses, business_id } = req.body;
     const result = await createVoucher(name, discount, expiry, max_uses, business_id, req.user.id, req.user.is_admin);
     return res.status(201).json(result);

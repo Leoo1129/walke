@@ -8,10 +8,13 @@ import {
     getProducts,
     updateProduct
 } from '../controllers/productController.js';
+import { validateBody, validateIdParam } from '../validation/validate.js';
+import { createProductSchema, updateProductSchema } from '../validation/schemas.js';
 
 const router = Router();
+router.param('id', validateIdParam);
 
-router.post('/', requireVerified, async (req, res) => {
+router.post('/', requireVerified, validateBody(createProductSchema), async (req, res) => {
     const { name, price, tags, image_url, business_id } = req.body;
     // Products are always listed under the caller; only admins may list on behalf of someone else
     const seller_id = req.user.is_admin && req.body.seller_id ? req.body.seller_id : req.user.id;
@@ -34,7 +37,7 @@ router.get('/:id', async (req, res) => {
     return res.status(200).json(result);
 });
 
-router.patch('/:id', requireVerified, async (req, res) => {
+router.patch('/:id', requireVerified, validateBody(updateProductSchema), async (req, res) => {
     const { id } = req.params;
     const result = await updateProduct(id, req.body, req.user.id, req.user.is_admin);
     return res.status(200).json(result);

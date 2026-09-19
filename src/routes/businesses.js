@@ -13,10 +13,14 @@ import {
     updateMemberRole,
     upsertStorefront
 } from '../controllers/businessController.js';
+import { validateBody, validateIdParam } from '../validation/validate.js';
+import { createBusinessSchema } from '../validation/schemas.js';
 
 const router = Router();
+router.param('id', validateIdParam);
+router.param('user_id', validateIdParam);
 
-router.post('/', requireVerified, async (req, res) => {
+router.post('/', requireVerified, validateBody(createBusinessSchema), async (req, res) => {
     const { name, bio, logo_url, abn } = req.body;
     const result = await createBusiness(name, bio, logo_url, req.user.id, abn);
     return res.status(201).json(result);

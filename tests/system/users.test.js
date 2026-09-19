@@ -29,7 +29,7 @@ describe('Users API (system)', () => {
                 .mockResolvedValueOnce({ rows: [] })
                 .mockResolvedValueOnce({ rows: [{ id: 1 }] });
 
-            const res = await request(app).post('/users').send({ name: 'alice', password: 'secret', email: 'alice@example.com' });
+            const res = await request(app).post('/users').send({ name: 'alice', password: 'secret123', email: 'alice@example.com' });
             expect(res.status).toBe(201);
             expect(res.body.message).toContain('verify your address');
         });
@@ -37,14 +37,14 @@ describe('Users API (system)', () => {
         it('returns 409 when email is already in use', async () => {
             pool.query.mockResolvedValueOnce({ rows: [{ id: 99 }] });
 
-            const res = await request(app).post('/users').send({ name: 'alice', password: 'secret', email: 'taken@example.com' });
+            const res = await request(app).post('/users').send({ name: 'alice', password: 'secret123', email: 'taken@example.com' });
             expect(res.status).toBe(409);
         });
 
         it('returns 500 on database failure', async () => {
             pool.query.mockRejectedValue(new Error('db error'));
 
-            const res = await request(app).post('/users').send({ name: 'alice', password: 'secret', email: 'a@b.com' });
+            const res = await request(app).post('/users').send({ name: 'alice', password: 'secret123', email: 'a@b.com' });
             expect(res.status).toBe(500);
         });
     });

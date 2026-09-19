@@ -11,10 +11,13 @@ import {
     toPublicProfile,
     updateUser
 } from '../controllers/userController.js';
+import { validateBody, validateIdParam } from '../validation/validate.js';
+import { registerSchema, updateUserSchema } from '../validation/schemas.js';
 
 const router = Router();
+router.param('id', validateIdParam);
 
-router.post('/', registerLimiter, async (req, res) => {
+router.post('/', registerLimiter, validateBody(registerSchema), async (req, res) => {
     const { name, password, street, city, postcode, country, bio, email } = req.body;
     const user = await createUser(name, password, street, city, postcode, country, bio, email);
     await requestEmailVerification(user.id, email);
@@ -43,7 +46,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     return res.status(200).json(canSeePrivate ? result : toPublicProfile(result));
 });
 
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, validateBody(updateUserSchema), async (req, res) => {
     const { id } = req.params;
 
     if (!req.user.is_admin && req.user.id !== parseInt(id)) {

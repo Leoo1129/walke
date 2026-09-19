@@ -6,10 +6,13 @@ import {
     removeFromCart,
     updateCartItem
 } from '../controllers/cartController.js';
+import { validateBody, validateIdParam } from '../validation/validate.js';
+import { addToCartSchema, updateCartSchema } from '../validation/schemas.js';
 
 const router = Router();
+router.param('product_id', validateIdParam);
 
-router.post('/', requireVerified, async (req, res) => {
+router.post('/', requireVerified, validateBody(addToCartSchema), async (req, res) => {
     const { product_id, quantity } = req.body;
     const result = await addToCart(req.user.id, product_id, quantity);
     return res.status(201).json(result);
@@ -20,7 +23,7 @@ router.get('/', requireAuth, async (req, res) => {
     return res.status(200).json(result);
 });
 
-router.patch('/:product_id', requireAuth, async (req, res) => {
+router.patch('/:product_id', requireAuth, validateBody(updateCartSchema), async (req, res) => {
     const { product_id } = req.params;
     const { quantity } = req.body;
     const result = await updateCartItem(req.user.id, product_id, quantity);

@@ -44,7 +44,7 @@ export default function Register() {
             <form onSubmit={handleSubmit} style={styles.form}>
                 <input name="name" placeholder="Username" value={form.name} onChange={handleChange} style={styles.input} required />
                 <input name="email" type="email" placeholder="Email address" value={form.email} onChange={handleChange} style={styles.input} required />
-                <input name="password" placeholder="Password" type="password" value={form.password} onChange={handleChange} style={styles.input} required />
+                <input name="password" placeholder="Password (min. 8 characters)" type="password" value={form.password} onChange={handleChange} style={styles.input} minLength={8} required />
                 <input name="street" placeholder="Street (optional)" value={form.street} onChange={handleChange} style={styles.input} />
                 <input name="city" placeholder="City (optional)" value={form.city} onChange={handleChange} style={styles.input} />
                 <input name="postcode" placeholder="Postcode (optional)" value={form.postcode} onChange={handleChange} style={styles.input} />

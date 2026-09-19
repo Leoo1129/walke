@@ -101,8 +101,8 @@ export async function validateResetToken(token) {
 }
 
 export async function resetPassword(token, password) {
-    if (!password || password.length < 6) {
-        throw new HttpError(400, 'Password must be at least 6 characters');
+    if (!password || password.length < 8) {
+        throw new HttpError(400, 'Password must be at least 8 characters');
     }
 
     const { rows: [row] } = await pool.query(
