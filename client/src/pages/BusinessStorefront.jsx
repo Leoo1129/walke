@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { apiError } from '../api';
 import { useToast } from '../context/ToastContext';
+import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
@@ -30,6 +31,7 @@ function loadFont(fontFamily) {
 
 export default function BusinessStorefront() {
     const toast = useToast();
+    const { refreshCart } = useCart();
     const { id } = useParams();
     const [business, setBusiness] = useState(null);
     const [storefront, setStorefront] = useState(null);
@@ -56,6 +58,7 @@ export default function BusinessStorefront() {
         try {
             await api.post('/cart', { product_id, quantity: 1 });
             toast.success('Added to cart');
+            refreshCart();
         } catch (err) {
             toast.error(apiError(err));
         }

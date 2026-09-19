@@ -1,31 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { apiError } from '../api';
 import { useToast } from '../context/ToastContext';
+import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function Cart() {
     const toast = useToast();
+    const { refreshCart } = useCart();
     const [cart, setCart] = useState([]);
     const [voucher, setVoucher] = useState('');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const { formatPrice } = useCurrency();
 
-    async function load() {
+    const load = useCallback(async () => {
         try {
             const r = await api.get('/cart');
             setCart(r.data);
+            refreshCart();
         } catch {
             setCart([]);
         } finally {
             setLoading(false);
         }
-    }
+    }, [refreshCart]);
 
     useEffect(() => {
         load();
-    }, []);
+    }, [load]);
 
     async function updateQty(pid, qty) {
         if (qty < 1) return removeItem(pid);
@@ -42,6 +45,7 @@ export default function Cart() {
         try {
             const body = voucher ? { voucher_code: voucher } : {};
             const { data } = await api.post('/orders', body);
+            refreshCart();
             navigate(`/checkout/${data.id}`, {
                 state: { client_secret: data.client_secret, total: data.total_price },
             });

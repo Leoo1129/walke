@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { apiError } from '../api';
 import { useToast } from '../context/ToastContext';
+import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function ProductDetail() {
     const toast = useToast();
+    const { refreshCart } = useCart();
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const [qty, setQty] = useState(1);
@@ -23,6 +25,7 @@ export default function ProductDetail() {
         try {
             await api.post('/cart', { product_id: product.id, quantity: qty });
             toast.success('Added to cart');
+            refreshCart();
         } catch (err) {
             toast.error(apiError(err));
         }

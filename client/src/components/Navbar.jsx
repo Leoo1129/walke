@@ -1,117 +1,86 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCurrency } from '../context/CurrencyContext';
-import { useEffect, useState } from 'react';
-import api from '../api';
+import { useCart } from '../context/CartContext';
+import './Navbar.css';
 
 export default function Navbar() {
     const { user, logout, isLoggedIn } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { currency, currencies, selectCurrency } = useCurrency();
+    const { count: cartCount } = useCart();
     const navigate = useNavigate();
-    const [cartCount, setCartCount] = useState(0);
+    const location = useLocation();
+    const [menuOpen, setMenuOpen] = useState(false);
 
-    const dark = theme === 'dark';
-
-    useEffect(() => {
-        if (!isLoggedIn) { setCartCount(0); return; }
-        api.get('/cart').then(r => setCartCount(Array.isArray(r.data) ? r.data.reduce((s, i) => s + i.quantity, 0) : 0)).catch(() => {});
-    }, [isLoggedIn]);
+    // Close the mobile menu after navigating
+    useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
     function handleLogout() {
         logout();
         navigate('/login');
     }
 
-    const navStyle = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0 24px',
-        background: dark ? '#0d0d0d' : '#fff',
-        borderBottom: dark ? 'none' : '1px solid #e5e5e5',
-        color: dark ? '#fff' : '#111',
-        height: 52,
-        gap: 16,
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-    };
-
-    const linkStyle = {
-        color: dark ? '#ccc' : '#444',
-        textDecoration: 'none',
-        padding: '6px 10px',
-        borderRadius: 4,
-        fontSize: 14,
-    };
-
-    const btnStyle = {
-        background: 'none',
-        border: `1px solid ${dark ? '#555' : '#bbb'}`,
-        color: dark ? '#ccc' : '#444',
-        padding: '5px 12px',
-        cursor: 'pointer',
-        borderRadius: 4,
-        fontSize: 14,
-    };
-
-    const toggleStyle = {
-        background: 'none',
-        border: `1px solid ${dark ? '#444' : '#ccc'}`,
-        color: dark ? '#aaa' : '#666',
-        padding: '4px 10px',
-        cursor: 'pointer',
-        borderRadius: 4,
-        fontSize: 12,
-        letterSpacing: 0.5,
-    };
+    const linkClass = ({ isActive }) => 'navbar__link' + (isActive ? ' navbar__link--active' : '');
 
     return (
-        <nav style={navStyle}>
-            <Link to="/">
-                <img src="/walkelogo_transparent.png" alt="Walke" style={{ height: 36, width: 'auto', display: 'block' }} />
+        <nav className="navbar">
+            <Link to="/" className="navbar__brand">
+                <img src="/walkelogo_transparent.png" alt="Walke" />
             </Link>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Link to="/" style={linkStyle}>Marketplace</Link>
-                <Link to="/businesses" style={linkStyle}>Businesses</Link>
-                {isLoggedIn && <Link to="/orders" style={linkStyle}>Orders</Link>}
+
+            <button
+                className="navbar__toggle"
+                onClick={() => setMenuOpen(open => !open)}
+                aria-expanded={menuOpen}
+                aria-controls="navbar-menu"
+                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            >
+                <span /><span /><span />
+            </button>
+
+            <div id="navbar-menu" className={'navbar__menu' + (menuOpen ? ' navbar__menu--open' : '')}>
+                <NavLink to="/" end className={linkClass}>Marketplace</NavLink>
+                <NavLink to="/businesses" className={linkClass}>Businesses</NavLink>
+                {isLoggedIn && <NavLink to="/orders" className={linkClass}>Orders</NavLink>}
                 {isLoggedIn && (
-                    <Link to="/cart" style={linkStyle}>
-                        Cart {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
-                    </Link>
+                    <NavLink to="/cart" className={linkClass}>
+                        Cart
+                        {cartCount > 0 && <span className="navbar__badge" aria-label={`${cartCount} items`}>{cartCount}</span>}
+                    </NavLink>
                 )}
-                {isLoggedIn && <Link to="/dashboard" style={linkStyle}>Dashboard</Link>}
-                {user?.is_admin && <Link to="/admin" style={{ ...linkStyle, color: '#8e44ad', fontWeight: 600 }}>Admin</Link>}
-                {isLoggedIn ? (
-                    <>
-                        <Link to={`/profile/${user?.id}`} style={linkStyle}>{user?.name}</Link>
-                        <button onClick={handleLogout} style={btnStyle}>Logout</button>
-                    </>
-                ) : (
-                    <>
-                        <Link to="/login" style={linkStyle}>Login</Link>
-                        <Link to="/register" style={linkStyle}>Register</Link>
-                    </>
-                )}
-                <select
-                    value={currency}
-                    onChange={e => selectCurrency(e.target.value)}
-                    style={{ ...toggleStyle, cursor: 'pointer' }}
-                >
-                    {currencies.map(c => (
-                        <option key={c.code} value={c.code}>{c.label}</option>
-                    ))}
-                </select>
-                <button onClick={toggleTheme} style={toggleStyle}>
-                    {dark ? 'Light' : 'Dark'}
-                </button>
+                {isLoggedIn && <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>}
+                {user?.is_admin && <NavLink to="/admin" className={({ isActive }) => linkClass({ isActive }) + ' navbar__link--admin'}>Admin</NavLink>}
+
+                <div className="navbar__actions">
+                    {isLoggedIn ? (
+                        <>
+                            <NavLink to={`/profile/${user?.id}`} className={linkClass}>{user?.name}</NavLink>
+                            <button onClick={handleLogout} className="navbar__button">Logout</button>
+                        </>
+                    ) : (
+                        <>
+                            <NavLink to="/login" className={linkClass}>Login</NavLink>
+                            <NavLink to="/register" className={linkClass}>Register</NavLink>
+                        </>
+                    )}
+                    <select
+                        value={currency}
+                        onChange={e => selectCurrency(e.target.value)}
+                        className="navbar__control"
+                        aria-label="Currency"
+                    >
+                        {currencies.map(c => (
+                            <option key={c.code} value={c.code}>{c.label}</option>
+                        ))}
+                    </select>
+                    <button onClick={toggleTheme} className="navbar__control" aria-label="Toggle colour theme">
+                        {theme === 'dark' ? 'Light' : 'Dark'}
+                    </button>
+                </div>
             </div>
         </nav>
     );
 }
-
-const styles = {
-    badge: { background: '#e74c3c', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 11, marginLeft: 4 },
-};

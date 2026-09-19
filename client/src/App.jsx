@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ToastProvider } from './context/ToastContext';
+import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import PageLoader from './components/PageLoader';
 import SessionWatcher from './components/SessionWatcher';
@@ -78,9 +79,11 @@ export default function App() {
             <CurrencyProvider>
                 <ToastProvider>
                     <AuthProvider>
-                        <BrowserRouter>
-                            <AppRoutes />
-                        </BrowserRouter>
+                        <CartProvider>
+                            <BrowserRouter>
+                                <AppRoutes />
+                            </BrowserRouter>
+                        </CartProvider>
                     </AuthProvider>
                 </ToastProvider>
             </CurrencyProvider>
