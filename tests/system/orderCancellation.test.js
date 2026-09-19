@@ -120,19 +120,28 @@ describe('Order Cancellation API (system)', () => {
             const buyer = { id: 1, name: 'alice' };
 
             pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] })
                 .mockResolvedValueOnce({ rows: [cancellation] })
                 .mockResolvedValueOnce({ rows: [order] })
                 .mockResolvedValueOnce({ rows: items })
                 .mockResolvedValueOnce({ rows: [buyer] });
 
-            const res = await request(app).get('/orders/1/cancel');
+            const res = await request(app).get('/orders/1/cancel').set('Authorization', `Bearer ${BUYER_TOKEN}`);
             expect(res.status).toBe(200);
             expect(res.body.order_id).toBe(1);
         });
 
+        it('returns 403 to a user who is not part of the order', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] });
+            const res = await request(app).get('/orders/1/cancel').set('Authorization', `Bearer ${OTHER_TOKEN}`);
+            expect(res.status).toBe(403);
+        });
+
         it('returns 404 when no cancellation exists', async () => {
-            pool.query.mockResolvedValueOnce({ rows: [] });
-            const res = await request(app).get('/orders/1/cancel');
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] })
+                .mockResolvedValueOnce({ rows: [] });
+            const res = await request(app).get('/orders/1/cancel').set('Authorization', `Bearer ${BUYER_TOKEN}`);
             expect(res.status).toBe(404);
         });
     });

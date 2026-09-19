@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 
 const VERIFIED_TOKEN = jwt.sign({ id: 1, name: 'alice', email_verified: true }, 'dev-secret-change-in-production');
 const ADMIN_TOKEN = jwt.sign({ id: 1, name: 'alice', is_admin: true, email_verified: true }, 'dev-secret-change-in-production');
+const STRANGER_TOKEN = jwt.sign({ id: 9, name: 'mallory', email_verified: true }, 'dev-secret-change-in-production');
+const auth = token => ({ Authorization: `Bearer ${token}` });
 
 vi.mock('../../src/database/database.js', () => ({
     default: { query: vi.fn(), connect: vi.fn() }
@@ -132,17 +134,48 @@ describe('Orders API (system)', () => {
     });
 
     describe('GET /orders', () => {
-        it('returns all orders', async () => {
+        it('returns 401 without auth', async () => {
+            const res = await request(app).get('/orders');
+            expect(res.status).toBe(401);
+            expect(pool.query).not.toHaveBeenCalled();
+        });
+
+        it('returns every order to an admin', async () => {
             const orders = [{ id: 1 }, { id: 2 }];
             pool.query.mockResolvedValue({ rows: orders });
-            const res = await request(app).get('/orders');
+            const res = await request(app).get('/orders').set(auth(ADMIN_TOKEN));
             expect(res.status).toBe(200);
             expect(res.body).toEqual(orders);
+            expect(pool.query.mock.calls[0][1]).toBeUndefined();
+        });
+
+        it('returns only the buyer\'s own orders to a regular user', async () => {
+            const orders = [{ id: 3, buyer_id: 9 }];
+            pool.query.mockResolvedValue({ rows: orders });
+            const res = await request(app).get('/orders').set(auth(STRANGER_TOKEN));
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(orders);
+            expect(pool.query.mock.calls[0][0]).toContain('WHERE o.buyer_id = $1');
+            expect(pool.query.mock.calls[0][1]).toEqual([9]);
+        });
+
+        it('lets a seller list orders for their own products', async () => {
+            pool.query.mockResolvedValue({ rows: [{ id: 4 }] });
+            const res = await request(app).get('/orders?seller_id=9').set(auth(STRANGER_TOKEN));
+            expect(res.status).toBe(200);
+            expect(pool.query.mock.calls[0][0]).toContain('WHERE p.seller_id = $1');
+            expect(pool.query.mock.calls[0][1]).toEqual([9]);
+        });
+
+        it('returns 403 when a user asks for another seller\'s orders', async () => {
+            const res = await request(app).get('/orders?seller_id=1').set(auth(STRANGER_TOKEN));
+            expect(res.status).toBe(403);
+            expect(pool.query).not.toHaveBeenCalled();
         });
 
         it('returns 500 on database error', async () => {
             pool.query.mockRejectedValue(new Error('db error'));
-            const res = await request(app).get('/orders');
+            const res = await request(app).get('/orders').set(auth(ADMIN_TOKEN));
             expect(res.status).toBe(500);
         });
     });
@@ -151,11 +184,33 @@ describe('Orders API (system)', () => {
         it('returns order as JSON', async () => {
             const order = { id: 1, buyer_id: 1, status: 'pending', buyer_name: 'alice', buyer_city: null, buyer_country: null };
             pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] })
                 .mockResolvedValueOnce({ rows: [order] })
                 .mockResolvedValueOnce({ rows: [] });
-            const res = await request(app).get('/orders/1');
+            const res = await request(app).get('/orders/1').set(auth(VERIFIED_TOKEN));
             expect(res.status).toBe(200);
             expect(res.body.id).toBe(1);
+        });
+
+        it('returns 401 without auth', async () => {
+            const res = await request(app).get('/orders/1');
+            expect(res.status).toBe(401);
+        });
+
+        it('returns 403 to a user who is neither buyer nor seller', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] });
+            const res = await request(app).get('/orders/1').set(auth(STRANGER_TOKEN));
+            expect(res.status).toBe(403);
+            expect(pool.query).toHaveBeenCalledTimes(1);
+        });
+
+        it('allows a seller with items in the order', async () => {
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: true }] })
+                .mockResolvedValueOnce({ rows: [{ id: 1, buyer_id: 1 }] })
+                .mockResolvedValueOnce({ rows: [] });
+            const res = await request(app).get('/orders/1').set(auth(STRANGER_TOKEN));
+            expect(res.status).toBe(200);
         });
 
         it('returns UBL XML when Accept: application/xml', async () => {
@@ -165,19 +220,20 @@ describe('Orders API (system)', () => {
             const seller = { id: 5, name: 'BobShop', street: null, city: null, postcode: null, country: null };
 
             pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] })
                 .mockResolvedValueOnce({ rows: [order] })
                 .mockResolvedValueOnce({ rows: items })
                 .mockResolvedValueOnce({ rows: [buyer] })
                 .mockResolvedValueOnce({ rows: [seller] });
 
-            const res = await request(app).get('/orders/1').set('Accept', 'application/xml');
+            const res = await request(app).get('/orders/1').set(auth(VERIFIED_TOKEN)).set('Accept', 'application/xml');
             expect(res.status).toBe(200);
             expect(res.text).toContain('<cbc:UBLVersionID>2.1</cbc:UBLVersionID>');
         });
 
         it('returns 404 when order not found', async () => {
             pool.query.mockResolvedValue({ rows: [] });
-            const res = await request(app).get('/orders/999');
+            const res = await request(app).get('/orders/999').set(auth(VERIFIED_TOKEN));
             expect(res.status).toBe(404);
         });
     });

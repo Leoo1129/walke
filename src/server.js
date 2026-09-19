@@ -41,6 +41,7 @@ import {
 } from './controllers/userController.js';
 
 import { requireAuth, requireAdmin, requireVerified } from './middleware/auth.js';
+import { requireOrderAccess } from './middleware/orderAccess.js';
 import {
     requestEmailVerification,
     verifyEmail,
@@ -407,15 +408,26 @@ app.post('/orders', requireVerified, async (req, res) => {
     });
 });
 
-app.get('/orders', async (req, res) => {
+// Admins can list every order; everyone else sees orders they bought, or (with ?seller_id)
+// orders containing their own products.
+app.get('/orders', requireAuth, async (req, res) => {
     return await handleErrors(res, async () => {
         const { seller_id } = req.query;
-        const result = await getOrders(seller_id || null);
-        return res.status(200).json(result);
+
+        if (req.user.is_admin) {
+            return res.status(200).json(await getOrders(seller_id || null));
+        }
+        if (seller_id) {
+            if (parseInt(seller_id) !== req.user.id) {
+                return res.status(403).json({ error: 'You can only view orders for your own products' });
+            }
+            return res.status(200).json(await getOrders(req.user.id));
+        }
+        return res.status(200).json(await getOrders(null, req.user.id));
     });
 });
 
-app.get('/orders/:id', async (req, res) => {
+app.get('/orders/:id', requireAuth, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         if (wantsXml(req)) {
@@ -445,7 +457,7 @@ app.delete('/orders/:id', requireAdmin, async (req, res) => {
     });
 });
 
-app.post('/orders/:id/xml-email', requireAuth, async (req, res) => {
+app.post('/orders/:id/xml-email', requireAuth, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { type, email } = req.body;
@@ -501,7 +513,7 @@ app.post('/orders/:id/response', requireVerified, async (req, res) => {
     });
 });
 
-app.get('/orders/:id/response', async (req, res) => {
+app.get('/orders/:id/response', requireAuth, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { response, order, items, buyer, seller } = await getOrderResponseDetails(id);
@@ -533,7 +545,7 @@ app.post('/orders/:id/cancel', requireVerified, async (req, res) => {
     });
 });
 
-app.get('/orders/:id/cancel', async (req, res) => {
+app.get('/orders/:id/cancel', requireAuth, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const { cancellation, order, buyer, sellers } = await getOrderCancellationDetails(id);
@@ -630,24 +642,39 @@ app.delete('/vouchers/:id', requireVerified, async (req, res) => {
 });
 
 // ── Chat Controller ──
-app.post('/orders/:id/chat/:seller_id', requireVerified, async (req, res) => {
+// A buyer/seller chat is visible only to the buyer, that seller, and admins.
+function assertChatParticipant(req) {
+    const { isAdmin, isBuyer } = req.orderAccess;
+    if (!isAdmin && !isBuyer && parseInt(req.params.seller_id) !== req.user.id) {
+        const error = new Error('You are not a participant in this chat');
+        error.statusCode = 403;
+        throw error;
+    }
+}
+
+app.post('/orders/:id/chat/:seller_id', requireVerified, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
+        assertChatParticipant(req);
         const { id, seller_id } = req.params;
         const chat = await getOrCreateChat(id, parseInt(seller_id));
         return res.status(200).json(chat);
     });
 });
 
-app.get('/orders/:id/chats', requireAuth, async (req, res) => {
+app.get('/orders/:id/chats', requireAuth, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const chats = await getOrderChats(id);
-        return res.status(200).json(chats);
+        const { isAdmin, isBuyer } = req.orderAccess;
+        // Sellers only see their own negotiation, not other sellers' chats on the same order
+        const visible = isAdmin || isBuyer ? chats : chats.filter(c => c.seller_id === req.user.id);
+        return res.status(200).json(visible);
     });
 });
 
-app.get('/orders/:id/chat/:seller_id', requireAuth, async (req, res) => {
+app.get('/orders/:id/chat/:seller_id', requireAuth, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
+        assertChatParticipant(req);
         const { id, seller_id } = req.params;
         const chat = await getChat(id, parseInt(seller_id));
         return res.status(200).json(chat);
@@ -672,7 +699,7 @@ app.post('/orders/:id/chat/:seller_id/finalize', requireVerified, async (req, re
     });
 });
 
-app.get('/orders/:id/responses', async (req, res) => {
+app.get('/orders/:id/responses', requireAuth, requireOrderAccess, async (req, res) => {
     return await handleErrors(res, async () => {
         const { id } = req.params;
         const responses = await getAllSellerResponses(id);

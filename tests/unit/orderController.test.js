@@ -16,7 +16,7 @@ vi.mock('stripe', () => ({ default: MockStripe }));
 
 process.env.STRIPE_SECRET_KEY = 'sk_test_dummy';
 
-import { createOrder, getOrders, getOrder, updateOrder, deleteOrder, confirmPayment } from '../../src/controllers/orderController.js';
+import { createOrder, getOrders, getOrder, updateOrder, deleteOrder, confirmPayment, getOrderAccess } from '../../src/controllers/orderController.js';
 import pool from '../../src/database/database.js';
 
 describe('orderController', () => {
@@ -297,6 +297,42 @@ describe('orderController', () => {
             expect(result.payment_status).toBe('paid');
             const updateCall = pool.query.mock.calls.find(c => c[0].includes('payment_status'));
             expect(updateCall).toBeDefined();
+        });
+    });
+
+    describe('getOrderAccess', () => {
+        it('throws 404 when the order does not exist', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            await expect(getOrderAccess(1, { id: 1 })).rejects.toMatchObject({ statusCode: 404 });
+        });
+
+        it('identifies the buyer', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] });
+            await expect(getOrderAccess(1, { id: 1 })).resolves.toEqual({ isAdmin: false, isBuyer: true, isSeller: false });
+        });
+
+        it('identifies a seller with items in the order', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: true }] });
+            await expect(getOrderAccess(1, { id: 5 })).resolves.toEqual({ isAdmin: false, isBuyer: false, isSeller: true });
+        });
+
+        it('allows admins regardless of involvement', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] });
+            await expect(getOrderAccess(1, { id: 99, is_admin: true })).resolves.toMatchObject({ isAdmin: true });
+        });
+
+        it('throws 403 for anyone else', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: false }] });
+            await expect(getOrderAccess(1, { id: 9 })).rejects.toMatchObject({ statusCode: 403 });
+        });
+    });
+
+    describe('getOrders (buyer filter)', () => {
+        it('filters by buyer_id when given', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [{ id: 1, buyer_id: 3 }] });
+            await getOrders(null, 3);
+            expect(pool.query.mock.calls[0][0]).toContain('WHERE o.buyer_id = $1');
+            expect(pool.query.mock.calls[0][1]).toEqual([3]);
         });
     });
 });

@@ -94,13 +94,14 @@ describe('Order Response API (system)', () => {
             const seller = { id: 5, name: 'BobShop' };
 
             pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: true }] })
                 .mockResolvedValueOnce({ rows: [response] })
                 .mockResolvedValueOnce({ rows: [order] })
                 .mockResolvedValueOnce({ rows: items })
                 .mockResolvedValueOnce({ rows: [buyer] })
                 .mockResolvedValueOnce({ rows: [seller] });
 
-            const res = await request(app).get('/orders/1/response');
+            const res = await request(app).get('/orders/1/response').set('Authorization', `Bearer ${SELLER_TOKEN}`);
             expect(res.status).toBe(200);
             expect(res.body.response_code).toBe('AB');
         });
@@ -113,20 +114,23 @@ describe('Order Response API (system)', () => {
             const seller = { id: 5, name: 'BobShop', street: null, city: null, postcode: null, country: null };
 
             pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: true }] })
                 .mockResolvedValueOnce({ rows: [response] })
                 .mockResolvedValueOnce({ rows: [order] })
                 .mockResolvedValueOnce({ rows: items })
                 .mockResolvedValueOnce({ rows: [buyer] })
                 .mockResolvedValueOnce({ rows: [seller] });
 
-            const res = await request(app).get('/orders/1/response').set('Accept', 'application/xml');
+            const res = await request(app).get('/orders/1/response').set('Authorization', `Bearer ${SELLER_TOKEN}`).set('Accept', 'application/xml');
             expect(res.status).toBe(200);
             expect(res.text).toContain('<cbc:OrderCommunicationTypeCode>RE</cbc:OrderCommunicationTypeCode>');
         });
 
         it('returns 404 when no response exists', async () => {
-            pool.query.mockResolvedValueOnce({ rows: [] });
-            const res = await request(app).get('/orders/1/response');
+            pool.query
+                .mockResolvedValueOnce({ rows: [{ buyer_id: 1, is_seller: true }] })
+                .mockResolvedValueOnce({ rows: [] });
+            const res = await request(app).get('/orders/1/response').set('Authorization', `Bearer ${SELLER_TOKEN}`);
             expect(res.status).toBe(404);
         });
     });

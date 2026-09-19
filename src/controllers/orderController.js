@@ -172,10 +172,54 @@ export async function confirmPayment(order_id, user_id) {
     return updatedOrder;
 }
 
-export async function getOrders(seller_id = null) {
+// Work out how a user relates to an order. Throws 404 if the order does not exist and
+// 403 unless the user is an admin, the buyer, or a seller with items in the order.
+export async function getOrderAccess(order_id, user) {
+    const { rows: [row] } = await pool.query(
+        `SELECT o.buyer_id,
+                EXISTS (
+                    SELECT 1 FROM order_items oi JOIN products p ON p.id = oi.product_id
+                    WHERE oi.order_id = o.id AND p.seller_id = $2
+                ) AS is_seller
+         FROM orders o
+         WHERE o.id = $1`,
+        [order_id, user.id]
+    );
+
+    if (!row) {
+        const error = new Error('Order not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const access = {
+        isAdmin: Boolean(user.is_admin),
+        isBuyer: row.buyer_id === user.id,
+        isSeller: Boolean(row.is_seller),
+    };
+
+    if (!access.isAdmin && !access.isBuyer && !access.isSeller) {
+        const error = new Error('You do not have access to this order');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    return access;
+}
+
+export async function getOrders(seller_id = null, buyer_id = null) {
     let rows;
 
-    if (seller_id) {
+    if (buyer_id) {
+        ({ rows } = await pool.query(
+            `SELECT o.*, u.name AS buyer_name
+             FROM orders o
+             LEFT JOIN users u ON u.id = o.buyer_id
+             WHERE o.buyer_id = $1
+             ORDER BY o.created_at DESC`,
+            [buyer_id]
+        ));
+    } else if (seller_id) {
         ({ rows } = await pool.query(
             `SELECT DISTINCT o.*, u.name AS buyer_name
              FROM orders o
