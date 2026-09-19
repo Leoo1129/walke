@@ -2,3 +2,11 @@ node_modules/
 client/dist/
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store

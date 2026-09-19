@@ -110,8 +110,7 @@ import {
     finalizeChat
 } from './controllers/chatController.js';
 
-// setup web applicatioon -- from 1531...
-// Use middleware to access .json files
+// Set up the web application and parse JSON request bodies
 const app = express();
 app.use(json());
 app.use(express.json());

@@ -83,7 +83,7 @@ walke/
 │   │   ├── components/         # Shared components (Navbar)
 │   │   ├── context/            # AuthContext, ThemeContext, CurrencyContext
 │   │   └── api.js              # Axios instance (auto-injects Bearer token)
-│   ├── .env                    # Frontend environment variables (VITE_*)
+│   ├── .env.example            # Frontend environment variable template (VITE_*)
 │   ├── public/                 # Static assets (logo, favicon)
 │   └── vite.config.js          # Proxies /api and /uploads → backend
 ├── tests/
@@ -110,7 +110,7 @@ walke/
 ### 1. Clone and Install
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Leoo1129/walke.git
 cd walke
 
 # Install backend dependencies
@@ -137,7 +137,7 @@ psql -U postgres -d procurement -f src/database/database_schema.sql
 
 ### 3. Environment Variables
 
-Create a `.env` file in the **project root**:
+Copy `.env.example` to `.env` in the **project root** and fill in your values:
 
 ```env
 # Required
@@ -162,7 +162,7 @@ ABN_LOOKUP_GUID=your_abr_guid
 PORT=3000
 ```
 
-Create a `.env` file in the **`client/`** directory:
+Copy `client/.env.example` to `client/.env`:
 
 ```env
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...

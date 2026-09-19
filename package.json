@@ -1,7 +1,7 @@
 {
   "name": "walke",
   "version": "1.0.0",
-  "description": "Basic API server",
+  "description": "Full-stack B2B marketplace and procurement platform",
   "repository": {
     "type": "git",
     "url": "https://github.com/Leoo1129/walke.git"
