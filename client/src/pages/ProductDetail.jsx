@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function ProductDetail() {
+    const toast = useToast();
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const [qty, setQty] = useState(1);
@@ -20,9 +22,9 @@ export default function ProductDetail() {
         if (!isLoggedIn) return navigate('/login');
         try {
             await api.post('/cart', { product_id: product.id, quantity: qty });
-            alert('Added to cart');
+            toast.success('Added to cart');
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed');
+            toast.error(apiError(err));
         }
     }
 

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function Marketplace() {
+    const toast = useToast();
     const [products, setProducts] = useState([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
@@ -28,9 +30,9 @@ export default function Marketplace() {
         if (!isLoggedIn) return navigate('/login');
         try {
             await api.post('/cart', { product_id, quantity: 1 });
-            alert('Added to cart');
+            toast.success('Added to cart');
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to add to cart');
+            toast.error(apiError(err, 'Failed to add to cart'));
         }
     }
 

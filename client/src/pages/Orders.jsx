@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function Orders() {
+    const toast = useToast();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
@@ -29,7 +31,7 @@ export default function Orders() {
             const r = await api.get('/orders');
             setOrders(r.data.filter(o => o.buyer_id === user?.id));
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to cancel');
+            toast.error(apiError(err, 'Failed to cancel'));
         }
     }
 

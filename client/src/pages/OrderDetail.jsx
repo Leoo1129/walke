@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function OrderDetail() {
+    const toast = useToast();
     const { id } = useParams();
     const [order, setOrder] = useState(null);
     const [response, setResponse] = useState(null);
@@ -80,7 +82,7 @@ export default function OrderDetail() {
             await api.post(`/orders/${id}/response`, { response_code: code, note });
             load();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed');
+            toast.error(apiError(err));
         }
     }
 
@@ -91,7 +93,7 @@ export default function OrderDetail() {
             await api.post(`/orders/${id}/cancel`, { reason });
             load();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed');
+            toast.error(apiError(err));
         }
     }
 
@@ -107,7 +109,7 @@ export default function OrderDetail() {
             const xml = await res.text();
             setXmlView(xml);
         } catch {
-            alert('Failed to fetch XML');
+            toast.error('Failed to fetch XML');
         }
     }
 
@@ -117,11 +119,11 @@ export default function OrderDetail() {
         setEmailSending(true);
         try {
             await api.post(`/orders/${id}/xml-email`, { type: emailingType, email: emailAddr.trim() });
-            alert(`XML sent to ${emailAddr}`);
+            toast.success(`XML sent to ${emailAddr}`);
             setEmailingType(null);
             setEmailAddr('');
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to send email');
+            toast.error(apiError(err, 'Failed to send email'));
         } finally {
             setEmailSending(false);
         }
@@ -143,7 +145,7 @@ export default function OrderDetail() {
             a.download = `order-${id}-${type}.xml`;
             a.click();
         } catch {
-            alert('Failed to download XML');
+            toast.error('Failed to download XML');
         }
     }
 

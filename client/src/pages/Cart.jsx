@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function Cart() {
+    const toast = useToast();
     const [cart, setCart] = useState([]);
     const [voucher, setVoucher] = useState('');
     const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ export default function Cart() {
                 state: { client_secret: data.client_secret, total: data.total_price },
             });
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to place order');
+            toast.error(apiError(err, 'Failed to place order'));
         }
     }
 

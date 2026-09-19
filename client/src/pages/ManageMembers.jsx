@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 
 const ROLES = ['admin', 'editor', 'viewer'];
 
 export default function ManageMembers() {
+    const toast = useToast();
     const { id } = useParams();
     const navigate = useNavigate();
     const [members, setMembers] = useState([]);
@@ -78,7 +80,7 @@ export default function ManageMembers() {
             await api.patch(`/businesses/${id}/members/${user_id}`, { role });
             load();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed');
+            toast.error(apiError(err));
         }
     }
 
@@ -88,7 +90,7 @@ export default function ManageMembers() {
             await api.delete(`/businesses/${id}/members/${user_id}`);
             load();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed');
+            toast.error(apiError(err));
         }
     }
 

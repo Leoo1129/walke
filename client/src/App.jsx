@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CurrencyProvider } from './context/CurrencyContext';
+import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import PageLoader from './components/PageLoader';
 // The landing page ships in the main bundle; every other page is fetched on first visit
@@ -73,11 +74,13 @@ export default function App() {
     return (
         <ThemeProvider>
             <CurrencyProvider>
-                <AuthProvider>
-                    <BrowserRouter>
-                        <AppRoutes />
-                    </BrowserRouter>
-                </AuthProvider>
+                <ToastProvider>
+                    <AuthProvider>
+                        <BrowserRouter>
+                            <AppRoutes />
+                        </BrowserRouter>
+                    </AuthProvider>
+                </ToastProvider>
             </CurrencyProvider>
         </ThemeProvider>
     );

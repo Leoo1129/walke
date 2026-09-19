@@ -11,3 +11,8 @@ api.interceptors.request.use(config => {
 });
 
 export default api;
+
+// Pull a readable message out of an axios error, falling back to a default
+export function apiError(err, fallback = 'Something went wrong') {
+    return err?.response?.data?.error || fallback;
+}

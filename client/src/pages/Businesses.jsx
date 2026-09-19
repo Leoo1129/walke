@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function Businesses() {
+    const toast = useToast();
     const [businesses, setBusinesses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
@@ -27,7 +29,7 @@ export default function Businesses() {
             const r = await api.get('/businesses');
             setBusinesses(r.data);
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to create business');
+            toast.error(apiError(err, 'Failed to create business'));
         }
     }
 

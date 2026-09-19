@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 const TABS = ['Users', 'Orders', 'Products', 'Vouchers'];
 
 export default function AdminPanel() {
+    const toast = useToast();
     const { user } = useAuth();
     const { formatPrice } = useCurrency();
     const navigate = useNavigate();
@@ -78,7 +80,7 @@ export default function AdminPanel() {
             setEditingUser(null);
             loadUsers();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to update user');
+            toast.error(apiError(err, 'Failed to update user'));
         }
     }
 
@@ -88,7 +90,7 @@ export default function AdminPanel() {
             await api.delete(`/users/${userId}`);
             loadUsers();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to delete user');
+            toast.error(apiError(err, 'Failed to delete user'));
         }
     }
 
@@ -106,7 +108,7 @@ export default function AdminPanel() {
             setEditingProduct(null);
             loadProducts();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to update product');
+            toast.error(apiError(err, 'Failed to update product'));
         }
     }
 
@@ -116,7 +118,7 @@ export default function AdminPanel() {
             await api.delete(`/products/${productId}`);
             loadProducts();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to remove product');
+            toast.error(apiError(err, 'Failed to remove product'));
         }
     }
 
@@ -135,7 +137,7 @@ export default function AdminPanel() {
             setVoucherForm({ name: '', discount: '', expiry: '', max_uses: '', business_id: '' });
             loadVouchers();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to create voucher');
+            toast.error(apiError(err, 'Failed to create voucher'));
         }
     }
 
@@ -156,7 +158,7 @@ export default function AdminPanel() {
             setEditingVoucher(null);
             loadVouchers();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to update voucher');
+            toast.error(apiError(err, 'Failed to update voucher'));
         }
     }
 
@@ -166,7 +168,7 @@ export default function AdminPanel() {
             await api.delete(`/vouchers/${voucherId}`);
             loadVouchers();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to delete voucher');
+            toast.error(apiError(err, 'Failed to delete voucher'));
         }
     }
 

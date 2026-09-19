@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { apiError } from '../api';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function Dashboard() {
+    const toast = useToast();
     const { user } = useAuth();
     const { formatPrice } = useCurrency();
     const navigate = useNavigate();
@@ -79,7 +81,7 @@ export default function Dashboard() {
             const members = await api.get(`/businesses/${business_id}/members`).then(r => r.data).catch(() => []);
             const me = members.find(m => m.id === user.id);
             if (!me || me.role === 'viewer') {
-                alert('You must be an editor, admin, or owner of this business to add products to it.');
+                toast.error('You must be an editor, admin, or owner of this business to add products to it.');
                 return;
             }
         }
@@ -101,13 +103,13 @@ export default function Dashboard() {
                 image_url,
                 business_id,
             });
-            alert('Product added!');
+            toast.success('Product added!');
             setShowAddProduct(false);
             setProductForm({ name: '', price: '', tags: '', business_id: '' });
             setImageFile(null);
             loadMyProducts();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed');
+            toast.error(apiError(err));
         }
     }
 
@@ -139,7 +141,7 @@ export default function Dashboard() {
             setEditImageFile(null);
             loadMyProducts();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to update product');
+            toast.error(apiError(err, 'Failed to update product'));
         }
     }
 
@@ -149,7 +151,7 @@ export default function Dashboard() {
             await api.delete(`/products/${productId}`);
             loadMyProducts();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to remove product');
+            toast.error(apiError(err, 'Failed to remove product'));
         }
     }
 
@@ -174,7 +176,7 @@ export default function Dashboard() {
             setShowEditProfile(false);
             setProfileImageFile(null);
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to update profile');
+            toast.error(apiError(err, 'Failed to update profile'));
         }
     }
 
@@ -188,11 +190,11 @@ export default function Dashboard() {
                 max_uses: voucherForm.max_uses ? Number(voucherForm.max_uses) : null,
                 business_id: voucherForm.business_id ? Number(voucherForm.business_id) : null,
             });
-            alert('Voucher created!');
+            toast.success('Voucher created!');
             setShowAddVoucher(false);
             setVoucherForm({ name: '', discount: '', expiry: '', max_uses: '', business_id: '' });
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed');
+            toast.error(apiError(err));
         }
     }
 
